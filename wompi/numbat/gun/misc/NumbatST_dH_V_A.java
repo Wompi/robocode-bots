@@ -55,10 +55,10 @@ public class NumbatST_dH_V_A extends ANumbatSTCode
 	{
 		double[] result = new double[3];
 		int pHeadChange = tick >> 8;
-		result[0] = Math.toRadians((double) (pHeadChange - DELTA_HEADING_INDEX) / HEAD_FACTOR);		// delta heading
+		result[0] = Math.toRadians((pHeadChange - DELTA_HEADING_INDEX) / HEAD_FACTOR); // delta heading
 
 		int vkey = (tick) - (pHeadChange << 8);
-		result[1] = (double) (vkey - VELOCITY_INDEX) / VELO_FACTOR;								// velocity
+		result[1] = (vkey - VELOCITY_INDEX) / VELO_FACTOR; // velocity
 
 		return result;
 

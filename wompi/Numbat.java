@@ -201,8 +201,21 @@ import wompi.numbat.target.NumbatTargetManager;
  * Credit: hmm
  * .. toooo hot
  * 
+ * Size v1.7:
+ * Hmm my new formatter messed up the comments but for now i'm to lazy to fix this. Anyway i try to switch to github and comment the code while
+ * punching it
+ * in. After aeons of testing, searching and crying i finally found a huge bug within my gun and from now on i hit wall with an impressive hitratio.
+ * The bug
+ * was very well hidden and i stepped over it by accident. Well at least the gun is now a little better and i started to tweak some combat settings.
+ * Maybe
+ * i can go back to dynamic pattern and zero pattern we will see.
+ * I put all my botcode on github and i'm quite happy about this. I changed a couple of minor things too but have forgotten was it was.
+ * 
+ * Credit: hmm
+ * ... yehaaa a new version
+ * 
  * @author Wompi
- * @date 27/07/2012
+ * @date 08/08/2012
  */
 public class Numbat extends AdvancedRobot
 {
@@ -215,8 +228,8 @@ public class Numbat extends AdvancedRobot
 	// private boolean isTimeDebug = true;
 
 	// related to skipped turns bug, where double scan events occur
-	private SkippedTurnHandler			mySkipped;
-	private ScannedRobotHandler			myScans;
+	private final SkippedTurnHandler	mySkipped;
+	private final ScannedRobotHandler	myScans;
 
 	// public static TestPatternString myTestPattern = new TestPatternString();
 
@@ -292,7 +305,7 @@ public class Numbat extends AdvancedRobot
 		// myTestPattern.registerHistoryPlaceHolder(e.getTime());
 
 		mySkipped.onStatus(e);
-		myScans.onStatus(e);   // skipped turn bug prevent
+		myScans.onStatus(e); // skipped turn bug prevent
 		myTargetMan.setBotStatus(e.getStatus());
 		myRadarMan.setBotStatus(e.getStatus());
 		myGunMan.setBotStatus(e.getStatus());
@@ -319,7 +332,7 @@ public class Numbat extends AdvancedRobot
 			// if (isTimeDebug) TimeProfile.GUN_UPDATE.start();
 			for (ScannedRobotEvent scan : myScans.getAllScanEvents())
 			{
-				myTargetMan.onScannedRobot(scan);  // sets also the targets new
+				myTargetMan.onScannedRobot(scan); // sets also the targets new
 				myGunMan.onScannedRobot(scan);
 				myRadarMan.onScannedRobot(scan);
 				myMoveMan.onScannedRobot(scan);
@@ -372,16 +385,19 @@ public class Numbat extends AdvancedRobot
 		myGunMan.onPaint(g);
 	}
 
+	@Override
 	public void onDeath(DeathEvent event)
 	{
 		DebugMiscProperties.debugWinStats(getOthers());
 	}
 
+	@Override
 	public void onWin(WinEvent event)
 	{
 		DebugMiscProperties.debugWinStats(getOthers());
 	}
 
+	@Override
 	public void onKeyPressed(KeyEvent e)
 	{
 		char c = e.getKeyChar();

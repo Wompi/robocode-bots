@@ -28,25 +28,25 @@ import wompi.wallaby.PaintHelper;
 
 public class NumbatTargetManager implements ITargetManager
 {
-	private RobotStatus						botStatus;
+	private RobotStatus							botStatus;
 
-	private final static int				MAX_ENDGAME_OPPONENTS	= 2;
-	private HashMap<String, NumbatTarget>	allTargets				= new HashMap<String, NumbatTarget>();
+	private final static int					MAX_ENDGAME_OPPONENTS	= 2;
+	private final HashMap<String, NumbatTarget>	allTargets				= new HashMap<String, NumbatTarget>();
 
-	private NumbatTarget					myGunTarget;
-	private NumbatTarget					myMoveTarget;
-	private NumbatTarget					myRadarTarget;
-	private NumbatTarget					myLastScanTarget;
-	public static boolean					isDebug					= false;
+	private NumbatTarget						myGunTarget;
+	private NumbatTarget						myMoveTarget;
+	private NumbatTarget						myRadarTarget;
+	private NumbatTarget						myLastScanTarget;
+	public static boolean						isDebug					= false;
 
-	int										closestBots;
+	int											closestBots;
 
 	public void init()
 	{
 		myGunTarget = null;
 		myMoveTarget = null;
 		myRadarTarget = null;
-		closestBots = 9;			// well a little awkward but should work
+		closestBots = 9; // well a little awkward but should work
 		for (NumbatTarget enemy : allTargets.values())
 		{
 			enemy.init();
@@ -99,11 +99,11 @@ public class NumbatTargetManager implements ITargetManager
 				double rRate;
 				if (botStatus.getOthers() > MAX_ENDGAME_OPPONENTS)
 				{
-					if (closestBots == 0)  // if we are not the closest bot to anyone - target something that is worth it ,do it only with enough
+					if (closestBots == 0) // if we are not the closest bot to anyone - target something that is worth it ,do it only with enough
 											// opponents
 					{
-						tRate = target.getDistance(botStatus) - target.eScore - target.getAveragePatternLength() * 5;
-						rRate = result.getDistance(botStatus) - result.eScore - result.getAveragePatternLength() * 5;
+						tRate = target.getDistance(botStatus) - target.eScore - target.getAveragePatternLength() * 10;
+						rRate = result.getDistance(botStatus) - result.eScore - result.getAveragePatternLength() * 10;
 					}
 					else
 					{
@@ -137,6 +137,7 @@ public class NumbatTargetManager implements ITargetManager
 		}
 	}
 
+	@Override
 	public int getCloseBots()
 	{
 		return closestBots;

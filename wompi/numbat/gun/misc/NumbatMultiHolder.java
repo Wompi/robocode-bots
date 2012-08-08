@@ -30,11 +30,13 @@ public class NumbatMultiHolder implements INumbatTick
 		classElements++;
 	}
 
+	@Override
 	public NumbatSingleHolder getMaxTick()
 	{
 		return vCount.get(0);
 	}
 
+	@Override
 	public boolean incrementCount(int id)
 	{
 		for (NumbatSingleHolder singleTick : vCount)
@@ -42,6 +44,11 @@ public class NumbatMultiHolder implements INumbatTick
 			if (singleTick.myID == id)
 			{
 				singleTick.vCount++;
+				NumbatSingleHolder maxTick = vCount.get(0);
+				if (maxTick != singleTick && singleTick.vCount > maxTick.vCount)
+				{
+					Collections.sort(vCount);
+				}
 				return true;
 			}
 		}

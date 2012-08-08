@@ -36,7 +36,7 @@ public class NumbatTarget extends Point2D.Double
 {
 	private static final long			serialVersionUID	= -5406737205536713408L;
 
-	public final static double			MAX_PATTERN_BORDER	= 23;
+	public final static double			MAX_PATTERN_BORDER	= 13;
 
 	private double						lastX;
 	private double						lastY;
@@ -165,7 +165,7 @@ public class NumbatTarget extends Point2D.Double
 	public double getEnergyDifference()
 	{
 		if (eLastEnergy == -1) return 0;
-		return eLastEnergy - eEnergy;			// changed sign last first
+		return eLastEnergy - eEnergy; // changed sign last first
 	}
 
 	public long getLastScanDifference()

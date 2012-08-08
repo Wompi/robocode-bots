@@ -20,6 +20,7 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.echidna.misc.DebugPointLists;
 import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.gun.fire.ANumbatFire;
 import wompi.numbat.gun.misc.ANumbatSTCode;
@@ -32,22 +33,24 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatSTGun extends ANumbatGun
 {
-	private final static double	WZ						= 17.9999;
-	public final static int		DEFAULT_PATTERN_LENGTH	= 30;
+	private final static double		WZ						= 17.9999;
+	public final static int			DEFAULT_PATTERN_LENGTH	= 30;
 
-	private ANumbatSTCode		myCode;
+	private final ANumbatSTCode		myCode;
 
 	// debug
-	// private DebugPointLists debugPointList = new DebugPointLists();
+	private final DebugPointLists	debugPointList			= new DebugPointLists();
 
 	public NumbatSTGun()
 	{
 		myCode = new NumbatST_dH_V_A();
 	}
 
+	@Override
 	public void init(RobotStatus status)
 	{}
 
+	@Override
 	public void setGun(RobotStatus status, ITargetManager targetMan, ANumbatFire fire)
 	{
 		// TestPatternAccuracy.registerActualPattern(status.getTime(), 'X');
@@ -64,13 +67,13 @@ public class NumbatSTGun extends ANumbatGun
 
 		if (ePattern.length() == 0) return;
 
-		// debugPointList.reset();
+		debugPointList.reset();
 		// long count = 0;
 
 		boolean isFirst = true;
 		for (double bDist = 0; bDist < Point2D.distance(status.getX(), status.getY(), xg, yg); bDist += fire.getBulletSpeed())
 		{
-			if (status.getGunHeat() >= 0.5) break;	// if the gunHeat is not near shooting set gun to HOT and break
+			if (status.getGunHeat() >= 0.5) break; // if the gunHeat is not near shooting set gun to HOT and break
 			// System.out.format("[%d] bDist=%3.2f\n", count++,bDist);
 
 			int nextStep = 0;
@@ -81,7 +84,7 @@ public class NumbatSTGun extends ANumbatGun
 			{
 				// System.out.format("len=%d pLen=%d\n", len,patternLength);
 				String debugStr = ePattern.substring(0, len);
-				tick = target.matcherMap.get(debugStr.hashCode());	// automatic cast to Integer
+				tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
 			}
 			nextStep = tick.getMaxTick().myID;
 			if (isFirst)
@@ -131,19 +134,20 @@ public class NumbatSTGun extends ANumbatGun
 			if (wHit)
 			{
 				nextStep = myCode.encode(pHeadChange, 0, velocity);
-				// debugPointList.badPoints.add(new Point2D.Double(xg, yg));
+				debugPointList.badPoints.add(new Point2D.Double(xg, yg));
 			}
-			// else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
+			else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
 			ePattern.insert(0, (char) nextStep);
 		}
 
 		// TestPatternAccuracy.registerDesiredPattern(status.getTime(),sDesire);
-		// debugPointList.targetPoint = new Point2D.Double(xg, yg);
+		debugPointList.targetPoint = new Point2D.Double(xg, yg);
 
 		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY()) - status.getGunHeadingRadians());
 
 	}
 
+	@Override
 	public void onScannedRobot(ScannedRobotEvent scan, RobotStatus status, ITargetManager targetMan)
 	{
 		NumbatTarget target = targetMan.getLastScanTarget();
@@ -163,14 +167,14 @@ public class NumbatSTGun extends ANumbatGun
 			// {
 			// System.out.format("[%d] hDiff=%3.10f hMax=%3.10f %d dDist=%3.4f v=%3.2f lastV=%3.2f - scantime=%d %s\n",status.getTime(),Math.toDegrees(hDiff),Math.toDegrees(hMax),target.getLastScanDifference(),target.getLastDistanceDifference(),target.eVelocity,target.eLastVelocity,scan.getTime(),target.eName);
 			// }
-			// target.eHistory.setLength(0);
+			target.eHistory.setLength(0);
 			return;
 		}
 		else if (scanDiff <= 1 && Math.abs(hDiff) > hMax)
 		{
 			// this state is clearly an robocode bug, but it happens frequently because of the bad skipped turn behaivior
 			// System.out.format("[%d] hDiff=%3.10f hMax=%3.10f %d dDist=%3.4f - scantime=%d %s\n",status.getTime(),Math.toDegrees(hDiff),Math.toDegrees(hMax),target.getLastScanDifference(),target.getLastDistanceDifference(),scan.getTime(),target.eName);
-			// target.eHistory.setLength(0);
+			target.eHistory.setLength(0);
 			return;
 		}
 
@@ -179,15 +183,18 @@ public class NumbatSTGun extends ANumbatGun
 		// register the startPattern for every scanned target
 		// TODO: get rid of this code copy and find something appropriate
 		int patternLength = Math.min(target.eMatchKeyLength, target.eHistory.length());
-		INumbatTick tick = null;
-		int len = 0;
-		for (len = patternLength; tick == null; --len)
+		if (patternLength > 10) // because of the history reset on missed turns this would lead to very bad avg pattern length - hopefully 10 is enough to make it work
 		{
-			// System.out.format("len=%d pLen=%d\n", len,patternLength);
-			String debugStr = target.eHistory.substring(0, len);
-			tick = target.matcherMap.get(debugStr.hashCode());	// automatic cast to Integer
+			INumbatTick tick = null;
+			int len = 0;
+			for (len = patternLength; tick == null; --len)
+			{
+				// System.out.format("len=%d pLen=%d\n", len,patternLength);
+				String debugStr = target.eHistory.substring(0, len);
+				tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
+			}
+			target.registerPatternLength(len + 1);
 		}
-		target.registerPatternLength(len + 1);
 	}
 
 	private void record(double deltaHead, double velocity, double lastVelocity, StringBuilder history, Map<Integer, INumbatTick> matchMap, int keylen)
@@ -217,15 +224,17 @@ public class NumbatSTGun extends ANumbatGun
 		// TestPatternAccuracy.registerActualPattern(status.getTime(), (char)thisStep);
 	}
 
+	@Override
 	public void excecute(AdvancedRobot myBot)
 	{
 		super.excecute(myBot);
 		// TestPatternAccuracy.onPrint(myBot.getTime());
 	}
 
+	@Override
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
-		// debugPointList.onPaint(g);
+		debugPointList.onPaint(g);
 	}
 
 	@Override
