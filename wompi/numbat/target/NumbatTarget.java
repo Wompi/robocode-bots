@@ -1,0 +1,358 @@
+/*******************************************************************************
+ * Copyright (c)  2012  Wompi 
+ * 
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the ZLIB
+ * which accompanies this distribution, and is available at
+ * http://robowiki.net/wiki/ZLIB
+ * 
+ * Contributors:
+ *     Wompi - initial API and implementation
+ ******************************************************************************/
+package wompi.numbat.target;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import robocode.Bullet;
+import robocode.BulletHitEvent;
+import robocode.HitRobotEvent;
+import robocode.RobotStatus;
+import robocode.Rules;
+import robocode.ScannedRobotEvent;
+import robocode.util.Utils;
+import wompi.echidna.misc.painter.PaintTargetSquare;
+import wompi.numbat.debug.DebugRadarProperties;
+import wompi.numbat.gun.NumbatSTGun;
+import wompi.numbat.gun.misc.INumbatTick;
+import wompi.wallaby.PaintHelper;
+
+public class NumbatTarget extends Point2D.Double
+{
+	private static final long			serialVersionUID	= -5406737205536713408L;
+
+	public final static double			MAX_PATTERN_BORDER	= 23;
+
+	private double						lastX;
+	private double						lastY;
+
+	private double						eAbsBearing;
+	private double						eLastAbsBearing;											// TODO: not clear for what this is usefull
+
+	public double						eHeading;
+	public double						eLastHeading;
+
+	public double						eEnergy;
+	public double						eLastEnergy;
+
+	public double						eVelocity;
+	public double						eLastVelocity;
+
+	public long							eScan;
+	public long							eLastScan;
+	public double						eSlipDir			= 1;
+
+	private double						eLastDistance;
+	private double						eDistance;
+	public boolean						hasFired;
+
+	public int							eScanState;
+	public String						eName;
+	public int							eVisits;
+
+	public boolean						isAlive;
+
+	private ArrayList<Bullet>			eFiredBullets;
+
+	// singe tick pattern gun
+	public Map<Integer, INumbatTick>	matcherMap;
+	public StringBuilder				eHistory;
+	private int							avgPatternLength;
+	private int							avgPatternCount;
+	public int							eMatchKeyLength		= NumbatSTGun.DEFAULT_PATTERN_LENGTH;
+
+	public double						eScore;
+
+	// NumbatSimpleAverage vAvgSimple;
+
+	// debug
+	// private PaintDiagramm debugDiagram = new PaintDiagramm();
+	// public NumbatPointHandler myPointHandler = new NumbatPointHandler();
+
+	public NumbatTarget()
+	{
+		init();
+	}
+
+	public void init()
+	{
+		eHeading = java.lang.Double.NaN;
+		eLastHeading = java.lang.Double.NaN;
+		eEnergy = -1;
+		eLastEnergy = -1;
+		eDistance = 2000;
+		eLastDistance = 2000;
+		eVelocity = java.lang.Double.NaN;
+		eLastVelocity = java.lang.Double.NaN;
+		eScan = 0;
+		eLastScan = 0;
+		isAlive = true;
+		eHistory = new StringBuilder(NumbatSTGun.DEFAULT_PATTERN_LENGTH);
+		eFiredBullets = new ArrayList<Bullet>();
+		eScore = 0;
+		// vAvgSimple = new NumbatSimpleAverage(2);
+		if (matcherMap == null)
+		{
+			matcherMap = new LinkedHashMap<Integer, INumbatTick>(500000);
+		}
+	}
+
+	public void onScannedRobot(ScannedRobotEvent scan, RobotStatus status)
+	{
+
+		// boolean bugCheck = scan.getTime()-eScan == 0;
+		// if (bugCheck)
+		// {
+		// System.out.format("[%d] absBear=%3.4f distance=%3.4f lastHead=%3.5f head=%3.5f lastVelo=%3.2f velo=%3.2f lastEnergy=%3.2f energy=%3.2f x=%3.4f y=%3.4f \n",
+		// status.getTime(),eAbsBearing,eDistance,eLastHeading,eHeading,eLastVelocity,eVelocity,eLastEnergy,eEnergy,x,y);
+		// }
+		eVisits++;
+
+		eAbsBearing = status.getHeadingRadians() + scan.getBearingRadians();
+
+		eLastDistance = eDistance;
+		eDistance = scan.getDistance();
+
+		eLastHeading = eHeading;
+		eHeading = scan.getHeadingRadians();
+
+		eLastVelocity = eVelocity;
+		eVelocity = scan.getVelocity();
+
+		eLastScan = eScan;
+		eScan = scan.getTime();
+
+		eLastEnergy = eEnergy;
+		eEnergy = scan.getEnergy();
+
+		isAlive = true;
+
+		lastX = x;
+		lastY = y;
+
+		x = Math.sin(eAbsBearing) * eDistance + status.getX();
+		y = Math.cos(eAbsBearing) * eDistance + status.getY();
+
+		DebugRadarProperties.debugScanDifference(getLastScanDifference());
+
+		// vAvgSimple.avg(scan.getVelocity(), scan.getTime());
+
+		// myPointHandler.registerRelativePoint(scan.getTime(),getLastScanDifference(),eVelocity, eLastVelocity, eHeading, eLastHeading);
+		// myPointHandler.registerAbsolutePoint(scan.getTime(),getLastScanDifference(),x,y,eVelocity, eLastVelocity, eHeading, eLastHeading);
+		// System.out.format("[%d] absBear=%3.4f distance=%3.4f lastHead=%3.5f head=%3.5f lastVelo=%3.2f velo=%3.2f lastEnergy=%3.2f energy=%3.2f x=%3.4f y=%3.4f %s\n",
+		// status.getTime(),eAbsBearing,eDistance,eLastHeading,eHeading,eLastVelocity,eVelocity,eLastEnergy,eEnergy,x,y,eName);
+		// if (bugCheck)
+		// {
+		// System.out.format("depp\n");
+		// }
+	}
+
+	public double getEnergyDifference()
+	{
+		if (eLastEnergy == -1) return 0;
+		return eLastEnergy - eEnergy;			// changed sign last first
+	}
+
+	public long getLastScanDifference()
+	{
+		return eScan - eLastScan;
+	}
+
+	public long getCurrentScanDifference(RobotStatus status)
+	{
+		return status.getTime() - eScan;
+	}
+
+	public double getLastDistanceDifference()
+	{
+		return this.distance(lastX, lastY);
+	}
+
+	public double getHeadingDifference()
+	{
+		// TODO: 0 is not a good value better would be something like NaN but that has to be checked every time the function is called
+		if (java.lang.Double.isNaN(eLastHeading)) return Math.PI;
+		return Utils.normalRelativeAngle(eHeading - eLastHeading);
+	}
+
+	public double getAverageVelocity()
+	{
+		// return vAvgSimple.avg()*Math.signum(eVelocity);
+		// TODO: be careful if you reuse this again
+		return 0;
+	}
+
+	/**
+	 * If the scan time is equals the status time the last real bearing will be returned.
+	 * Otherwise the calculated bearing to the last calculated x,y coordinates.
+	 * TODO: maybe the angle should be interpolated if the scan is just 1-5 turns away to give a more precise view. Or i just use the pattern to
+	 * interpolate
+	 * the angle
+	 * 
+	 * @param status
+	 * @return current absolute bearing of the target, the return value is an absolute angle and has to be normalized if relative angles are needed
+	 */
+	public double getAbsoluteBearing(RobotStatus status)
+	{
+		if (eScan == status.getTime()) return eAbsBearing;
+		return Utils.normalAbsoluteAngle(Math.atan2(x - status.getX(), y - status.getY()));
+	}
+
+	public double getDistance(RobotStatus status)
+	{
+		if (eScan == status.getTime()) return eDistance;
+		return this.distance(status.getX(), status.getY());
+	}
+
+	public boolean isTargetFireing()
+	{
+		double energyDiff = getEnergyDifference();
+		if (energyDiff <= 3.0 && energyDiff >= .1) { return true; }
+		return false;
+
+	}
+
+	public int getAveragePatternLength()
+	{
+		if (avgPatternCount == 0) return 0;
+		return avgPatternLength / avgPatternCount;
+	}
+
+	public void registerPatternLength(int pLength)
+	{
+		avgPatternLength += pLength;
+		avgPatternCount++;
+
+		// if (getAveragePatternLength() >= (eMatchKeyLength*0.5))
+		{
+			// eMatchKeyLength += 10;
+			// eMatchKeyLength = Math.min(eMatchKeyLength, 40);
+		}
+	}
+
+	public void onRobotDeath()
+	{
+		isAlive = false;
+	}
+
+	public void onBulletHit(BulletHitEvent e, RobotStatus myBotStatus)
+	{
+		double dmg = Rules.getBulletDamage(e.getBullet().getPower());
+		eScore += dmg;
+		eEnergy -= dmg;
+	}
+
+	/**
+	 * Maybe it is useful to decide if the target should be switched. If the score bonus is grater 10 it might be better to finish the target off
+	 * instead
+	 * of switching to a new one
+	 * 
+	 * @return 20% of the current score against this target
+	 */
+	public double getScoreBonus()
+	{
+		return eScore * 0.2;
+	}
+
+	public void registerBullet(Bullet bullet)
+	{
+		eFiredBullets.add(bullet);
+	}
+
+	public double getLiveFireDamage()
+	{
+		Iterator<Bullet> iter = eFiredBullets.iterator();
+		double fireDamage = 0;
+		while (iter.hasNext())
+		{
+			Bullet bullet = iter.next();
+			if (bullet.isActive())
+			{
+				fireDamage += Rules.getBulletDamage(bullet.getPower());
+			}
+			else
+			{
+				iter.remove();
+			}
+		}
+		return fireDamage;
+	}
+
+	public void onPaint(Graphics2D g, RobotStatus status)
+	{
+		// if (isAlive)
+		// {
+		// double dist = getCurrentScanDifference(status) * Rules.MAX_VELOCITY;
+		// PaintHelper.drawArc(this, dist, 0, Math.PI*2.0, true, g, PaintHelper.greenTrans);
+		// PaintHelper.drawArc(this, dist, 0, Math.PI*2.0, false, g, PaintHelper.whiteTrans);
+		// double srate = Rules.MAX_VELOCITY / (getDistance(status) - getCurrentScanDifference(status)*Rules.MAX_VELOCITY);
+		// g.setColor(Color.CYAN);
+		// g.setFont(PaintHelper.myFont);
+		// g.drawString(String.format("[%3.2f]",srate),(int)x-20,(int)y-20-10);
+		// }
+		//
+		if (isAlive)
+		{
+			if (getAveragePatternLength() >= 20)
+			{
+				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.yellowTrans);
+				g.setColor(Color.YELLOW);
+				g.setFont(PaintHelper.myFont);
+				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
+						* getAveragePatternLength()), (int) x, (int) y + 42);
+			}
+			else if (getAveragePatternLength() >= 9)
+			{
+				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.greenTrans);
+				g.setColor(Color.GREEN);
+				g.setFont(PaintHelper.myFont);
+				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
+						* getAveragePatternLength()), (int) x, (int) y + 42);
+			}
+			else
+			{
+				PaintTargetSquare.drawTargetSquare(g, 0, x, y, PaintHelper.redTrans);
+				g.setColor(Color.RED);
+				g.setFont(PaintHelper.myFont);
+				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
+						* getAveragePatternLength()), (int) x, (int) y + 42);
+
+			}
+		}
+	}
+
+	public void onSinglePaint(Graphics2D g, RobotStatus status)
+	{
+		// debugDiagram.onPaint(g, status, getAveragePatternLength(), Color.BLUE,eName);
+		// PaintRobotPath.onPaint(g, eName, status.getTime(), x, y, Color.GRAY);
+	}
+
+	public void onHitRobot(HitRobotEvent e, RobotStatus status)
+	{
+		eAbsBearing = status.getHeadingRadians() + e.getBearingRadians();
+
+		eLastVelocity = eVelocity;
+		eVelocity = 0;
+
+		eLastEnergy = eEnergy;
+		eEnergy = e.getEnergy();
+
+		x = Math.sin(eAbsBearing) * eDistance + status.getX();
+		y = Math.cos(eAbsBearing) * eDistance + status.getY();
+	}
+}
