@@ -11,6 +11,7 @@
  ******************************************************************************/
 package wompi.numbat.radar;
 
+import java.awt.Graphics2D;
 import java.util.HashSet;
 
 import robocode.AdvancedRobot;
@@ -67,6 +68,13 @@ public abstract class ANumbatRadar
 		return true;
 	}
 
+	// aergs bad design
+	public final boolean isStartSearch(int others, long time)
+	{
+		if (startSet.size() == others || time > 8) return false;
+		return true;
+	}
+
 	protected final double getBestAngleStart(RobotStatus status)
 	{
 		double centerX = BattleField.BATTLE_FIELD_W / 2.0;
@@ -75,5 +83,8 @@ public abstract class ANumbatRadar
 		double rAngle = Utils.normalRelativeAngle(bAngle - status.getRadarHeadingRadians());
 		return (Double.POSITIVE_INFINITY * Math.signum(rAngle));
 	}
+
+	protected void onPaint(Graphics2D g, RobotStatus botStatus, ITargetManager myTargetMan)
+	{}
 
 }
