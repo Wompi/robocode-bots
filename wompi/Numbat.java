@@ -69,7 +69,7 @@ public class Numbat extends AdvancedRobot
 	private final SkippedTurnHandler	mySkipped;
 	private final ScannedRobotHandler	myScans;
 
-	// public static TestPatternString myTestPattern = new TestPatternString();
+	//public static TestPatternString		myTestPattern	= new TestPatternString();
 
 	public Numbat()
 	{
@@ -97,6 +97,8 @@ public class Numbat extends AdvancedRobot
 		while (true)
 		{
 			// if (isTimeDebug) TimeProfile.DEBUG_TIME_01.start();
+			//DebugColorChanger.setColor(this);
+
 			handleScannedRobotEvents();
 
 			myTargetMan.setTargets();
@@ -113,14 +115,14 @@ public class Numbat extends AdvancedRobot
 			myGunMan.excecute(this);
 			// if (isTimeDebug) TimeProfile.GUN_EXECUTE.stop();
 
-			DebugGunProperties.debugPatternClasses();
+			//			DebugGunProperties.debugPatternClasses();
 			//
 			// DebugGunProperties.execute();
-			DebugRadarProperties.execute();
-			DebugGunProperties.execute();
-			DebugMiscProperties.execute();
-			DebugMoveProperties.execute();
-			DebugTargetProperties.execute();
+			//			DebugRadarProperties.execute();
+			//			DebugGunProperties.execute();
+			//			DebugMiscProperties.execute();
+			//			DebugMoveProperties.execute();
+			//			DebugTargetProperties.execute();
 			// DebugTestProperties.execute();
 			//
 			// if (isTimeDebug)
@@ -130,7 +132,7 @@ public class Numbat extends AdvancedRobot
 			// TimeProfile.setRoundProperties(this);
 			// }
 
-			// myTestPattern.printHistory(getTime());
+			//myTestPattern.printHistory(getTime());
 			execute();
 		}
 	}
@@ -140,7 +142,7 @@ public class Numbat extends AdvancedRobot
 	{
 		// if (isTimeDebug) TimeProfile.TURN_TIME.start();
 
-		// myTestPattern.registerHistoryPlaceHolder(e.getTime());
+		//myTestPattern.registerHistoryPlaceHolder(e.getTime());
 
 		mySkipped.onStatus(e);
 		myScans.onStatus(e); // skipped turn bug prevent
@@ -154,6 +156,7 @@ public class Numbat extends AdvancedRobot
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		// scan events will be handled all together in run
+		//myTestPattern.registerScan(e.getTime(), e.getName());
 		myScans.onScannedRobot(e);
 		mySkipped.onScannedRobot(e);
 	}
@@ -221,6 +224,7 @@ public class Numbat extends AdvancedRobot
 		myTargetMan.onPaint(g);
 		myMoveMan.onPaint(g);
 		myGunMan.onPaint(g);
+		myRadarMan.onPaint(g);
 	}
 
 	@Override
