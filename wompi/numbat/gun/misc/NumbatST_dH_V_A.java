@@ -15,9 +15,9 @@ public class NumbatST_dH_V_A extends ANumbatSTCode
 {
 	private final int		ENCODE_PARAMS		= 3;
 	private final int		DELTA_HEADING_INDEX	= 20;
-	private final int		VELOCITY_INDEX		= 8;
+	private final int		VELOCITY_INDEX		= 16;
 	private final double	HEAD_FACTOR			= 2.0;
-	private final double	VELO_FACTOR			= 1.0;
+	private final double	VELO_FACTOR			= 2.0;
 
 	/**
 	 * parameter:

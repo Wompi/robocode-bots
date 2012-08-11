@@ -19,8 +19,9 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatWeightedRadar extends ANumbatRadar
 {
-	public final static double	MAX_RADAR_RATE		= 0.07;			// less is more search
+	public final static double	MAX_RADAR_RATE		= 0.07; // less is more search
 	public final static double	DEFAULT_RADAR_WIDTH	= 5.0;
+	public final static double	DEFAULT_RADAR_LOCK	= 0.8;
 
 	@Override
 	void setRadar(RobotStatus status, ITargetManager targetMan)
@@ -34,7 +35,7 @@ public class NumbatWeightedRadar extends ANumbatRadar
 		}
 		else
 		{
-			rTurn = Double.POSITIVE_INFINITY * ((target.eSlipDir == 0) ? 1 : target.eSlipDir);  // TODO: zero slipDir is sitting duck, maybe 1 is not
+			rTurn = Double.POSITIVE_INFINITY * ((target.eSlipDir == 0) ? 1 : target.eSlipDir); // TODO: zero slipDir is sitting duck, maybe 1 is not
 																								// good;
 		}
 
@@ -46,9 +47,10 @@ public class NumbatWeightedRadar extends ANumbatRadar
 				{
 					double rate = Rules.MAX_VELOCITY / (enemy.getDistance(status) - enemy.getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
 
-					if (rate >= MAX_RADAR_RATE || rate <= 0)
+					// NOTE: the GunHeat rule is awesome i guess
+					if ((rate >= MAX_RADAR_RATE || rate <= 0) && status.getGunHeat() > DEFAULT_RADAR_LOCK)
 					{
-						rTurn = Double.POSITIVE_INFINITY * ((enemy.eSlipDir == 0) ? 1 : enemy.eSlipDir);  // TODO: zero slipDir is sitting duck, maybe
+						rTurn = Double.POSITIVE_INFINITY * ((enemy.eSlipDir == 0) ? 1 : enemy.eSlipDir); // TODO: zero slipDir is sitting duck, maybe
 																											// 1 is not good;
 						break;
 					}

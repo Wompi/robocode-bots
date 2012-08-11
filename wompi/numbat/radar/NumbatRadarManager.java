@@ -11,6 +11,7 @@
  ******************************************************************************/
 package wompi.numbat.radar;
 
+import java.awt.Graphics2D;
 import java.util.ArrayList;
 
 import robocode.AdvancedRobot;
@@ -22,17 +23,18 @@ import wompi.numbat.target.ITargetManager;
 
 public class NumbatRadarManager
 {
-	private RobotStatus				botStatus;
-	private ITargetManager			myTargetMan;
+	private RobotStatus						botStatus;
+	private ITargetManager					myTargetMan;
 
-	private ANumbatRadar			myRadar;
+	private ANumbatRadar					myRadar;
 
-	private ArrayList<ANumbatRadar>	allRadars;
+	private final ArrayList<ANumbatRadar>	allRadars;
 
 	public NumbatRadarManager()
 	{
 		allRadars = new ArrayList<ANumbatRadar>();
 		allRadars.add(new NumbatRadarSingle());
+		//allRadars.add(new NumbatRadarMeleeField());
 		allRadars.add(new NumbatWeightedRadar());
 		allRadars.add(new NumbatRadarNone());
 	}
@@ -93,4 +95,13 @@ public class NumbatRadarManager
 	{
 		botStatus = status;
 	}
+
+	public void onPaint(Graphics2D g)
+	{
+		if (!myRadar.isStartSearch(botStatus))
+		{
+			myRadar.onPaint(g, botStatus, myTargetMan);
+		}
+	}
+
 }

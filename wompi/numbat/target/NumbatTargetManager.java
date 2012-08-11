@@ -80,6 +80,7 @@ public class NumbatTargetManager implements ITargetManager
 	{
 		NumbatTarget result = null;
 		setClosestBotCount();
+		NumbatTarget enoughFireDamageTarget = null;
 		for (NumbatTarget target : allTargets.values())
 		{
 			if (target.isAlive)
@@ -90,10 +91,12 @@ public class NumbatTargetManager implements ITargetManager
 					continue;
 				}
 
-				// if (target.getLiveFireDamage() > target.eEnergy && target.getAveragePatternLength() >= NumbatTarget.MAX_PATTERN_BORDER)
-				// {
-				// continue;
-				// }
+				//				if (target.getLiveFireDamage() > (target.eEnergy))
+				//				{
+				//					//System.out.format("[%d] enough damage on %s switch to another ...\n", botStatus.getTime(), target.eName);
+				//					enoughFireDamageTarget = target;
+				//					continue;
+				//				}
 
 				double tRate;
 				double rRate;
@@ -127,7 +130,7 @@ public class NumbatTargetManager implements ITargetManager
 
 		if (result != myGunTarget)
 		{
-			if (myGunTarget == null || !myGunTarget.isAlive || myGunTarget.getScoreBonus() <= 10)
+			if (myGunTarget == null || !myGunTarget.isAlive || myGunTarget.getScoreBonus() <= 10 || myGunTarget == enoughFireDamageTarget)
 			{
 				myGunTarget = result;
 				myMoveTarget = result;

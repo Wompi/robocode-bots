@@ -93,8 +93,8 @@ public class NumbatTarget extends Point2D.Double
 	{
 		eHeading = java.lang.Double.NaN;
 		eLastHeading = java.lang.Double.NaN;
-		eEnergy = -1;
-		eLastEnergy = -1;
+		eEnergy = 100; // TODO: change this on team action
+		eLastEnergy = 100;
 		eDistance = 2000;
 		eLastDistance = 2000;
 		eVelocity = java.lang.Double.NaN;
@@ -164,8 +164,7 @@ public class NumbatTarget extends Point2D.Double
 
 	public double getEnergyDifference()
 	{
-		if (eLastEnergy == -1) return 0;
-		return eLastEnergy - eEnergy; // changed sign last first
+		return eLastEnergy - eEnergy;
 	}
 
 	public long getLastScanDifference()
@@ -269,7 +268,12 @@ public class NumbatTarget extends Point2D.Double
 		return eScore * 0.2;
 	}
 
-	public void registerBullet(Bullet bullet)
+	//	public void registerBullet(Bullet bullet)
+	//	{
+	//		eFiredBullets.add(bullet);
+	//	}
+
+	public void registerFireDamage(Bullet bullet)
 	{
 		eFiredBullets.add(bullet);
 	}
@@ -295,44 +299,38 @@ public class NumbatTarget extends Point2D.Double
 
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
-		// if (isAlive)
-		// {
-		// double dist = getCurrentScanDifference(status) * Rules.MAX_VELOCITY;
-		// PaintHelper.drawArc(this, dist, 0, Math.PI*2.0, true, g, PaintHelper.greenTrans);
-		// PaintHelper.drawArc(this, dist, 0, Math.PI*2.0, false, g, PaintHelper.whiteTrans);
-		// double srate = Rules.MAX_VELOCITY / (getDistance(status) - getCurrentScanDifference(status)*Rules.MAX_VELOCITY);
-		// g.setColor(Color.CYAN);
-		// g.setFont(PaintHelper.myFont);
-		// g.drawString(String.format("[%3.2f]",srate),(int)x-20,(int)y-20-10);
-		// }
-		//
 		if (isAlive)
 		{
-			if (getAveragePatternLength() >= 20)
+			double dist = getCurrentScanDifference(status) * Rules.MAX_VELOCITY;
+			PaintHelper.drawArc(this, dist, 0, Math.PI * 2.0, true, g, new Color(0x00, 0xFF, 0x00, 0x10));
+			PaintHelper.drawArc(this, dist, 0, Math.PI * 2.0, false, g, PaintHelper.whiteTrans);
+			double srate = Rules.MAX_VELOCITY / (getDistance(status) - getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
+			g.setColor(Color.CYAN);
+			g.setFont(PaintHelper.myFont);
+			g.drawString(String.format("[%3.2f]", srate), (int) x - 20, (int) y - 20 - 10);
+		}
+
+		if (isAlive)
+		{
+			if (getAveragePatternLength() >= MAX_PATTERN_BORDER)
 			{
 				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.yellowTrans);
 				g.setColor(Color.YELLOW);
-				g.setFont(PaintHelper.myFont);
-				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
-						* getAveragePatternLength()), (int) x, (int) y + 42);
 			}
-			else if (getAveragePatternLength() >= 9)
+			else if (getAveragePatternLength() >= MAX_PATTERN_BORDER * 0.75)
 			{
 				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.greenTrans);
 				g.setColor(Color.GREEN);
-				g.setFont(PaintHelper.myFont);
-				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
-						* getAveragePatternLength()), (int) x, (int) y + 42);
 			}
 			else
 			{
 				PaintTargetSquare.drawTargetSquare(g, 0, x, y, PaintHelper.redTrans);
 				g.setColor(Color.RED);
-				g.setFont(PaintHelper.myFont);
-				g.drawString(String.format("%3.2f / %d / %3.2f", getScoreBonus(), getCurrentScanDifference(status), eScore + 2
-						* getAveragePatternLength()), (int) x, (int) y + 42);
 
 			}
+			g.setFont(PaintHelper.myFont);
+			g.drawString(String.format("%3.2f / %3.2f", getScoreBonus(), getLiveFireDamage()), (int) x, (int) y + 42);
+
 		}
 	}
 
