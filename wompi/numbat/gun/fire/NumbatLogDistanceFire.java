@@ -37,11 +37,12 @@ public class NumbatLogDistanceFire extends ANumbatFire
 		myTarget = targetMan.getGunTarget();
 
 		lastBulletPower = bPower;
-		bPower = Math
-				.min(Rules.MAX_BULLET_POWER, Math.min(myTarget.eEnergy / 3.0, TARGET_DISTANCE / myTarget.distance(status.getX(), status.getY())));
+		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(myTarget.eEnergy / 3.0, TARGET_DISTANCE / myTarget.getDistance(status)));
 
 		if (status.getGunTurnRemaining() == 0)
 		{
+			// NOTE: this one don't need the scandiff rule, just because the weighted radar is now locking if near shooting and therefore the fire 
+			// is always valid 
 			if (status.getEnergy() > bPower && myLastTarget == myTarget)
 			{
 				isFire = true;
@@ -61,7 +62,7 @@ public class NumbatLogDistanceFire extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(lastBulletPower);
 			if (bullet != null)
 			{
-				if (myTarget != null) myTarget.registerBullet(bullet);
+				//if (myTarget != null) myTarget.registerBullet(bullet);
 				// DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}
