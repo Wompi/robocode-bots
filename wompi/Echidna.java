@@ -33,7 +33,7 @@ import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.move.AMovement;
 import wompi.echidna.move.MoveLikeWalaby;
 import wompi.echidna.radar.ARadar;
-import wompi.echidna.radar.RadarWeighted;
+import wompi.echidna.radar.RadarCalculatedAngles;
 import wompi.echidna.stats.BulletHitBulletStats;
 import wompi.echidna.stats.StatsWallhits;
 import wompi.echidna.stats.StatsWinLoose;
@@ -43,13 +43,13 @@ import wompi.echidna.target.targethandler.TargetHandlerDistance;
 
 public class Echidna extends AdvancedRobot
 {
-	private boolean					paintMove		= false;
-	private boolean					paintRadar		= true;
-	private boolean					paintTarget		= true;
-	private boolean					paintGun		= true;
-	private boolean					paintBotPath	= false;
+	private final boolean			paintMove		= false;
+	private final boolean			paintRadar		= true;
+	private final boolean			paintTarget		= true;
+	private final boolean			paintGun		= true;
+	private final boolean			paintBotPath	= false;
 
-	private boolean					enableMoving	= true;
+	private final boolean			enableMoving	= true;
 
 	AMovement						myMove;
 	ARadar							myRadar;
@@ -77,8 +77,8 @@ public class Echidna extends AdvancedRobot
 		// myRadar = new RadarFieldAngleDependent(this);
 		// myRadar = new RadarGunLock(this);
 		// myRadar = new RadarLock(this);
-		// myRadar = new RadarCalculatedAngles(this);
-		myRadar = new RadarWeighted(this);
+		myRadar = new RadarCalculatedAngles(this);
+		//myRadar = new RadarWeighted(this);
 		// myRadar = new RadarConditioned(this);
 
 		// myGun = new GunSimpleHeadOn(this);
@@ -108,7 +108,7 @@ public class Echidna extends AdvancedRobot
 		{
 
 			if (enableMoving) myMove.run();
-			myGun.run();  // includes fire control ... look there for fire power
+			myGun.run(); // includes fire control ... look there for fire power
 			myRadar.run();
 
 			// System.out.format("[%d] turn finished\n", getTime());
@@ -160,8 +160,8 @@ public class Echidna extends AdvancedRobot
 		boolean isMainTarget = myTargetHandler.isMainTarget(target);
 
 		if (enableMoving) myMove.onScannedRobot(target, isMainTarget);
-		myGun.onScannedRobot(target, isMainTarget);    // includes fire control
-		myRadar.onScannedRobot(target, isMainTarget);   // radar after gun is important if gun lock is enabled
+		myGun.onScannedRobot(target, isMainTarget); // includes fire control
+		myRadar.onScannedRobot(target, isMainTarget); // radar after gun is important if gun lock is enabled
 	}
 
 	@Override
