@@ -33,20 +33,21 @@ public class NumbatFireMax extends ANumbatFire
 		myLastTarget = myTarget;
 		myTarget = targetMan.getGunTarget();
 
-		// double liveFireDamage = myTarget.getLiveFireDamage();
-		// double dmgDiff = myTarget.eEnergy - liveFireDamage;
+		//		double liveFireDamage = myTarget.getLiveFireDamage();
+		//		double dmgDiff = myTarget.eEnergy - liveFireDamage;
 		double dmgDiff = myTarget.eEnergy;
 
 		// TODO: this might not be so clever, because if you miss the next bullet will take ages to be shoot at the target
 		// but in the contrary it is a high pattern target and it should reach the target anyway
 		// another bad thing is BulletHitBullet events can be increase with this
-		bPower = Math.min(dmgDiff / 3.0, Rules.MAX_BULLET_POWER);  // full power on simple pattern targets
+		bPower = Math.min(dmgDiff / 3.0, Rules.MAX_BULLET_POWER); // full power on simple pattern targets
+		//bPower = Rules.MAX_BULLET_POWER;
 
 		if (status.getGunTurnRemaining() == 0)
 		{
 			if (status.getEnergy() > bPower && myLastTarget == myTarget)
 			{
-				if (dmgDiff + 0.1 >= 0)
+				//if (liveFireDamage < myTarget.eEnergy || status.getOthers() == 1)
 				{
 					isFire = true;
 				}
@@ -67,7 +68,7 @@ public class NumbatFireMax extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(bPower);
 			if (bullet != null)
 			{
-				if (myTarget != null) myTarget.registerBullet(bullet);
+				//if (myTarget != null) myTarget.registerFireDamage(bullet);
 				// DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}
