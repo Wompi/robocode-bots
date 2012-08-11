@@ -53,7 +53,7 @@ public class NumbatSTGun extends ANumbatGun
 	@Override
 	public void setGun(RobotStatus status, ITargetManager targetMan, ANumbatFire fire)
 	{
-		// TestPatternAccuracy.registerActualPattern(status.getTime(), 'X');
+		//TestPatternAccuracy.registerActualPattern(status.getTime(), 'X');
 		NumbatTarget target = targetMan.getGunTarget();
 		// myFire = fire;
 
@@ -65,82 +65,81 @@ public class NumbatSTGun extends ANumbatGun
 
 		StringBuilder ePattern = new StringBuilder(target.eHistory);
 
-		if (ePattern.length() == 0) return;
+		long deltaScan = target.getCurrentScanDifference(status);
+		//System.out.format("[%d] deltaScan = %d \n", status.getTime(), deltaScan);
 
 		debugPointList.reset();
+		//StringBuilder sDesire = new StringBuilder();
 		// long count = 0;
 
 		boolean isFirst = true;
-		for (double bDist = 0; bDist < Point2D.distance(status.getX(), status.getY(), xg, yg); bDist += fire.getBulletSpeed())
+
+		// TODO: the gunheat rule ruins the avg pattern length - think about another saver rule or extract the startpattern in a function anyway 
+		if (ePattern.length() > 0 && deltaScan < 10 /* && status.getGunHeat() <= 0.5 */)
 		{
-			if (status.getGunHeat() >= 0.5) break; // if the gunHeat is not near shooting set gun to HOT and break
-			// System.out.format("[%d] bDist=%3.2f\n", count++,bDist);
+			for (double bDist = 0; (bDist - deltaScan * fire.getBulletSpeed()) < Point2D.distance(status.getX(), status.getY(), xg, yg); bDist += fire
+					.getBulletSpeed())
+			{
+				int nextStep = 0;
+				int patternLength = Math.min(target.eMatchKeyLength, ePattern.length());
+				INumbatTick tick = null;
+				int len = 0;
+				for (len = patternLength; tick == null; --len)
+				{
+					// System.out.format("len=%d pLen=%d\n", len,patternLength);
+					String debugStr = ePattern.substring(0, len);
+					tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
+				}
+				nextStep = tick.getMaxTick().myID;
+				if (isFirst)
+				{
+					target.registerPatternLength(len + 1);
+					isFirst = false;
+				}
 
-			int nextStep = 0;
-			int patternLength = Math.min(target.eMatchKeyLength, ePattern.length());
-			INumbatTick tick = null;
-			int len = 0;
-			for (len = patternLength; tick == null; --len)
-			{
-				// System.out.format("len=%d pLen=%d\n", len,patternLength);
-				String debugStr = ePattern.substring(0, len);
-				tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
-			}
-			nextStep = tick.getMaxTick().myID;
-			if (isFirst)
-			{
-				target.registerPatternLength(len + 1);
-				isFirst = false;
-			}
+				double[] tickDecode = myCode.decode(nextStep);
+				heading += (pHeadChange = tickDecode[0]);
+				velocity = tickDecode[1];
 
-			double[] tickDecode = myCode.decode(nextStep);
-			heading += (pHeadChange = tickDecode[0]);
-			velocity = tickDecode[1];
+				xg += velocity * Math.sin(heading);
+				yg += velocity * Math.cos(heading);
 
-			xg += velocity * Math.sin(heading);
-			yg += velocity * Math.cos(heading);
+				// double dX = Math.min(xg, BattleField.BATTLE_FIELD_W-xg);
+				// double dY = Math.min(yg, BattleField.BATTLE_FIELD_H-yg);
 
-			// double dX = Math.min(xg, BattleField.BATTLE_FIELD_W-xg);
-			// double dY = Math.min(yg, BattleField.BATTLE_FIELD_H-yg);
+				boolean wHit = false;
+				if (xg < WZ)
+				{
+					xg = 18;
+					wHit = true;
+				}
+				else if (BattleField.BATTLE_FIELD_W - xg < WZ)
+				{
+					xg = BattleField.BATTLE_FIELD_W - WZ;
+					wHit = true;
+				}
+				if (yg < WZ)
+				{
+					yg = 18;
+					wHit = true;
+				}
+				else if (BattleField.BATTLE_FIELD_H - yg < WZ)
+				{
+					yg = BattleField.BATTLE_FIELD_H - WZ;
+					wHit = true;
+				}
 
-			// System.out.format("[%d] x=%3.2f y=%3.2f velocity=%3.2f dhead=%3.5f heading=%3.5f\n",
-			// count++,dX,dY,velocity,Math.toDegrees(pHeadChange),Math.toDegrees(heading));
-			boolean wHit = false;
-			if (xg < WZ)
-			{
-				xg = 18;
-				// System.out.format("adjust small xg=%3.2f\n",xg);
-				wHit = true;
+				if (wHit)
+				{
+					nextStep = myCode.encode(pHeadChange, 0, velocity);
+					debugPointList.badPoints.add(new Point2D.Double(xg, yg));
+				}
+				else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
+				ePattern.insert(0, (char) nextStep);
+				//sDesire.insert(0, (char) nextStep);
 			}
-			else if (BattleField.BATTLE_FIELD_W - xg < WZ)
-			{
-				xg = BattleField.BATTLE_FIELD_W - WZ;
-				// System.out.format("adjust big xg=%3.2f\n",xg);
-				wHit = true;
-			}
-			if (yg < WZ)
-			{
-				yg = 18;
-				// System.out.format("adjust small yg=%3.2f\n",yg);
-				wHit = true;
-			}
-			else if (BattleField.BATTLE_FIELD_H - yg < WZ)
-			{
-				yg = BattleField.BATTLE_FIELD_H - WZ;
-				// System.out.format("adjust big yg=%3.2f\n",yg);
-				wHit = true;
-			}
-
-			if (wHit)
-			{
-				nextStep = myCode.encode(pHeadChange, 0, velocity);
-				debugPointList.badPoints.add(new Point2D.Double(xg, yg));
-			}
-			else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
-			ePattern.insert(0, (char) nextStep);
 		}
-
-		// TestPatternAccuracy.registerDesiredPattern(status.getTime(),sDesire);
+		//TestPatternAccuracy.registerDesiredPattern(status.getTime(), sDesire);
 		debugPointList.targetPoint = new Point2D.Double(xg, yg);
 
 		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY()) - status.getGunHeadingRadians());
@@ -178,12 +177,12 @@ public class NumbatSTGun extends ANumbatGun
 			return;
 		}
 
-		record(hDiff, target.eVelocity, target.eLastVelocity, target.eHistory, target.matcherMap, target.eMatchKeyLength);
+		record(hDiff, target.eVelocity, target.eLastVelocity, target.eHistory, target.matcherMap, target.eMatchKeyLength, status.getTime());
 
 		// register the startPattern for every scanned target
 		// TODO: get rid of this code copy and find something appropriate
 		int patternLength = Math.min(target.eMatchKeyLength, target.eHistory.length());
-		if (patternLength > 10) // because of the history reset on missed turns this would lead to very bad avg pattern length - hopefully 10 is enough to make it work
+		if (patternLength > 3) // because of the history reset on missed turns this would lead to very bad avg pattern length - hopefully 4 is enough to make it work
 		{
 			INumbatTick tick = null;
 			int len = 0;
@@ -197,7 +196,8 @@ public class NumbatSTGun extends ANumbatGun
 		}
 	}
 
-	private void record(double deltaHead, double velocity, double lastVelocity, StringBuilder history, Map<Integer, INumbatTick> matchMap, int keylen)
+	private void record(double deltaHead, double velocity, double lastVelocity, StringBuilder history, Map<Integer, INumbatTick> matchMap,
+			int keylen, long time)
 	{
 		int thisStep = (char) myCode.encode(deltaHead, velocity, lastVelocity);
 
@@ -221,14 +221,14 @@ public class NumbatSTGun extends ANumbatGun
 		history.insert(0, (char) (thisStep));
 		history.setLength(Math.min(keylen, history.length())); // there the string is only max len space and needs less memory
 		// System.out.format("[%d] len=%d %s\n", status.getTime(),target.eHistory.length(),target.eHistory.toString());
-		// TestPatternAccuracy.registerActualPattern(status.getTime(), (char)thisStep);
+		//TestPatternAccuracy.registerActualPattern(time, (char) thisStep);
 	}
 
 	@Override
 	public void excecute(AdvancedRobot myBot)
 	{
 		super.excecute(myBot);
-		// TestPatternAccuracy.onPrint(myBot.getTime());
+		//TestPatternAccuracy.onPrint(myBot.getTime());
 	}
 
 	@Override
