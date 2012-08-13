@@ -66,7 +66,7 @@ public class NumbatMagicBulletPower extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(lastBulletPower);
 			if (bullet != null)
 			{
-				if (myTarget != null) myTarget.registerBullet(bullet);
+				//if (myTarget != null) myTarget.registerBullet(bullet);
 				// DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}

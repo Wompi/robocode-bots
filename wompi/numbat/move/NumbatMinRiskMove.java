@@ -17,7 +17,7 @@ import java.awt.geom.Rectangle2D;
 import robocode.AdvancedRobot;
 import robocode.HitRobotEvent;
 import robocode.RobotStatus;
-import wompi.echidna.misc.utils.BattleField;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
 
@@ -45,12 +45,14 @@ public class NumbatMinRiskMove extends ANumbatMove
 	// PaintMinRiskPoints debugRiskForceBullet = new PaintMinRiskPoints();
 	double						maxRate;
 
+	@Override
 	public void init(RobotStatus status)
 	{
-		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, BattleField.BATTLE_FIELD_W - 2 * WZ, BattleField.BATTLE_FIELD_H - 2 * WZ);
+		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
 		ramBot = null;
 	}
 
+	@Override
 	public void setMove(RobotStatus status, ITargetManager targetMan)
 	{
 		maxRate = Double.MAX_VALUE;
@@ -95,7 +97,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 							}
 						}
 						else if (enemy.getDistance(status) <= DIST) isClose = true;
-						riskForce += force / enemy.distanceSq(mx, my) /* * ((enemy.distance(mx,my) > 600) ?-1 : 1) */;  // TODO: maybe raise the force
+						riskForce += force / enemy.distanceSq(mx, my) /* * ((enemy.distance(mx,my) > 600) ?-1 : 1) */; // TODO: maybe raise the force
 																														// dependent on how long we
 																														// have not seen the enemy
 					}
@@ -147,6 +149,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 		moveTurn -= status.getHeadingRadians();
 	}
 
+	@Override
 	public void excecute(AdvancedRobot myBot)
 	{
 		if (isMoveing)
@@ -156,6 +159,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 		}
 	}
 
+	@Override
 	public void onHitRobot(HitRobotEvent e, RobotStatus myBotStatus)
 	{
 		ramBot = e;
@@ -169,6 +173,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 		return false;
 	}
 
+	@Override
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
 		// if (isDebug)

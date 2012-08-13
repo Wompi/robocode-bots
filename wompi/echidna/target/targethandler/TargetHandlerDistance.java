@@ -36,6 +36,7 @@ public class TargetHandlerDistance extends ATargetHandler
 		allTargets = new HashMap<String, ATarget>();
 	}
 
+	@Override
 	public Collection<ATarget> getAllTargets()
 	{
 		return allTargets.values();
@@ -74,7 +75,7 @@ public class TargetHandlerDistance extends ATargetHandler
 		if (myTarget == aTarget)
 		{
 			myTarget = null;
-			calculateMainTarget();  // go to the next target if possible
+			calculateMainTarget(); // go to the next target if possible
 		}
 	}
 
@@ -103,7 +104,7 @@ public class TargetHandlerDistance extends ATargetHandler
 		{
 			target.onPaint(g);
 		}
-		if (myTarget != null) PaintTargetSquare.drawTargetSquare(g, myTarget.getHeading(), myTarget.getAbsX(), myTarget.getAbsY(), Color.RED);
+		if (myTarget != null) PaintTargetSquare.drawTargetSquare(g, myTarget.getHeading(), myTarget.getAbsX(), myTarget.getAbsY(), true, Color.RED);
 	}
 
 	// ---------------------------------------------------------------------------------------------------------------------

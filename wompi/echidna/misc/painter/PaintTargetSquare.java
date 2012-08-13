@@ -20,17 +20,17 @@ import java.awt.geom.AffineTransform;
 
 public class PaintTargetSquare
 {
-	public static void drawTargetSquare(Graphics2D g, double eHeading, double eX, double eY, Color myColor)
+	public static void drawTargetSquare(Graphics2D g, double eHeading, double eX, double eY, boolean fill, Color myColor)
 	{
-		double rDim = 20.0;      // robot width
+		double rDim = 18.0; // robot width
 
 		AffineTransform transform = new AffineTransform();
-		Rectangle rectangle = new Rectangle(0, 0, 40, 40);
+		Rectangle rectangle = new Rectangle(0, 0, 36, 36);
 		Polygon poly = new Polygon();
 		poly.addPoint(0, 0);
-		poly.addPoint(0, 40);
-		poly.addPoint(40, 40);
-		poly.addPoint(40, 0);
+		poly.addPoint(0, 36);
+		poly.addPoint(36, 36);
+		poly.addPoint(36, 0);
 		poly.addPoint(0, 0);
 
 		transform.translate(eX - rDim, eY - rDim);
@@ -39,9 +39,12 @@ public class PaintTargetSquare
 		Shape s1 = transform.createTransformedShape(rectangle);
 		Shape s2 = transform.createTransformedShape(poly);
 
+		if (fill)
+		{
+			g.setColor(Color.GREEN);
+			g.fill(s1);
+		}
 		g.setColor(myColor);
-		g.fill(s1);
-		g.setColor(Color.GREEN);
 		g.draw(s2);
 	}
 }

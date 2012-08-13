@@ -12,7 +12,7 @@
 package wompi.numbat.move;
 
 import robocode.RobotStatus;
-import wompi.echidna.misc.utils.BattleField;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 
 public class NumbatMovePatterChallenge extends ANumbatMove
@@ -34,7 +34,7 @@ public class NumbatMovePatterChallenge extends ANumbatMove
 	boolean checkActivateRule(RobotStatus status, ITargetManager targetMan)
 	{
 		boolean r1 = status.getOthers() == 1;
-		boolean r2 = BattleField.getBattleState() == BattleField.EBattleState.MELEE;
+		boolean r2 = NumbatBattleField.getBattleState() == NumbatBattleField.ENumbatBattleState.MELEE;
 		boolean r3 = targetMan.getGunTarget() != null && targetMan.getGunTarget().eName.startsWith("challenge.PatternBot");
 		boolean r4 = status.getNumRounds() == 100;
 		return r1 && r2 && r3 && r4;

@@ -16,8 +16,8 @@ import java.awt.geom.Rectangle2D;
 import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.util.Utils;
-import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.gun.fire.ANumbatFire;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
 
@@ -38,7 +38,7 @@ public class NumbatGunWallaby extends ANumbatGun
 
 		if (bField == null)
 		{
-			bField = new Rectangle2D.Double(WZ_G, WZ_G, BattleField.BATTLE_FIELD_W - 2 * WZ_G, BattleField.BATTLE_FIELD_H - 2 * WZ_G);
+			bField = new Rectangle2D.Double(WZ_G, WZ_G, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ_G, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ_G);
 		}
 
 		double xg = target.x;

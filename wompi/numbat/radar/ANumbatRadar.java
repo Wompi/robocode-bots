@@ -18,7 +18,7 @@ import robocode.AdvancedRobot;
 import robocode.RobotStatus;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.utils.BattleField;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 
 public abstract class ANumbatRadar
@@ -77,8 +77,8 @@ public abstract class ANumbatRadar
 
 	protected final double getBestAngleStart(RobotStatus status)
 	{
-		double centerX = BattleField.BATTLE_FIELD_W / 2.0;
-		double centerY = BattleField.BATTLE_FIELD_H / 2.0;
+		double centerX = NumbatBattleField.BATTLE_FIELD_W / 2.0;
+		double centerY = NumbatBattleField.BATTLE_FIELD_H / 2.0;
 		double bAngle = Math.atan2(centerX - status.getX(), centerY - status.getY());
 		double rAngle = Utils.normalRelativeAngle(bAngle - status.getRadarHeadingRadians());
 		return (Double.POSITIVE_INFINITY * Math.signum(rAngle));
