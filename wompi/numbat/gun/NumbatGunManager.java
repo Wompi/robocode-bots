@@ -24,12 +24,14 @@ import wompi.numbat.target.ITargetManager;
 
 public class NumbatGunManager
 {
-	private RobotStatus				botStatus;
-	private ITargetManager			myTargetMan;
+	private RobotStatus					botStatus;
+	private ITargetManager				myTargetMan;
 
-	private ANumbatGun				myGun;
-	private NumbatFireManager		myFireMan;
-	private ArrayList<ANumbatGun>	allGuns;
+	private ANumbatGun					myGun;
+	private final NumbatFireManager		myFireMan;
+	private final ArrayList<ANumbatGun>	allGuns;
+
+	NumbatCenterGun						researchGun	= new NumbatCenterGun();
 
 	public NumbatGunManager()
 	{
@@ -60,6 +62,8 @@ public class NumbatGunManager
 		checkActivate();
 		myFireMan.onScannedRobot(e);
 		myGun.onScannedRobot(e, botStatus, myTargetMan);
+
+		researchGun.onScannedRobot(e, botStatus, myTargetMan);
 	}
 
 	public void setGun()
@@ -77,6 +81,8 @@ public class NumbatGunManager
 	public void onPaint(Graphics2D g)
 	{
 		myGun.onPaint(g, botStatus); // TODO: handle multiple guns and whatnot better
+
+		researchGun.onPaint(g, botStatus);
 	}
 
 	private void checkActivate()
@@ -88,7 +94,7 @@ public class NumbatGunManager
 				if (myGun != gun)
 				{
 					myGun = gun;
-					myGun.init(botStatus);  // TODO: change this
+					myGun.init(botStatus); // TODO: change this
 					DebugGunProperties.debugCurrentGun(myGun.getName());
 				}
 				return;
