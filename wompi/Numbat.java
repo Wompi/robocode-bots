@@ -25,7 +25,6 @@ import robocode.ScannedRobotEvent;
 import robocode.SkippedTurnEvent;
 import robocode.StatusEvent;
 import robocode.WinEvent;
-import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.debug.DebugBot;
 import wompi.numbat.debug.DebugGunProperties;
 import wompi.numbat.debug.DebugMiscProperties;
@@ -33,7 +32,9 @@ import wompi.numbat.debug.DebugMoveProperties;
 import wompi.numbat.debug.DebugRadarProperties;
 import wompi.numbat.debug.DebugTargetProperties;
 import wompi.numbat.debug.DebugTestProperties;
+import wompi.numbat.debug.paint.PaintCenterSegments;
 import wompi.numbat.gun.NumbatGunManager;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.misc.ScannedRobotHandler;
 import wompi.numbat.misc.SkippedTurnHandler;
 import wompi.numbat.move.NumbatMoveManager;
@@ -64,6 +65,7 @@ public class Numbat extends AdvancedRobot
 
 	// debug stuff - refactor this a little
 	// private boolean isTimeDebug = true;
+	PaintCenterSegments					debugCenter;
 
 	// related to skipped turns bug, where double scan events occur
 	private final SkippedTurnHandler	mySkipped;
@@ -86,8 +88,8 @@ public class Numbat extends AdvancedRobot
 	{
 		// setAllColors(Color.RED);
 		setColors(new Color(0xB9, 0x87, 0x56), Color.BLACK, Color.WHITE, Color.ORANGE, Color.RED);
-		BattleField.BATTLE_FIELD_H = getBattleFieldHeight();
-		BattleField.BATTLE_FIELD_W = getBattleFieldWidth();
+		NumbatBattleField.BATTLE_FIELD_H = getBattleFieldHeight();
+		NumbatBattleField.BATTLE_FIELD_W = getBattleFieldWidth();
 		// if (isTimeDebug) TimeProfile.initRound();
 		myRadarMan.init();
 		myGunMan.init();
@@ -115,15 +117,14 @@ public class Numbat extends AdvancedRobot
 			myGunMan.excecute(this);
 			// if (isTimeDebug) TimeProfile.GUN_EXECUTE.stop();
 
-			//			DebugGunProperties.debugPatternClasses();
-			//
-			// DebugGunProperties.execute();
-			//			DebugRadarProperties.execute();
-			//			DebugGunProperties.execute();
-			//			DebugMiscProperties.execute();
-			//			DebugMoveProperties.execute();
-			//			DebugTargetProperties.execute();
-			// DebugTestProperties.execute();
+			DebugGunProperties.debugPatternClasses();
+			DebugGunProperties.execute();
+			DebugRadarProperties.execute();
+			DebugGunProperties.execute();
+			DebugMiscProperties.execute();
+			DebugMoveProperties.execute();
+			DebugTargetProperties.execute();
+			DebugTestProperties.execute();
 			//
 			// if (isTimeDebug)
 			// {
@@ -219,6 +220,9 @@ public class Numbat extends AdvancedRobot
 	@Override
 	public void onPaint(Graphics2D g)
 	{
+		if (debugCenter == null) debugCenter = new PaintCenterSegments();
+		debugCenter.onPaint(g);
+
 		// PaintRobotPath.onPaint(g, getName(), getTime(),getX(), getY(), Color.GREEN);
 		// PaintHitCloud.onPaint(g);
 		myTargetMan.onPaint(g);
