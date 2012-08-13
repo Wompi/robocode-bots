@@ -26,6 +26,7 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.misc.painter.PaintTargetSquare;
 import wompi.numbat.debug.DebugRadarProperties;
 import wompi.numbat.gun.NumbatSTGun;
@@ -37,6 +38,8 @@ public class NumbatTarget extends Point2D.Double
 	private static final long			serialVersionUID	= -5406737205536713408L;
 
 	public final static double			MAX_PATTERN_BORDER	= 13;
+	public final static Color[]			BOT_COLORS			= { Color.BLUE, Color.CYAN, Color.GRAY, Color.GREEN, Color.MAGENTA, Color.ORANGE,
+			Color.PINK, Color.RED, Color.YELLOW, Color.WHITE };
 
 	private double						lastX;
 	private double						lastY;
@@ -83,10 +86,17 @@ public class NumbatTarget extends Point2D.Double
 	// debug
 	// private PaintDiagramm debugDiagram = new PaintDiagramm();
 	// public NumbatPointHandler myPointHandler = new NumbatPointHandler();
+	private final Color					myColor;
+
+	private double						vAvg;
+	private int							avgVCount;
+
+	private static int					colorIndex;
 
 	public NumbatTarget()
 	{
 		init();
+		myColor = BOT_COLORS[colorIndex++];
 	}
 
 	public void init()
@@ -133,6 +143,8 @@ public class NumbatTarget extends Point2D.Double
 
 		eLastVelocity = eVelocity;
 		eVelocity = scan.getVelocity();
+		vAvg += Math.abs(scan.getVelocity());
+		avgVCount++;
 
 		eLastScan = eScan;
 		eScan = scan.getTime();
@@ -191,9 +203,8 @@ public class NumbatTarget extends Point2D.Double
 
 	public double getAverageVelocity()
 	{
-		// return vAvgSimple.avg()*Math.signum(eVelocity);
-		// TODO: be careful if you reuse this again
-		return 0;
+		// simple but still effective somehow
+		return vAvg * Math.signum(eVelocity) / avgVCount;
 	}
 
 	/**
@@ -314,17 +325,17 @@ public class NumbatTarget extends Point2D.Double
 		{
 			if (getAveragePatternLength() >= MAX_PATTERN_BORDER)
 			{
-				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.yellowTrans);
+				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, true, PaintHelper.yellowTrans);
 				g.setColor(Color.YELLOW);
 			}
 			else if (getAveragePatternLength() >= MAX_PATTERN_BORDER * 0.75)
 			{
-				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, PaintHelper.greenTrans);
+				PaintTargetSquare.drawTargetSquare(g, 0.0, x, y, true, PaintHelper.greenTrans);
 				g.setColor(Color.GREEN);
 			}
 			else
 			{
-				PaintTargetSquare.drawTargetSquare(g, 0, x, y, PaintHelper.redTrans);
+				PaintTargetSquare.drawTargetSquare(g, 0, x, y, true, PaintHelper.redTrans);
 				g.setColor(Color.RED);
 
 			}
@@ -337,7 +348,7 @@ public class NumbatTarget extends Point2D.Double
 	public void onSinglePaint(Graphics2D g, RobotStatus status)
 	{
 		// debugDiagram.onPaint(g, status, getAveragePatternLength(), Color.BLUE,eName);
-		// PaintRobotPath.onPaint(g, eName, status.getTime(), x, y, Color.GRAY);
+		PaintRobotPath.onPaint(g, eName, status.getTime(), x, y, Color.GRAY);
 	}
 
 	public void onHitRobot(HitRobotEvent e, RobotStatus status)
@@ -352,5 +363,10 @@ public class NumbatTarget extends Point2D.Double
 
 		x = Math.sin(eAbsBearing) * eDistance + status.getX();
 		y = Math.cos(eAbsBearing) * eDistance + status.getY();
+	}
+
+	public Color getBotColor()
+	{
+		return myColor;
 	}
 }
