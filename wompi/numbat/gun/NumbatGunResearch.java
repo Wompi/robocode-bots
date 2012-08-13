@@ -17,22 +17,22 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.gun.fire.ANumbatFire;
 import wompi.numbat.gun.misc.NumbatOneTickHandler;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
 
 public class NumbatGunResearch extends ANumbatGun
 {
-	private final int				DELTA_HEADING_INDEX	= 20;
-	private final int				VELOCITY_INDEX		= 16;
-	private final double			HEAD_FACTOR			= 2.0;
-	private final double			VELO_FACTOR			= 2.0;
+	private final int					DELTA_HEADING_INDEX	= 20;
+	private final int					VELOCITY_INDEX		= 16;
+	private final double				HEAD_FACTOR			= 2.0;
+	private final double				VELO_FACTOR			= 2.0;
 
-	private final static double		WZ					= 17.9999;
+	private final static double			WZ					= 17.9999;
 
-	private NumbatOneTickHandler	myTickHandler;
+	private final NumbatOneTickHandler	myTickHandler;
 
 	public NumbatGunResearch()
 	{
@@ -57,14 +57,14 @@ public class NumbatGunResearch extends ANumbatGun
 			if (lastTick != NumbatOneTickHandler.BREAK_KEY)
 			{
 				int headDiff = lastTick >> 9;
-				pHeadChange = Math.toRadians((double) (headDiff - DELTA_HEADING_INDEX) / HEAD_FACTOR);		// delta heading
+				pHeadChange = Math.toRadians((headDiff - DELTA_HEADING_INDEX) / HEAD_FACTOR); // delta heading
 
 				int vkey = (lastTick >> 3) - (headDiff << 6);
-				velocity = (double) (vkey - VELOCITY_INDEX) / VELO_FACTOR;								// velocity
+				velocity = (vkey - VELOCITY_INDEX) / VELO_FACTOR; // velocity
 			}
 			// System.out.format("(%3.2f,%3.2f)",Math.toDegrees(pHeadChange),velocity);
 
-			heading += pHeadChange;					// hmm maybe wrong it takes the same headchange and velocity as the last predicted tick
+			heading += pHeadChange; // hmm maybe wrong it takes the same headchange and velocity as the last predicted tick
 			xg += velocity * Math.sin(heading);
 			yg += velocity * Math.cos(heading);
 
@@ -74,9 +74,9 @@ public class NumbatGunResearch extends ANumbatGun
 				xg = 18;
 				wHit = true;
 			}
-			else if (BattleField.BATTLE_FIELD_W - xg < WZ)
+			else if (NumbatBattleField.BATTLE_FIELD_W - xg < WZ)
 			{
-				xg = BattleField.BATTLE_FIELD_W - WZ;
+				xg = NumbatBattleField.BATTLE_FIELD_W - WZ;
 				wHit = true;
 			}
 			if (yg < WZ)
@@ -84,9 +84,9 @@ public class NumbatGunResearch extends ANumbatGun
 				yg = 18;
 				wHit = true;
 			}
-			else if (BattleField.BATTLE_FIELD_H - yg < WZ)
+			else if (NumbatBattleField.BATTLE_FIELD_H - yg < WZ)
 			{
-				yg = BattleField.BATTLE_FIELD_H - WZ;
+				yg = NumbatBattleField.BATTLE_FIELD_H - WZ;
 				wHit = true;
 			}
 
@@ -106,6 +106,7 @@ public class NumbatGunResearch extends ANumbatGun
 
 	}
 
+	@Override
 	public void onScannedRobot(ScannedRobotEvent scan, RobotStatus status, ITargetManager targetMan)
 	{
 		NumbatTarget target = targetMan.getLastScanTarget();
