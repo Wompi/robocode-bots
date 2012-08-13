@@ -15,5 +15,7 @@ public interface INumbatTick
 {
 	public NumbatSingleHolder getMaxTick();
 
+	public void addTick(double deltaHeading, double velocity);
+
 	public boolean incrementCount(int id);
 }
