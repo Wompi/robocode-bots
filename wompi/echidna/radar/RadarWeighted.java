@@ -41,6 +41,7 @@ public class RadarWeighted extends ARadar
 		startBestAngleScan();
 	}
 
+	@Override
 	public void onScannedRobot(ATarget target, boolean isMaintarget)
 	{
 		doRadar();
@@ -65,7 +66,7 @@ public class RadarWeighted extends ARadar
 			}
 		}
 		if (myScanTarget != null) PaintTargetSquare.drawTargetSquare(g, myScanTarget.getHeading(), myScanTarget.getAbsX(), myScanTarget.getAbsY(),
-				Color.BLUE);
+				true, Color.BLUE);
 	}
 
 	@Override

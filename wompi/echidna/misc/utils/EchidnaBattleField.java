@@ -11,23 +11,23 @@
  ******************************************************************************/
 package wompi.echidna.misc.utils;
 
-public class BattleField
+public class EchidnaBattleField
 {
 	// because of a little design flaw this information is not included in RobotStatus and has to be announced this way
 	public static double	BATTLE_FIELD_H	= 1000;
 	public static double	BATTLE_FIELD_W	= 1000;
 
-	public enum EBattleState
+	public enum EEchidnaBattleState
 	{
 		SINGLE, MELEE, TWIN;
 	}
 
-	public static EBattleState getBattleState()
+	public static EEchidnaBattleState getBattleState()
 	{
-		if (BATTLE_FIELD_H == 1000 && BATTLE_FIELD_W == 1000) return EBattleState.MELEE;
-		else if (BATTLE_FIELD_H == 600 && BATTLE_FIELD_W == 800) return EBattleState.SINGLE;
-		else if (BATTLE_FIELD_H == 800 && BATTLE_FIELD_W == 800) return EBattleState.TWIN;
+		if (BATTLE_FIELD_H == 1000 && BATTLE_FIELD_W == 1000) return EEchidnaBattleState.MELEE;
+		else if (BATTLE_FIELD_H == 600 && BATTLE_FIELD_W == 800) return EEchidnaBattleState.SINGLE;
+		else if (BATTLE_FIELD_H == 800 && BATTLE_FIELD_W == 800) return EEchidnaBattleState.TWIN;
 
-		return EBattleState.MELEE; // if in doubt melee
+		return EEchidnaBattleState.MELEE; // if in doubt melee
 	}
 }

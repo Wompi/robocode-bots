@@ -21,7 +21,7 @@ import java.util.ArrayList;
 
 import robocode.RobotDeathEvent;
 import robocode.RobotStatus;
-import wompi.echidna.misc.utils.BattleField;
+import wompi.echidna.misc.utils.EchidnaBattleField;
 import wompi.wallaby.PaintHelper;
 
 public class PaintDiagramm
@@ -50,8 +50,8 @@ public class PaintDiagramm
 
 		if (aPath == null)
 		{
-			double x = BattleField.BATTLE_FIELD_W * 0.1;
-			double y = BattleField.BATTLE_FIELD_H * 0.1;
+			double x = EchidnaBattleField.BATTLE_FIELD_W * 0.1;
+			double y = EchidnaBattleField.BATTLE_FIELD_H * 0.1;
 			pArea = new Rectangle2D.Double(x, y, x * 5, y);
 
 			aPath = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 2000);

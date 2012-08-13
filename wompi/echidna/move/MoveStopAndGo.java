@@ -52,6 +52,7 @@ public class MoveStopAndGo extends AMovement
 		super(robot);
 	}
 
+	@Override
 	public void init()
 	{
 		nextMoves = new ArrayList<ShotStats>();
@@ -70,7 +71,8 @@ public class MoveStopAndGo extends AMovement
 		double eEnergyDelta = myTarget.getLastEnergy() - myTarget.getEnergy();
 		if (eEnergyDelta < 3.01 && eEnergyDelta > 0.09)
 		{
-			PaintTargetSquare.drawTargetSquare(myRobot.getGraphics(), target.getHeading(), target.getX(), target.getY(), PaintHelper.greenTrans);
+			PaintTargetSquare
+					.drawTargetSquare(myRobot.getGraphics(), target.getHeading(), target.getX(), target.getY(), true, PaintHelper.greenTrans);
 			long deltaTime = target.getTime() - target.getLastScan();
 			stopMoves = (int) (Math.random() * 10);
 			System.out.format("FIRE[%d] power=%3.2f lastSeen=%d stop=%d %s\n", myRobot.getTime(), eEnergyDelta, deltaTime, stopMoves,
@@ -84,11 +86,13 @@ public class MoveStopAndGo extends AMovement
 		DIR = -DIR;
 	}
 
+	@Override
 	public void onHitRobot(HitRobotEvent e)
 	{
 		DIR = -DIR;
 	}
 
+	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
 		// double eHeat = Rules.getGunHeat(e.getPower());

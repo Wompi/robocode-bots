@@ -43,6 +43,11 @@ public class RobotMath
 		return diff;
 	}
 
+	public static double limit(double min, double value, double max)
+	{
+		return Math.max(min, Math.min(value, max));
+	}
+
 	/**
 	 * - gibt den Winkel zwischen zwei kartesischen Koordinaten zurueck<br>
 	 * - unbedingt die Reihenfolge fuer P1 und P2 beachten. P1 sollten meine Koordinaten sein und P2 die Koordinaten

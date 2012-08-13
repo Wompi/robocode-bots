@@ -14,7 +14,7 @@ package wompi.numbat.gun.fire;
 import robocode.AdvancedRobot;
 import robocode.Bullet;
 import robocode.RobotStatus;
-import wompi.echidna.misc.utils.BattleField;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
 
@@ -56,7 +56,7 @@ public class NumbatFireMin extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(bPower);
 			if (bullet != null)
 			{
-				if (myTarget != null) myTarget.registerBullet(bullet);
+				//if (myTarget != null) myTarget.registerBullet(bullet);
 				// DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}
@@ -75,7 +75,7 @@ public class NumbatFireMin extends ANumbatFire
 		NumbatTarget target = targetMan.getGunTarget();
 		boolean r1 = status.getOthers() == 1;
 		boolean r2 = target != null;
-		boolean r3 = BattleField.getBattleState() != BattleField.EBattleState.SINGLE;
+		boolean r3 = NumbatBattleField.getBattleState() != NumbatBattleField.ENumbatBattleState.SINGLE;
 		boolean r4 = false;
 		if (r2)
 		{

@@ -14,8 +14,8 @@ package wompi.numbat.gun.fire;
 import robocode.AdvancedRobot;
 import robocode.Bullet;
 import robocode.RobotStatus;
-import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.debug.DebugGunProperties;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
 
@@ -52,7 +52,7 @@ public class NumbatFirePatternChallenge extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(bPower);
 			if (bullet != null)
 			{
-				if (myTarget != null) myTarget.registerBullet(bullet);
+				//if (myTarget != null) myTarget.registerBullet(bullet);
 				DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}
@@ -69,7 +69,7 @@ public class NumbatFirePatternChallenge extends ANumbatFire
 	boolean checkActivateRule(RobotStatus status, ITargetManager targetMan)
 	{
 		boolean r1 = status.getOthers() == 1;
-		boolean r2 = BattleField.getBattleState() == BattleField.EBattleState.MELEE;
+		boolean r2 = NumbatBattleField.getBattleState() == NumbatBattleField.ENumbatBattleState.MELEE;
 		boolean r3 = targetMan.getGunTarget() != null && targetMan.getGunTarget().eName.startsWith("challenge.PatternBot");
 		boolean r4 = status.getNumRounds() == 100;
 		return r1 && r2 && r3 && r4;
