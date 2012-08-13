@@ -13,6 +13,7 @@ package wompi.numbat.gun;
 
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Map;
 
 import robocode.AdvancedRobot;
@@ -21,34 +22,33 @@ import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.DebugPointLists;
-import wompi.echidna.misc.utils.BattleField;
 import wompi.numbat.gun.fire.ANumbatFire;
-import wompi.numbat.gun.misc.ANumbatSTCode;
 import wompi.numbat.gun.misc.INumbatTick;
 import wompi.numbat.gun.misc.NumbatMultiHolder;
-import wompi.numbat.gun.misc.NumbatST_dH_V_A;
 import wompi.numbat.gun.misc.NumbatSingleHolder;
+import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
+import wompi.robomath.RobotMath;
 
 public class NumbatSTGun extends ANumbatGun
 {
 	private final static double		WZ						= 17.9999;
 	public final static int			DEFAULT_PATTERN_LENGTH	= 30;
-
-	private final ANumbatSTCode		myCode;
+	public final static double		DEAULT_HALF_BOTWEIGHT	= 18;
 
 	// debug
 	private final DebugPointLists	debugPointList			= new DebugPointLists();
+	private static Rectangle2D		B_FIELD;
 
 	public NumbatSTGun()
-	{
-		myCode = new NumbatST_dH_V_A();
-	}
+	{}
 
 	@Override
 	public void init(RobotStatus status)
-	{}
+	{
+		B_FIELD = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
+	}
 
 	@Override
 	public void setGun(RobotStatus status, ITargetManager targetMan, ANumbatFire fire)
@@ -58,8 +58,6 @@ public class NumbatSTGun extends ANumbatGun
 		// myFire = fire;
 
 		double heading = target.eHeading;
-		double velocity = 0;
-		double pHeadChange = 0;
 		double xg = target.x;
 		double yg = target.y;
 
@@ -77,65 +75,71 @@ public class NumbatSTGun extends ANumbatGun
 		// TODO: the gunheat rule ruins the avg pattern length - think about another saver rule or extract the startpattern in a function anyway 
 		if (ePattern.length() > 0 && deltaScan < 10 /* && status.getGunHeat() <= 0.5 */)
 		{
+			//System.out.format("[%d] NEW PATTERN %s\n", status.getTime(), "");
+			int count = 0;
 			for (double bDist = 0; (bDist - deltaScan * fire.getBulletSpeed()) < Point2D.distance(status.getX(), status.getY(), xg, yg); bDist += fire
 					.getBulletSpeed())
 			{
 				int nextStep = 0;
 				int patternLength = Math.min(target.eMatchKeyLength, ePattern.length());
 				INumbatTick tick = null;
+				String debugStr = "";
 				int len = 0;
 				for (len = patternLength; tick == null; --len)
 				{
 					// System.out.format("len=%d pLen=%d\n", len,patternLength);
-					String debugStr = ePattern.substring(0, len);
-					tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
-				}
-				nextStep = tick.getMaxTick().myID;
-				if (isFirst)
-				{
-					target.registerPatternLength(len + 1);
-					isFirst = false;
+					if (len == 0)
+					{
+						//System.out.format("[%d] never seen this state lets take the heading and velocity ...\n", count);
+						break;
+						// len 0 means a new pattern we haven't seen before - what do to?
+						// taking the heading change and velocity of the target would lead to circular gun
+						// breaking the loop and just head on target would be also possible
+						// maybe backtrack the pattern to find something that is similar to this pattern - just restart the loop without the last state 
+					}
+					else
+					{
+						debugStr = ePattern.substring(0, len);
+						tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
+					}
 				}
 
-				double[] tickDecode = myCode.decode(nextStep);
-				heading += (pHeadChange = tickDecode[0]);
-				velocity = tickDecode[1];
+				double velocity;
+				double headingDelta;
+				if (tick != null)
+				{
+					NumbatSingleHolder singleTick = tick.getMaxTick();
+					nextStep = singleTick.myID;
+					headingDelta = singleTick.tHeadingDelta;
+					velocity = singleTick.tVelocity;
+
+					if (isFirst)
+					{
+						target.registerPatternLength(len + 1);
+						isFirst = false;
+					}
+				}
+				else
+				{
+					headingDelta = target.getHeadingDifference();
+					velocity = target.getAverageVelocity();
+					nextStep = NumbatSingleHolder.getEncodedID(headingDelta, velocity);
+				}
+				heading += headingDelta;
 
 				xg += velocity * Math.sin(heading);
 				yg += velocity * Math.cos(heading);
 
-				// double dX = Math.min(xg, BattleField.BATTLE_FIELD_W-xg);
-				// double dY = Math.min(yg, BattleField.BATTLE_FIELD_H-yg);
-
-				boolean wHit = false;
-				if (xg < WZ)
+				if (!B_FIELD.contains(xg, yg))
 				{
-					xg = 18;
-					wHit = true;
-				}
-				else if (BattleField.BATTLE_FIELD_W - xg < WZ)
-				{
-					xg = BattleField.BATTLE_FIELD_W - WZ;
-					wHit = true;
-				}
-				if (yg < WZ)
-				{
-					yg = 18;
-					wHit = true;
-				}
-				else if (BattleField.BATTLE_FIELD_H - yg < WZ)
-				{
-					yg = BattleField.BATTLE_FIELD_H - WZ;
-					wHit = true;
-				}
-
-				if (wHit)
-				{
-					nextStep = myCode.encode(pHeadChange, 0, velocity);
+					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W - DEAULT_HALF_BOTWEIGHT);
+					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H - DEAULT_HALF_BOTWEIGHT);
+					nextStep = NumbatSingleHolder.getEncodedID(headingDelta, 0);
 					debugPointList.badPoints.add(new Point2D.Double(xg, yg));
 				}
 				else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
 				ePattern.insert(0, (char) nextStep);
+				count++;
 				//sDesire.insert(0, (char) nextStep);
 			}
 		}
@@ -177,7 +181,7 @@ public class NumbatSTGun extends ANumbatGun
 			return;
 		}
 
-		record(hDiff, target.eVelocity, target.eLastVelocity, target.eHistory, target.matcherMap, target.eMatchKeyLength, status.getTime());
+		record(hDiff, target.eVelocity, target.eHistory, target.matcherMap, target.eMatchKeyLength, status.getTime());
 
 		// register the startPattern for every scanned target
 		// TODO: get rid of this code copy and find something appropriate
@@ -189,31 +193,45 @@ public class NumbatSTGun extends ANumbatGun
 			for (len = patternLength; tick == null; --len)
 			{
 				// System.out.format("len=%d pLen=%d\n", len,patternLength);
-				String debugStr = target.eHistory.substring(0, len);
-				tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
+				if (len == 0)
+				{
+					break;
+				}
+				else
+				{
+					String debugStr = target.eHistory.substring(0, len);
+					tick = target.matcherMap.get(debugStr.hashCode()); // automatic cast to Integer
+				}
 			}
-			target.registerPatternLength(len + 1);
+			if (tick != null) target.registerPatternLength(len);
 		}
 	}
 
-	private void record(double deltaHead, double velocity, double lastVelocity, StringBuilder history, Map<Integer, INumbatTick> matchMap,
-			int keylen, long time)
+	private void record(double deltaHead, double velocity, StringBuilder history, Map<Integer, INumbatTick> matchMap, int keylen, long time)
 	{
-		int thisStep = (char) myCode.encode(deltaHead, velocity, lastVelocity);
+		int thisStep = NumbatSingleHolder.getEncodedID(deltaHead, velocity);
 
-		for (int i = 0; i <= history.length(); ++i)
+		// No matter what happen don't use i=0 ever again. this trashes the whole system with unnecessary? objects and the loop slows down like hell
+		for (int i = 1; i <= history.length(); ++i)
 		{
 			int pHash;
 			INumbatTick tick; // automatic cast to Integer
 			if ((tick = matchMap.get(pHash = history.substring(0, i).hashCode())) == null)
 			{
-				matchMap.put(pHash, tick = NumbatSingleHolder.getNewInstance(thisStep));
+				matchMap.put(pHash, tick = NumbatSingleHolder.getNewInstance(deltaHead, velocity));
 			}
 
 			if (!tick.incrementCount(thisStep))
 			{
-				NumbatMultiHolder multiTick;
-				(multiTick = new NumbatMultiHolder((NumbatSingleHolder) tick)).incrementCount(thisStep);
+				INumbatTick multiTick;
+				if (tick instanceof NumbatSingleHolder)
+				{
+					multiTick = new NumbatMultiHolder((NumbatSingleHolder) tick);
+				}
+				else multiTick = tick;
+
+				//System.out.format("[%d] hash=%d ", time, pHash);
+				multiTick.addTick(deltaHead, velocity);
 				matchMap.put(pHash, multiTick);
 			}
 		}
