@@ -31,7 +31,8 @@ public class NumbatGunManager
 	private final NumbatFireManager		myFireMan;
 	private final ArrayList<ANumbatGun>	allGuns;
 
-	NumbatCenterGun						researchGun	= new NumbatCenterGun();
+	//NumbatCenterGun						researchGun	= new NumbatCenterGun();
+	NumbatGunSquare						researchGun	= new NumbatGunSquare();
 
 	public NumbatGunManager()
 	{
@@ -70,6 +71,8 @@ public class NumbatGunManager
 	{
 		myFireMan.setFire();
 		myGun.setGun(botStatus, myTargetMan, myFireMan.getFire());
+
+		researchGun.setGun(botStatus, myTargetMan, myFireMan.getFire());
 	}
 
 	public void excecute(AdvancedRobot bot)
