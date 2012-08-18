@@ -17,13 +17,15 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
 import robocode.AdvancedRobot;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.robomath.RobotMath;
 import wompi.wallaby.PaintHelper;
 
 /**
@@ -41,7 +43,7 @@ import wompi.wallaby.PaintHelper;
 public class Wombat extends AdvancedRobot
 {
 	private static final double	WZ						= 20.0;
-	private static final double	WZ_G					= 17.0;
+	private static final double	WZ_G					= 0.0;
 
 	private final static double	DIST					= 185;
 	private final static double	DIST_REMAIN				= 20;
@@ -60,12 +62,14 @@ public class Wombat extends AdvancedRobot
 	public final static double	MAX_MOVE_ESCAPE_RATE	= 9.0;
 	public final static int		MAX_ENDGAME_OPPONENTS	= 2;
 	public final static double	DEFAULT_RADAR_WIDTH		= 2.0;
+	private static final double	DEAULT_HALF_BOTWEIGHT	= 18;
 
 	public static Rectangle2D	B_FIELD_GUN;
 	public static Rectangle2D	B_FIELD_MOVE;
 
 	static WombatTarget			myTarget;
 	static double				bPower;
+	static boolean				canShoot;
 
 	@Override
 	public void run()
@@ -86,7 +90,7 @@ public class Wombat extends AdvancedRobot
 		while (true)
 		{
 			doFire();
-			doGun();
+			canShoot = doGun();
 			execute();
 		}
 	}
@@ -94,15 +98,9 @@ public class Wombat extends AdvancedRobot
 	@Override
 	public void onScannedRobot(final ScannedRobotEvent e)
 	{
-
 		if (myTarget == null) myTarget = new WombatTarget();
-
 		myTarget.addScan(e, getHeadingRadians(), getX(), getY());
-
-		// int bTick = (int)(e.getDistance()/Rules.getBulletSpeed(0.1));
-		myTarget.calculateDisplaceVectors(getTime());
-		// myTarget.onPaint(getGraphics(),bTick,getTime(),e.getVelocity());
-		// myTarget.onPrint(getTime(),bTick);
+		myTarget.calculateDisplaceVectors();
 
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY
 				* Math.signum(Utils.normalRelativeAngle(getHeadingRadians() + e.getBearingRadians() - getRadarHeadingRadians()) + 0.0001)); // TODO:
@@ -112,7 +110,7 @@ public class Wombat extends AdvancedRobot
 
 	private void doFire()
 	{
-		if (getGunTurnRemaining() == 0 /* && (getTime()-target.eScan) == 0 */)
+		if (getGunTurnRemaining() == 0 && canShoot)
 		{
 			setFire(bPower);
 		}
@@ -162,117 +160,122 @@ public class Wombat extends AdvancedRobot
 		}
 	}
 
-	private void doGun()
+	private boolean doGun()
 	{
 		if (myTarget == null)
 		{
-			System.out.format("[%d] Sorry no Traget yet!\n", getTime());
-			return;
+			//System.out.format("[%d] Sorry no Traget yet!\n", getTime());
+			return false;
 		}
 
-		WombatScan lastKeyScan = myTarget.getLastKeyScan();
-
-		if (lastKeyScan == null)
+		WombatScan lastKeyScan = null;
+		try
 		{
-			System.out.format("[%d] Soory no keyScan available!\n", getTime());
-			return;
+			lastKeyScan = myTarget.getLastKeyScan();
+		}
+		catch (Exception e0)
+		{
+			//System.out.format("[%d] Sorry no keyScan available!\n", getTime());
+			return false;
 		}
 
-		double tDist = Point2D.distance(lastKeyScan.x, lastKeyScan.y, getX(), getY());
-		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(lastKeyScan.sEvent.getEnergy() / 3.0, 600 / tDist));
-
-		double heading = lastKeyScan.sEvent.getHeadingRadians();
-
-		double tDiff = getTime() - lastKeyScan.sEvent.getTime();      // / adjust
-		// time to the ticks if the last scan was not at this turn
-
-		// extract displace vector
 		WombatVectorHolder holder = myTarget.mySnapShots.get(lastKeyScan.sKey);
 		if (holder == null)
 		{
-			System.out.format("[%d] NO HOLDER for key =%d \n", getTime(), lastKeyScan.sKey);
-			return;
+			//System.out.format("[%d] NO HOLDER for key =%d \n", getTime(), lastKeyScan.sKey);
+			return false;
 		}
 
-		int bTicks = 0;
+		double tDist = Point2D.distance(lastKeyScan.x, lastKeyScan.y, getX(), getY());
+		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(lastKeyScan.sEnergy / 3.0, TARGET_DISTANCE / tDist));
+
+		double bTick = tDist / Rules.getBulletSpeed(bPower);
+		double botSpeed = 8.0 * bTick;
+
+		int minTick = (int) Math.round((tDist - botSpeed) / Rules.getBulletSpeed(bPower));
+		int maxTick = (int) Math.round((tDist + botSpeed) / Rules.getBulletSpeed(bPower));
+
+		double tDiff = getTime() - lastKeyScan.sTime; // / adjust time to the ticks if the last scan was not at this turn
+
 		double xg = lastKeyScan.x;
 		double yg = lastKeyScan.y;
 		double vHead = 0;
 		double vDist = 0;
 
-		Graphics2D g = getGraphics();
+		Graphics2D g = getGraphics(); // this is to prevent 1000 getXXX() calls
+		int[][] mostUsed = new int[1000][1000];
+		int maxCount = -1;
+		int dx = 0;
+		int dy = 0;
 
-		while (bTicks++ * Rules.getBulletSpeed(bPower) < Point2D.distance(getX(), getY(), xg, yg))
+		double myX = getX();
+		double myY = getY();
+
+		int tickTaken = 0;
+		for (int i = minTick; i <= maxTick; i++)
 		{
-
-			ArrayList<WombatDisplaceVector> myVectors = holder.myVectors.get(bTicks);
+			ArrayList<WombatDisplaceVector> myVectors = holder.myVectors.get(i);
 			if (myVectors == null)
 			{
-				System.out.format("[%d] NO VECTORS for bTicks =%d \n", getTime(), bTicks);
-				return;
-			}
-
-			// right here you have to take some advanced filter to select the
-			// right displace vector
-			// maybe a fast pre selection within the holder class or some
-			// additional informations like wall distance, distance or what not
-			// i guess the mean average is not good at all ... every group of
-			// displacement vectors has its own special additional reason. the stronger this
-			// group selection the stronger the overall weapon rate. but be
-			// careful not to granulate it to much because the learning factor will increas
-			// to and
-			// it can take longer to reach the hitrate.
-
-			HashMap<Integer, Integer> mostUsedVectors = new HashMap<Integer, Integer>();
-
-			int maxCount = -1;
-			WombatDisplaceVector maxVector = null;
-			for (WombatDisplaceVector vector : myVectors)
-			{
-				int dist = (int) Math.sqrt((vector.relAngle * vector.relAngle) + (vector.relDist * vector.relDist));
-				Integer test = mostUsedVectors.get(new Integer(dist));
-				if (test == null)
-				{
-					mostUsedVectors.put(dist, test = new Integer(0));
-				}
-				mostUsedVectors.put(dist, test = new Integer(test.intValue() + 1));
-
-				// System.out.format("[%d] vAngle=%3.2f vDist=%3.2f\n",
-				// getTime(),vector.relAngle,vector.relDist);
-				// System.out.format("[%d] dist=%d count=%d\n",
-				// getTime(),dist,test);
-
-				if (test.intValue() > maxCount)
-				{
-					maxCount = test;
-					maxVector = vector;
-					// debug
-					Point2D vP = RobotMath.calculatePolarPoint(Utils.normalRelativeAngle(lastKeyScan.sEvent.getHeadingRadians() + vector.relAngle),
-							vector.relDist, lastKeyScan);
-					PaintHelper.drawLine(lastKeyScan, vP, g, Color.GRAY);
-				}
-
-			}
-
-			if (maxVector == null)
-			{
-				System.out.format("[%d] Sorry no maxVector found!\n", getTime());
+				//System.out.format("[%d] NO VECTORS for bTicks =%d\n", getTime(), i);
 				continue;
 			}
+			//System.out.format("[%d] key:%d --  %d - size: %d\n", getTime(), lastKeyScan.sKey, i, myVectors.size());
 
-			vHead = Utils.normalRelativeAngle(lastKeyScan.sEvent.getHeadingRadians() + maxVector.relAngle); // TODO: extract
-			// from displace vectors
-			vDist = maxVector.relDist; // TODO: extract from displace vectors
+			// TODO: this should be grabbed straight from the holder
+			for (WombatDisplaceVector vector : myVectors)
+			{
+				vHead = Utils.normalRelativeAngle(lastKeyScan.sHeading + vector.relAngle);
+				vDist = vector.relDist;
 
-			xg = lastKeyScan.x + Math.sin(vHead) * vDist;
-			yg = lastKeyScan.y + Math.cos(vHead) * vDist;
+				xg = Math.sin(vHead) * vDist;
+				yg = Math.cos(vHead) * vDist;
 
+				double bDist = Point2D.distance(myX, myY, xg + lastKeyScan.x, yg + lastKeyScan.y);
+				int checkTick = (int) (bDist / Rules.getBulletSpeed(bPower));
+				if (checkTick != i) continue;
+
+				if (B_FIELD_GUN.contains(xg + lastKeyScan.x, yg + lastKeyScan.y))
+				{
+					//					int xIndex = (int) Math.round(xg / 36.0);
+					//					int yIndex = (int) Math.round(yg / 36.0);
+
+					int xIndex = (int) (Math.toDegrees(Utils.normalAbsoluteAngle(vHead)) / 720.0);
+					int yIndex = (int) (vDist / 2.0);
+
+					int count = mostUsed[xIndex][yIndex]++;
+					PaintHelper.drawLine(lastKeyScan, new Point2D.Double(lastKeyScan.x + xg, lastKeyScan.y + yg), g, Color.GRAY);
+
+					if (count > maxCount)
+					{
+						maxCount = count;
+						dx = (int) xg;
+						dy = (int) yg;
+						tickTaken = i;
+					}
+				}
+				else
+				{
+					//					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W - DEAULT_HALF_BOTWEIGHT);
+					//					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H - DEAULT_HALF_BOTWEIGHT);
+					//					int wallTicks = (int) (Point2D.distance(myX, myY, xg, yg) / Rules.getBulletSpeed(bPower));
+
+				}
+			}
+			//		System.out.format("[%d] maxVector: %d (%3.5f,%3.2f)\n", getTime(), maxCount, Math.toDegrees(maxVector.relAngle), maxVector.relDist);
 		}
-		Point2D vP = RobotMath.calculatePolarPoint(vHead, vDist, lastKeyScan);
-		PaintHelper.drawLine(lastKeyScan, vP, g, Color.RED);
-		double gunAngle = Math.atan2(xg - getX(), yg - getY());
+		double gx = lastKeyScan.x + dx;
+		double gy = lastKeyScan.y + dy;
 
+		//		System.out.format("[%d] tick:%d min:%d (%3.2f) max:%d (%3.2f) bPower=%3.2f taken=%d\n", getTime(), (int) Math.round(bTick), minTick, tDist
+		//				- botSpeed, maxTick, tDist + botSpeed, bPower, tickTaken);
+
+		if (tickTaken == 0) { return false; }
+
+		PaintHelper.drawLine(lastKeyScan, new Point2D.Double(gx, gy), getGraphics(), Color.RED);
+		double gunAngle = Math.atan2(gx - getX(), gy - getY());
 		setTurnGunRightRadians(Utils.normalRelativeAngle(gunAngle - getGunHeadingRadians()));
+		return true;
 	}
 
 	@Override
@@ -282,15 +285,19 @@ public class Wombat extends AdvancedRobot
 
 class WombatTarget
 {
-	WombatScan[]							myScans;
-	long									lastScan;
-	long									lastKey;
+	final static int						DELTA_HEADING_INDEX	= 20;
+	final static int						VELOCITY_INDEX		= 8;
+	final static double						HEAD_FACTOR			= 2.0;
+	final static double						VELO_FACTOR			= 1.0;
 
-	HashMap<Integer, WombatVectorHolder>	mySnapShots		= new HashMap<Integer, WombatVectorHolder>();
+	LinkedList<WombatScan>					allScans;
+	int										lastKeyScanIndex;
 
-	private final static int				MAX_SHOOT_TICKS	= 60;
-	private final static double				MAX_HEAD_DIFF	= 0.1745329252;								// 10
-																											// degree
+	HashMap<Integer, WombatVectorHolder>	mySnapShots			= new HashMap<Integer, WombatVectorHolder>();
+
+	private final static int				MAX_SHOOT_TICKS		= 75;
+	private final static double				MAX_HEAD_DIFF		= 0.1745329252;								// 10
+																												// degree
 
 	public WombatTarget()
 	{
@@ -299,152 +306,114 @@ class WombatTarget
 
 	public void init()
 	{
-		myScans = new WombatScan[3000];
+		allScans = new LinkedList<WombatScan>();
+		lastKeyScanIndex = 0;
 	}
 
 	public WombatScan getLastScan()
 	{
-		return myScans[(int) lastScan];
+		return allScans.getLast();
 	}
 
 	public WombatScan getLastKeyScan()
 	{
-		return myScans[(int) lastKey];
+		return allScans.get(lastKeyScanIndex);
 	}
 
 	public void addScan(ScannedRobotEvent e, double botHeading, double x, double y)
 	{
-		WombatScan diffScan = myScans[(int) e.getTime() - 1];
 		int key = -1;
-
-		if (diffScan != null)
+		try
 		{
-			double headDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - diffScan.sEvent.getHeadingRadians());
-			// don't use Rules.MAX... because of the rounding errors
-			// this should never happen with timediff 1 scans but i check it
-			// anyway
-			if (Math.abs(headDiff) <= MAX_HEAD_DIFF)
-			{
-				key = (17 * ((int) Math.rint(Math.toDegrees(headDiff)) + 10) + ((int) Math.rint(e.getVelocity()) + 8));
-			}
-			else
-			{
-				System.out.format("[%d] ERROR: heading difference is out of value\n", e.getTime());
-			}
+			WombatScan lastScan = getLastScan();
+			long scanDiff = e.getTime() - lastScan.sTime;
 
+			if (scanDiff == 1)
+			{
+				double headDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - lastScan.sHeading);
+				int headInt = (int) Math.rint(Math.toDegrees(headDiff * HEAD_FACTOR)) + DELTA_HEADING_INDEX;
+				int veoInt = (int) (Math.rint(e.getVelocity() * VELO_FACTOR)) + VELOCITY_INDEX;
+				key = (((headInt) << 8) + (veoInt));
+			}
 		}
+		catch (NoSuchElementException e0)
+		{}
 
 		WombatScan scan = new WombatScan();
 		scan.x = x + Math.sin(botHeading + e.getBearingRadians()) * e.getDistance();
 		scan.y = y + Math.cos(botHeading + e.getBearingRadians()) * e.getDistance();
-		scan.sEvent = e;
+		scan.sHeading = e.getHeadingRadians();
 		scan.sKey = key;
-		myScans[(int) e.getTime()] = scan;
-		lastScan = e.getTime();
-		if (key != -1) lastKey = e.getTime();
+		scan.sTime = e.getTime();
+		scan.sEnergy = e.getEnergy();
+
+		allScans.add(scan);
+		if (key != -1) lastKeyScanIndex = allScans.size() - 1;
 	}
 
-	public void calculateDisplaceVectors(long time)
+	public void calculateDisplaceVectors()
 	{
-
-		// TODO: re think about the key usage. It might be wrong to save the key
-		// an the scan and use it
+		WombatScan lastScan = getLastScan();
+		Iterator<WombatScan> iter = allScans.descendingIterator();
 		int shootTick = 0;
-		int maxTicks = Math.min((int) time, MAX_SHOOT_TICKS);
-		WombatScan end = myScans[(int) time];
-		while (++shootTick <= maxTicks)
+		while (iter.hasNext())
 		{
-			WombatScan start = myScans[(int) time - shootTick];
-			if (start != null && start.sKey != -1)
+			WombatScan start = iter.next();
+			if (start != lastScan) // do not use the lastScan to displace with himself
 			{
-				WombatDisplaceVector vector = new WombatDisplaceVector();
-				double absAngle = Math.atan2(end.x - start.x, end.y - start.y);
-				vector.relAngle = Utils.normalRelativeAngle(absAngle - start.sEvent.getHeadingRadians());
-				vector.relDist = start.distance(end);
-				WombatVectorHolder holder = mySnapShots.get(start.sKey);
-				if (holder == null)
+				long scanDiff = lastScan.sTime - start.sTime;
+				if (scanDiff <= MAX_SHOOT_TICKS)
 				{
-					mySnapShots.put(start.sKey, holder = new WombatVectorHolder());
+					// TODO: maybe take other states as well into account if the key is not valid 
+					if (start.sKey != -1)
+					{
+						// TODO: categorize the displace vectors with a key to bind equal vectors together
+						WombatDisplaceVector vector = new WombatDisplaceVector();
+						double absAngle = Math.atan2(lastScan.x - start.x, lastScan.y - start.y);
+						vector.relAngle = Utils.normalRelativeAngle(absAngle - start.sHeading);
+						vector.relDist = start.distance(lastScan);
+						WombatVectorHolder holder = mySnapShots.get(start.sKey);
+						if (holder == null)
+						{
+							mySnapShots.put(start.sKey, holder = new WombatVectorHolder());
+						}
+						holder.addVector(shootTick, vector);
+					}
 				}
-				holder.addVector(shootTick, vector);
-				// System.out.format("[%d] new vector for key=%d and tick=%d   vAngle=%3.2f vDist=%3.2f \n",
-				// time,start.sKey,shootTick,vector.relAngle,vector.relDist);
+				else
+				{
+					iter.remove(); // TODO: re think about this, maybe the break is not right there
+					lastKeyScanIndex--;
+					break;
+				}
 			}
-
-			// else
-			// {
-			// System.out.format("[%d] no scan for time %d\n", time,maxTicks-shootTick);
-			// }
+			shootTick++;
 		}
 	}
 
-	public void onPaint(Graphics2D g, double bTicks, long time, double velocity)
-	{
-		int key = myScans[(int) time].sKey;
-		if (key == -1) return; // TODO: maybe wrong
-		WombatVectorHolder holder = mySnapShots.get(key);
-		if (holder == null)
-		{
-			System.out.format("NO HOLDER for key =%d \n", key);
-			return;
-		}
-
-		ArrayList<WombatDisplaceVector> myVectors = holder.myVectors.get((int) bTicks);
-
-		if (myVectors == null)
-		{
-			System.out.format("NO VECTORS for bTicks =%3.2f \n", bTicks);
-			return;
-		}
-
-		WombatScan lastScan = myScans[(int) time];
-
-		for (WombatDisplaceVector vector : myVectors)
-		{
-			Point2D vP = RobotMath.calculatePolarPoint(Utils.normalRelativeAngle(lastScan.sEvent.getHeadingRadians() + vector.relAngle),
-					vector.relDist, lastScan);
-			PaintHelper.drawLine(lastScan, vP, g, Color.GRAY);
-		}
-	}
+	public void onPaintOld(Graphics2D g, double bTicks, long time, double velocity)
+	{}
 
 	public void onPrint(long time, int bTicks)
-	{
-		// for(Entry<Integer,WombatVectorHolder> entry: mySnapShots.entrySet())
-		// {
-		// System.out.format("[%d][key=%d][btick=%d] KEY: %d VALUE: %s\n",time,key,bTicks,entry.getKey(),entry.getValue().toString());
-		// }
-
-		// int key = myScans[(int)time].sKey;
-		// if (key == -1) return; // TODO: maybe wrong
-		//
-		// WombatVectorHolder holder = mySnapShots.get(key);
-		// if (holder == null) return;
-		// System.out.format("[%d][key=%d][btick=%d] VALUE: %s\n",time,key,bTicks,holder.toString());
-		//
-		// ArrayList<WombatDisplaceVector> tickList = holder.myVectors.get(bTicks);
-		// if (tickList == null) return;
-		// for (WombatDisplaceVector vector: tickList)
-		// {
-		// System.out.format("[%d] angle=%3.4f dist=%3.2f \n",
-		// bTicks,Math.toDegrees(vector.relAngle),vector.relDist);
-		// }
-	}
+	{}
 }
 
 class WombatScan extends Point2D.Double
 {
 	private static final long	serialVersionUID	= -4054906635108284565L;
-	ScannedRobotEvent			sEvent;
-	int							sKey;
+	int							sKey				= -1;
+	double						sHeading;
+	long						sTime;
+	double						sEnergy;
 }
 
 class WombatDisplaceVector
 {
+	// TODO: enhance this with additional informations like wall distance,
+	// shoot, latVel and so on
 	double	relAngle;
 	double	relDist;
 
-	// TODO: enhance this with additional informations like wall distance,
-	// shoot, latVel and so on
 }
 
 class WombatVectorHolder
@@ -460,8 +429,8 @@ class WombatVectorHolder
 			myVectors.put(ticks, list = new ArrayList<WombatDisplaceVector>());
 		}
 		list.add(vector);
-		// System.out.format("\tvector for tick %d size now %d \n",
-		// ticks,list.size());
+
+		if (list.size() > 500) list.remove(0);
 	}
 
 	@Override
