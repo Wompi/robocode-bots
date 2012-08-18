@@ -254,13 +254,6 @@ public class Wombat extends AdvancedRobot
 						tickTaken = i;
 					}
 				}
-				else
-				{
-					//					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W - DEAULT_HALF_BOTWEIGHT);
-					//					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H - DEAULT_HALF_BOTWEIGHT);
-					//					int wallTicks = (int) (Point2D.distance(myX, myY, xg, yg) / Rules.getBulletSpeed(bPower));
-
-				}
 			}
 			//		System.out.format("[%d] maxVector: %d (%3.5f,%3.2f)\n", getTime(), maxCount, Math.toDegrees(maxVector.relAngle), maxVector.relDist);
 		}
@@ -320,9 +313,12 @@ class WombatTarget
 		return allScans.get(lastKeyScanIndex);
 	}
 
+	double	lastVelocity;
+
 	public void addScan(ScannedRobotEvent e, double botHeading, double x, double y)
 	{
 		int key = -1;
+		double headDiff = 0;
 		try
 		{
 			WombatScan lastScan = getLastScan();
@@ -330,7 +326,7 @@ class WombatTarget
 
 			if (scanDiff == 1)
 			{
-				double headDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - lastScan.sHeading);
+				headDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - lastScan.sHeading);
 				int headInt = (int) Math.rint(Math.toDegrees(headDiff * HEAD_FACTOR)) + DELTA_HEADING_INDEX;
 				int veoInt = (int) (Math.rint(e.getVelocity() * VELO_FACTOR)) + VELOCITY_INDEX;
 				key = (((headInt) << 8) + (veoInt));
@@ -339,6 +335,9 @@ class WombatTarget
 		catch (NoSuchElementException e0)
 		{}
 
+		double maxDiff = Rules.getTurnRateRadians(lastVelocity);
+		lastVelocity = e.getVelocity();
+		System.out.format("[%d] v=%3.2f dH=%3.5f ratioH=%3.4f\n", e.getTime(), e.getVelocity(), Math.toDegrees(headDiff), headDiff / maxDiff);
 		WombatScan scan = new WombatScan();
 		scan.x = x + Math.sin(botHeading + e.getBearingRadians()) * e.getDistance();
 		scan.y = y + Math.cos(botHeading + e.getBearingRadians()) * e.getDistance();
