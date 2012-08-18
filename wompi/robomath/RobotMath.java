@@ -48,6 +48,25 @@ public class RobotMath
 		return Math.max(min, Math.min(value, max));
 	}
 
+	public static double getAcceleration(double velocity, double lastVelocity)
+	{
+		double sig = Math.signum(velocity);
+		double lastSig = Math.signum(lastVelocity);
+		if (sig == 0)
+		{
+			return (lastVelocity > 0) ? -lastVelocity : lastVelocity;
+		}
+		else if (lastSig == 0)
+		{
+			return Math.abs(velocity);
+		}
+		else if (Math.signum(lastVelocity) == sig)
+		{
+			sig = -sig;
+		}
+		return ((lastVelocity - velocity) * sig);
+	}
+
 	/**
 	 * - gibt den Winkel zwischen zwei kartesischen Koordinaten zurueck<br>
 	 * - unbedingt die Reihenfolge fuer P1 und P2 beachten. P1 sollten meine Koordinaten sein und P2 die Koordinaten

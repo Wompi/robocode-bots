@@ -11,6 +11,9 @@
  ******************************************************************************/
 package wompi.numbat.gun.misc;
 
+import robocode.util.Utils;
+import wompi.robomath.RobotMath;
+
 public class NumbatRelativePoint implements Comparable<NumbatRelativePoint>
 {
 	// M- M0 M+ R- R0 R+ A- A0 A+
@@ -35,11 +38,12 @@ public class NumbatRelativePoint implements Comparable<NumbatRelativePoint>
 		if (velocity < 0) distShift++;
 		else if (velocity > 0) distShift--;
 
-		double rotate = heading - lastHeading;
+		double rotate = Utils.normalRelativeAngle(heading - lastHeading);
 		if (rotate < 0) rotateShift++;
 		else if (rotate > 0) rotateShift--;
 
-		double accel = velocity - lastVelocity;
+		double accel = RobotMath.getAcceleration(velocity, lastVelocity);
+
 		if (accel < 0) accelShift++;
 		else if (accel > 0) accelShift--;
 

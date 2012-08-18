@@ -31,6 +31,7 @@ import wompi.echidna.misc.painter.PaintTargetSquare;
 import wompi.numbat.debug.DebugRadarProperties;
 import wompi.numbat.gun.NumbatSTGun;
 import wompi.numbat.gun.misc.INumbatTick;
+import wompi.robomath.RobotMath;
 import wompi.wallaby.PaintHelper;
 
 public class NumbatTarget extends Point2D.Double
@@ -205,6 +206,11 @@ public class NumbatTarget extends Point2D.Double
 	{
 		// simple but still effective somehow
 		return vAvg * Math.signum(eVelocity) / avgVCount;
+	}
+
+	public double getAccelleration()
+	{
+		return RobotMath.getAcceleration(eVelocity, eLastVelocity);
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package wompi.numbat.debug.paint;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
@@ -24,4 +25,18 @@ public class PaintCenterSegments
 			PaintHelper.drawArc(center, i, 0.0, Math.PI * 2, false, g, PaintHelper.whiteTrans);
 		}
 	}
+
+	public void drawFieldGrid(Graphics2D g, Color gridColor, double fieldW, double fieldH)
+	{
+		if (gridColor == null) gridColor = new Color(0xFF, 0xFF, 0xFF, 0x20);
+		for (int i = 0; i <= (fieldW - 36); i += 36)
+		{
+			for (int j = 0; j <= (fieldH - 36); j += 36)
+			{
+				g.setColor(gridColor);
+				g.drawRect(i, j, 36, 36);
+			}
+		}
+	}
+
 }
