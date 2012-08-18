@@ -221,11 +221,12 @@ public class Numbat extends AdvancedRobot
 	public void onPaint(Graphics2D g)
 	{
 		if (debugCenter == null) debugCenter = new PaintCenterSegments();
-		debugCenter.onPaint(g);
+		//debugCenter.onPaint(g);
+		debugCenter.drawFieldGrid(g, null, NumbatBattleField.BATTLE_FIELD_W, NumbatBattleField.BATTLE_FIELD_H);
 
 		// PaintRobotPath.onPaint(g, getName(), getTime(),getX(), getY(), Color.GREEN);
 		// PaintHitCloud.onPaint(g);
-		myTargetMan.onPaint(g);
+		//myTargetMan.onPaint(g);
 		myMoveMan.onPaint(g);
 		myGunMan.onPaint(g);
 		myRadarMan.onPaint(g);
