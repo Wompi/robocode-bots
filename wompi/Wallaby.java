@@ -41,39 +41,40 @@ import robocode.util.Utils;
  */
 public class Wallaby extends AdvancedRobot
 {
-	private static final double				FIELD_W					= 1000.0;
-	private static final double				FIELD_H					= 1000.0;
+	private static final double			FIELD_W					= 1000.0;
+	private static final double			FIELD_H					= 1000.0;
 
-	private static final double				WZ						= 20.0;
-	private static final double				WZ_W					= FIELD_W - 2 * WZ;
-	private static final double				WZ_H					= FIELD_H - 2 * WZ;
-	private static final double				WZ_G					= 17.0;
-	private static final double				WZ_G_W					= FIELD_W - 2 * WZ_G;
-	private static final double				WZ_G_H					= FIELD_H - 2 * WZ_G;
+	private static final double			WZ						= 20.0;
+	private static final double			WZ_W					= FIELD_W - 2 * WZ;
+	private static final double			WZ_H					= FIELD_H - 2 * WZ;
+	private static final double			WZ_G					= 17.0;
+	private static final double			WZ_G_W					= FIELD_W - 2 * WZ_G;
+	private static final double			WZ_G_H					= FIELD_H - 2 * WZ_G;
 
-	private final static double				DIST					= 185;
-	private final static double				DIST_REMAIN				= 20;
+	private final static double			DIST					= 185;
+	private final static double			DIST_REMAIN				= 20;
 
-	private final static double				GUNLOCK					= 1.0;
-	private final static double				TARGET_FORCE			= 65000;								// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double				TARGET_DISTANCE			= 400.0;								// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
+	private final static double			GUNLOCK					= 1.0;
+	private final static double			TARGET_FORCE			= 65000;							// 100000 low dmg high surv - 10000 high dmg low surv  
+	private final static double			TARGET_DISTANCE			= 600.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
-	private final static double				PI_360					= Math.PI * 2.0;
-	private final static double				DELTA_RISK_ANGLE		= Math.PI / 32.0;
-	private final static double				MAX_HEAD_DIFF			= 0.161442955809475;					// 9.25 degree
-	private final static double				RANDOM_RATE				= 0.5;
-	private final static int				MAX_RANDOM_OPPONENTS	= 5;
-	private final static int				MAX_ENERGY_OPPONENTS	= 2;
-	private final static double				ENERGY_ADJUST			= 3.0;
-	private final static double				RATE_BORDER				= 3.0;									//2.8;
-	private final static double				INF						= Double.POSITIVE_INFINITY;
+	private final static double			PI_360					= Math.PI * 2.0;
+	private final static double			DELTA_RISK_ANGLE		= Math.PI / 32.0;
+	private final static double			MAX_HEAD_DIFF			= 0.161442955809475;				// 9.25 degree
+	private final static double			RANDOM_RATE				= 0.5;
+	private final static int			MAX_RANDOM_OPPONENTS	= 5;
+	private final static int			MAX_ENERGY_OPPONENTS	= 2;
+	private final static double			ENERGY_ADJUST			= 3.0;
+	private final static double			RATE_BORDER				= 3.0;								//2.8;
+	private final static double			INF						= Double.POSITIVE_INFINITY;
 
-	static HashMap<String, WallabyTarget>	allTargets				= new HashMap<String, WallabyTarget>();
+	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter
+	static HashMap<String, double[]>	allTargets				= new HashMap<String, double[]>();
 
-	static String							eName;
-	static double							eDistance;
-	static double							eEnergy;
-	static double							bPower;
+	static String						eName;
+	static double						eDistance;
+	static double						eEnergy;
+	static double						bPower;
 
 	@Override
 	public void run()
@@ -86,10 +87,10 @@ public class Wallaby extends AdvancedRobot
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		WallabyTarget enemy;
+		double[] enemy;
 		if ((enemy = allTargets.get(e.getName())) == null)
 		{
-			allTargets.put(e.getName(), enemy = new WallabyTarget());
+			allTargets.put(e.getName(), enemy = new double[7]);
 		}
 		double v0;
 		double xg;
@@ -104,21 +105,33 @@ public class Wallaby extends AdvancedRobot
 		double x;
 		double y;
 
-		xg = enemy.x = Math.sin((rM = (getHeadingRadians() + e.getBearingRadians()))) * (v0 = e.getDistance());
-		yg = enemy.y = Math.cos(rM) * v0;
-		v2 = ((enemy.vAvg += (Math.abs(v1 = e.getVelocity()))) * Math.signum(v1)) / ++enemy.avgCount;
-
-		if (Math.abs(h0 = (-enemy.eHeading + (h1 = enemy.eHeading = e.getHeadingRadians()))) > MAX_HEAD_DIFF) h0 = 0;
+		xg = enemy[0] = Math.sin((rM = (getHeadingRadians() + e.getBearingRadians()))) * (v0 = e.getDistance());
+		yg = enemy[1] = Math.cos(rM) * v0;
+		v2 = ((enemy[3] += (Math.abs(v1 = e.getVelocity()))) * Math.signum(v1)) / ++enemy[4];
 
 		if (((getOthers() <= MAX_ENERGY_OPPONENTS) ? (eEnergy > e.getEnergy()) : (eDistance > v0)) || eName == e.getName())
 		{
+			if (getGunTurnRemaining() == 0 /*&& getEnergy() > bPower */)
+			{
+				setFire(bPower);
+			}
+
+			if (Math.abs(h0 = Utils.normalRelativeAngle(-enemy[2] + (h1 = enemy[2] = e.getHeadingRadians()))) > MAX_HEAD_DIFF)
+			{
+				h0 = 0;
+				enemy[5] = 0;
+				enemy[6] = 0;
+			}
+			if (getGunHeat() < GUNLOCK || getOthers() == 1)
+			{
+				h0 = (enemy[5] += h0) / ++enemy[6];
+				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
+				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
+			}
 			eName = e.getName();
 
-			if (getGunTurnRemaining() == 0) setFire(bPower);
-			if (getGunHeat() < GUNLOCK || getOthers() == 1) setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
-
-			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min((eEnergy = e.getEnergy()) / ENERGY_ADJUST, TARGET_DISTANCE / (eDistance = v0))); // save one byte and put rM = v0 to
-			if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
+			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(((eEnergy = e.getEnergy()) / ENERGY_ADJUST), TARGET_DISTANCE / (eDistance = v0))); // save one byte and put rM = v0 to
+			//if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
 
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
@@ -136,17 +149,18 @@ public class Wallaby extends AdvancedRobot
 
 				if (new Rectangle2D.Double(WZ, WZ, WZ_W, WZ_H).contains((x = (DIST * Math.sin(v0))) + getX(), (y = (DIST * Math.cos(v0))) + getY()))
 				{
-					if ((r1 = Math.abs(Math.cos(Math.atan2(enemy.x - x, enemy.y - y) - v0))) < RANDOM_RATE && getOthers() <= MAX_RANDOM_OPPONENTS)
+					if ((r1 = Math.abs(Math.cos(Math.atan2(enemy[0] - x, enemy[1] - y) - v0))) < RANDOM_RATE && getOthers() <= MAX_RANDOM_OPPONENTS)
 					{
 						r1 = RANDOM_RATE * Math.random();
 					}
 
 					try
 					{
-						Iterator<WallabyTarget> iter = allTargets.values().iterator();
+						Iterator<double[]> iter = allTargets.values().iterator();
 						while (true)
 						{
-							r1 += TARGET_FORCE / ((iter.next()).distanceSq(x, y));
+							double[] coordinate;
+							r1 += TARGET_FORCE / Point2D.distanceSq((coordinate = iter.next())[0], coordinate[1], x, y);
 						}
 					}
 					catch (Exception e1)
@@ -174,15 +188,4 @@ public class Wallaby extends AdvancedRobot
 		eDistance = eEnergy = INF;
 		allTargets.remove(e.getName());
 	}
-}
-
-class WallabyTarget extends Point2D.Double
-{
-	private static final long	serialVersionUID	= -5406737205536713408L;
-
-	double						eHeading;
-	double						vAvg;
-	long						avgCount;
-	//	double						eVelocity;
-	//long						eScan;
 }
