@@ -11,6 +11,7 @@
  ******************************************************************************/
 package wompi.numbat.move;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 
@@ -29,7 +30,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 	private final static double	DIST				= 185;
 	private final static double	DIST_REMAIN			= 20;
 	private final static double	TARGET_FORCE		= 45000;			// 100000 low dmg high surv - 10000 high dmg low surv
-	private final static double	MAX_RANDOM_PERP		= 0.3;
+	private final static double	MAX_RANDOM_PERP		= 0.5;
 
 	private static Rectangle2D	B_FIELD_MOVE;
 	private boolean				isMoveing;
@@ -97,9 +98,7 @@ public class NumbatMinRiskMove extends ANumbatMove
 							}
 						}
 						else if (enemy.getDistance(status) <= DIST) isClose = true;
-						riskForce += force / enemy.distanceSq(mx, my) /* * ((enemy.distance(mx,my) > 600) ?-1 : 1) */; // TODO: maybe raise the force
-																														// dependent on how long we
-																														// have not seen the enemy
+						riskForce += force / enemy.distanceSq(mx, my);
 					}
 				}
 				riskRate += riskForce;
@@ -149,6 +148,8 @@ public class NumbatMinRiskMove extends ANumbatMove
 		moveTurn -= status.getHeadingRadians();
 	}
 
+	double	headJiggle;
+
 	@Override
 	public void excecute(AdvancedRobot myBot)
 	{
@@ -156,6 +157,24 @@ public class NumbatMinRiskMove extends ANumbatMove
 		{
 			myBot.setTurnRightRadians(Math.tan(moveTurn));
 			myBot.setAhead(DIST * Math.cos(moveTurn));
+		}
+		if (Math.random() > 0.8)
+		{
+			//			if (Utils.isNear(0, myBot.getTurnRemainingRadians()))
+			//			{
+			//				double maxRand = Rules.getTurnRateRadians(myBot.getVelocity()) * Math.random();
+			//				double odd = Math.signum(Math.random() - 0.5);
+			//				myBot.setTurnRightRadians(headJiggle += (odd * maxRand));
+			//			}
+			myBot.setMaxVelocity((Math.abs(myBot.getVelocity()) - 1));
+			myBot.setAllColors(Color.YELLOW);
+		}
+		else
+		{
+			//			if (headJiggle != 0) myBot.setTurnRightRadians(-headJiggle);
+			myBot.setMaxVelocity(8.0);
+			myBot.setAllColors(Color.RED);
+			headJiggle = 0;
 		}
 	}
 

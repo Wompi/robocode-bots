@@ -32,7 +32,7 @@ public class NumbatGunManager
 	private final ArrayList<ANumbatGun>	allGuns;
 
 	//NumbatCenterGun						researchGun	= new NumbatCenterGun();
-	NumbatGunSquare						researchGun	= new NumbatGunSquare();
+	//NumbatGunSquare						researchGun	= new NumbatGunSquare();
 
 	public NumbatGunManager()
 	{
@@ -64,7 +64,7 @@ public class NumbatGunManager
 		myFireMan.onScannedRobot(e);
 		myGun.onScannedRobot(e, botStatus, myTargetMan);
 
-		researchGun.onScannedRobot(e, botStatus, myTargetMan);
+		//researchGun.onScannedRobot(e, botStatus, myTargetMan);
 	}
 
 	public void setGun()
@@ -72,7 +72,7 @@ public class NumbatGunManager
 		myFireMan.setFire();
 		myGun.setGun(botStatus, myTargetMan, myFireMan.getFire());
 
-		researchGun.setGun(botStatus, myTargetMan, myFireMan.getFire());
+		//researchGun.setGun(botStatus, myTargetMan, myFireMan.getFire());
 	}
 
 	public void excecute(AdvancedRobot bot)
@@ -85,7 +85,7 @@ public class NumbatGunManager
 	{
 		myGun.onPaint(g, botStatus); // TODO: handle multiple guns and whatnot better
 
-		researchGun.onPaint(g, botStatus);
+		//researchGun.onPaint(g, botStatus);
 	}
 
 	private void checkActivate()
