@@ -21,7 +21,6 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.DebugPointLists;
 import wompi.numbat.gun.fire.ANumbatFire;
 import wompi.numbat.gun.misc.INumbatTick;
 import wompi.numbat.gun.misc.NumbatMultiHolder;
@@ -33,13 +32,13 @@ import wompi.robomath.RobotMath;
 
 public class NumbatSTGun extends ANumbatGun
 {
-	private final static double		WZ						= 17.9999;
-	public final static int			DEFAULT_PATTERN_LENGTH	= 30;
-	public final static double		DEAULT_HALF_BOTWEIGHT	= 18;
+	private final static double	WZ						= 17.9999;
+	public final static int		DEFAULT_PATTERN_LENGTH	= 30;
+	public final static double	DEAULT_HALF_BOTWEIGHT	= 18;
+	private static Rectangle2D	B_FIELD;
 
 	// debug
-	private final DebugPointLists	debugPointList			= new DebugPointLists();
-	private static Rectangle2D		B_FIELD;
+	//private final DebugPointLists	debugPointList			= new DebugPointLists();
 
 	public NumbatSTGun()
 	{}
@@ -66,7 +65,7 @@ public class NumbatSTGun extends ANumbatGun
 		long deltaScan = target.getCurrentScanDifference(status);
 		//System.out.format("[%d] deltaScan = %d \n", status.getTime(), deltaScan);
 
-		debugPointList.reset();
+		//debugPointList.reset();
 		//StringBuilder sDesire = new StringBuilder();
 		// long count = 0;
 
@@ -135,16 +134,16 @@ public class NumbatSTGun extends ANumbatGun
 					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W - DEAULT_HALF_BOTWEIGHT);
 					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H - DEAULT_HALF_BOTWEIGHT);
 					nextStep = NumbatSingleHolder.getEncodedID(headingDelta, 0);
-					debugPointList.badPoints.add(new Point2D.Double(xg, yg));
+					//debugPointList.badPoints.add(new Point2D.Double(xg, yg));
 				}
-				else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
+				//else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
 				ePattern.insert(0, (char) nextStep);
 				count++;
 				//sDesire.insert(0, (char) nextStep);
 			}
 		}
 		//TestPatternAccuracy.registerDesiredPattern(status.getTime(), sDesire);
-		debugPointList.targetPoint = new Point2D.Double(xg, yg);
+		//debugPointList.targetPoint = new Point2D.Double(xg, yg);
 
 		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY()) - status.getGunHeadingRadians());
 
@@ -212,6 +211,10 @@ public class NumbatSTGun extends ANumbatGun
 		int thisStep = NumbatSingleHolder.getEncodedID(deltaHead, velocity);
 
 		// No matter what happen don't use i=0 ever again. this trashes the whole system with unnecessary? objects and the loop slows down like hell
+		// There is one nice effect with i=0, if the pattern is not known before it takes always the last key as next step. What makes it a circular gun
+		// of some sort. Unfortunately is the circular gun just plain simple and has no additional enhancements which makes it useless against everything that 
+		// is not moving in a easy pattern - what makes it even more useless because if the pattern is weak the gun hits quite well and the strong bots
+		// did not get any hit.
 		for (int i = 1; i <= history.length(); ++i)
 		{
 			int pHash;
@@ -252,7 +255,7 @@ public class NumbatSTGun extends ANumbatGun
 	@Override
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
-		debugPointList.onPaint(g);
+		//debugPointList.onPaint(g);
 	}
 
 	@Override

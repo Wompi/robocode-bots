@@ -13,7 +13,6 @@ package wompi;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.event.KeyEvent;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
@@ -26,13 +25,6 @@ import robocode.SkippedTurnEvent;
 import robocode.StatusEvent;
 import robocode.WinEvent;
 import wompi.numbat.debug.DebugBot;
-import wompi.numbat.debug.DebugGunProperties;
-import wompi.numbat.debug.DebugMiscProperties;
-import wompi.numbat.debug.DebugMoveProperties;
-import wompi.numbat.debug.DebugRadarProperties;
-import wompi.numbat.debug.DebugTargetProperties;
-import wompi.numbat.debug.DebugTestProperties;
-import wompi.numbat.debug.paint.PaintCenterSegments;
 import wompi.numbat.gun.NumbatGunManager;
 import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.misc.ScannedRobotHandler;
@@ -65,7 +57,7 @@ public class Numbat extends AdvancedRobot
 
 	// debug stuff - refactor this a little
 	// private boolean isTimeDebug = true;
-	PaintCenterSegments					debugCenter;
+	//PaintCenterSegments					debugCenter;
 
 	// related to skipped turns bug, where double scan events occur
 	private final SkippedTurnHandler	mySkipped;
@@ -117,14 +109,14 @@ public class Numbat extends AdvancedRobot
 			myGunMan.excecute(this);
 			// if (isTimeDebug) TimeProfile.GUN_EXECUTE.stop();
 
-			DebugGunProperties.debugPatternClasses();
-			DebugGunProperties.execute();
-			DebugRadarProperties.execute();
-			DebugGunProperties.execute();
-			DebugMiscProperties.execute();
-			DebugMoveProperties.execute();
-			DebugTargetProperties.execute();
-			DebugTestProperties.execute();
+			//			DebugGunProperties.debugPatternClasses();
+			//			DebugGunProperties.execute();
+			//			DebugRadarProperties.execute();
+			//			DebugGunProperties.execute();
+			//			DebugMiscProperties.execute();
+			//			DebugMoveProperties.execute();
+			//			DebugTargetProperties.execute();
+			//			DebugTestProperties.execute();
 			//
 			// if (isTimeDebug)
 			// {
@@ -220,39 +212,39 @@ public class Numbat extends AdvancedRobot
 	@Override
 	public void onPaint(Graphics2D g)
 	{
-		if (debugCenter == null) debugCenter = new PaintCenterSegments();
-		//debugCenter.onPaint(g);
-		debugCenter.drawFieldGrid(g, null, NumbatBattleField.BATTLE_FIELD_W, NumbatBattleField.BATTLE_FIELD_H);
-
-		// PaintRobotPath.onPaint(g, getName(), getTime(),getX(), getY(), Color.GREEN);
-		// PaintHitCloud.onPaint(g);
-		//myTargetMan.onPaint(g);
-		myMoveMan.onPaint(g);
-		myGunMan.onPaint(g);
-		myRadarMan.onPaint(g);
+		//		if (debugCenter == null) debugCenter = new PaintCenterSegments();
+		//		//debugCenter.onPaint(g);
+		//		debugCenter.drawFieldGrid(g, null, NumbatBattleField.BATTLE_FIELD_W, NumbatBattleField.BATTLE_FIELD_H);
+		//
+		//		// PaintRobotPath.onPaint(g, getName(), getTime(),getX(), getY(), Color.GREEN);
+		//		// PaintHitCloud.onPaint(g);
+		//		//myTargetMan.onPaint(g);
+		//		myMoveMan.onPaint(g);
+		//		myGunMan.onPaint(g);
+		//		myRadarMan.onPaint(g);
 	}
 
 	@Override
 	public void onDeath(DeathEvent event)
 	{
-		DebugMiscProperties.debugWinStats(getOthers());
+		//DebugMiscProperties.debugWinStats(getOthers());
 	}
 
 	@Override
 	public void onWin(WinEvent event)
 	{
-		DebugMiscProperties.debugWinStats(getOthers());
+		//DebugMiscProperties.debugWinStats(getOthers());
 	}
 
-	@Override
-	public void onKeyPressed(KeyEvent e)
-	{
-		char c = e.getKeyChar();
-		DebugGunProperties.onKeyPressed(c);
-		DebugMiscProperties.onKeyPressed(c);
-		DebugRadarProperties.onKeyPressed(c);
-		DebugMoveProperties.onKeyPressed(c);
-		DebugTargetProperties.onKeyPressed(c);
-		DebugTestProperties.onKeyPressed(c);
-	}
+	//	@Override
+	//	public void onKeyPressed(KeyEvent e)
+	//	{
+	//		char c = e.getKeyChar();
+	//		DebugGunProperties.onKeyPressed(c);
+	//		DebugMiscProperties.onKeyPressed(c);
+	//		DebugRadarProperties.onKeyPressed(c);
+	//		DebugMoveProperties.onKeyPressed(c);
+	//		DebugTargetProperties.onKeyPressed(c);
+	//		DebugTestProperties.onKeyPressed(c);
+	//	}
 }

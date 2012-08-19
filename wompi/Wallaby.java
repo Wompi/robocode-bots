@@ -56,7 +56,7 @@ public class Wallaby extends AdvancedRobot
 
 	private final static double				GUNLOCK					= 1.0;
 	private final static double				TARGET_FORCE			= 65000;								// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double				TARGET_DISTANCE			= 500.0;
+	private final static double				TARGET_DISTANCE			= 400.0;								// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
 	private final static double				PI_360					= Math.PI * 2.0;
 	private final static double				DELTA_RISK_ANGLE		= Math.PI / 32.0;
@@ -65,7 +65,7 @@ public class Wallaby extends AdvancedRobot
 	private final static int				MAX_RANDOM_OPPONENTS	= 5;
 	private final static int				MAX_ENERGY_OPPONENTS	= 2;
 	private final static double				ENERGY_ADJUST			= 3.0;
-	private final static double				RATE_BORDER				= 9.0;
+	private final static double				RATE_BORDER				= 3.0;									//2.8;
 	private final static double				INF						= Double.POSITIVE_INFINITY;
 
 	static HashMap<String, WallabyTarget>	allTargets				= new HashMap<String, WallabyTarget>();
@@ -115,9 +115,10 @@ public class Wallaby extends AdvancedRobot
 			eName = e.getName();
 
 			if (getGunTurnRemaining() == 0) setFire(bPower);
-			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(((eEnergy = e.getEnergy()) / ENERGY_ADJUST), TARGET_DISTANCE / (eDistance = v0)));
-			if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
 			if (getGunHeat() < GUNLOCK || getOthers() == 1) setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
+
+			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min((eEnergy = e.getEnergy()) / ENERGY_ADJUST, TARGET_DISTANCE / (eDistance = v0))); // save one byte and put rM = v0 to
+			if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
 
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
