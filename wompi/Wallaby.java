@@ -55,8 +55,8 @@ public class Wallaby extends AdvancedRobot
 	private final static double			DIST_REMAIN				= 20;
 
 	private final static double			GUNLOCK					= 1.0;
-	private final static double			TARGET_FORCE			= 65000;							// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double			TARGET_DISTANCE			= 600.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
+	private final static double			TARGET_FORCE			= 45000;							// 100000 low dmg high surv - 10000 high dmg low surv  
+	private final static double			TARGET_DISTANCE			= 400.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
 	private final static double			PI_360					= Math.PI * 2.0;
 	private final static double			DELTA_RISK_ANGLE		= Math.PI / 32.0;
@@ -64,7 +64,7 @@ public class Wallaby extends AdvancedRobot
 	private final static double			RANDOM_RATE				= 0.5;
 	private final static int			MAX_RANDOM_OPPONENTS	= 5;
 	private final static int			MAX_ENERGY_OPPONENTS	= 2;
-	private final static double			ENERGY_ADJUST			= 4.0;
+	private final static double			ENERGY_ADJUST			= 3.0;
 	private final static double			RATE_BORDER				= 3.0;								//2.8;
 	private final static double			INF						= Double.POSITIVE_INFINITY;
 
@@ -126,7 +126,7 @@ public class Wallaby extends AdvancedRobot
 			}
 			if (getGunHeat() < GUNLOCK || getOthers() == 1)
 			{
-				h0 = (avgHeading += h0) / ++avgHeadCount;
+				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
 			}
@@ -179,7 +179,7 @@ public class Wallaby extends AdvancedRobot
 			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || rM > RATE_BORDER)
 			{
 				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-				setAhead(eDistance * 8.0 / Rules.getBulletSpeed(bPower) * Math.cos(v1));
+				setAhead(DIST * Math.cos(v1));
 			}
 		}
 	}
