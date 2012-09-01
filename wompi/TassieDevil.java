@@ -246,7 +246,7 @@ public class TassieDevil extends TeamRobot
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		String name;
-		if (isTeammate(name = e.getName())) return;   // all team informations per message
+		if (isTeammate(name = e.getName())) return; // all team informations per message
 
 		TassieTarget enemy = getTarget(name, e.getEnergy());
 
@@ -278,7 +278,7 @@ public class TassieDevil extends TeamRobot
 		{
 			doRadar(Math.atan2(enemy.x - getX(), enemy.y - getY()));
 		}
-		else if (teamInfo != null && !teamInfo.leadScan.equals(name))  // the null because (2vs1 && gunheat) can be false .. grrr i hate null checks
+		else if (teamInfo != null && !teamInfo.leadScan.equals(name)) // the null because (2vs1 && gunheat) can be false .. grrr i hate null checks
 		{
 			doRadar(v3);
 		}
@@ -310,6 +310,7 @@ public class TassieDevil extends TeamRobot
 		minion.isAlive = false;
 	}
 
+	@Override
 	public void onPaint(Graphics2D g)
 	{}
 
