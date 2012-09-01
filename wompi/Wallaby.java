@@ -134,15 +134,15 @@ public class Wallaby extends AdvancedRobot
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())); // TODO: this needs an 0 check somehow - sitting duck in rare cases 
-				if (getEnergy() > bPower && e.getName() == eName)
+				if (getEnergy() > bPower)
 				{
 					setFire(bPower);
 				}
 			}
 			eName = e.getName();
 
-			bPower = Math.min(3.0, Math.max(0.1, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0)));
-			//if (x < getEnergy() && getOthers() == 1) bPower = 0.1;
+			bPower = Math.min(3.0, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0));
+			if (e.getEnergy() < getEnergy() && getOthers() == 1) bPower = 0.1;
 
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
