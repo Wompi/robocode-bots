@@ -56,7 +56,7 @@ public class Wallaby extends AdvancedRobot
 
 	private final static double			GUNLOCK					= 1.0;
 	private final static double			TARGET_FORCE			= 45000;							// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double			TARGET_DISTANCE			= 400.0 / 0.5;						// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
+	private final static double			TARGET_DISTANCE			= 400.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
 	private final static double			PI_360					= Math.PI * 2.0;
 	private final static double			DELTA_RISK_ANGLE		= Math.PI / 32.0;
@@ -78,6 +78,8 @@ public class Wallaby extends AdvancedRobot
 	static double						avgHeadCount;
 
 	static double						bPower;
+
+	//static long							ramTime;
 
 	@Override
 	public void run()
@@ -121,9 +123,8 @@ public class Wallaby extends AdvancedRobot
 		if (eRate > x || eName == e.getName())
 		{
 			eRate = x;
-			eName = e.getName();
 
-			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF) // if bytes left use Utils.normalizeRelative(..)
+			if (Math.abs(h0 = Utils.normalRelativeAngle(-enemy[2] + (h1 = enemy[2] = e.getHeadingRadians()))) > MAX_HEAD_DIFF) // if bytes left use Utils.normalizeRelative(..)
 			{
 				h0 = avgHeading = avgHeadCount = 0;
 			}
@@ -133,14 +134,15 @@ public class Wallaby extends AdvancedRobot
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())); // TODO: this needs an 0 check somehow - sitting duck in rare cases 
-				if (getEnergy() > bPower)
+				if (getEnergy() > bPower && e.getName() == eName)
 				{
 					setFire(bPower);
 				}
 			}
-			bPower = Math.min(Rules.MAX_BULLET_POWER,
-					Math.max(0.1, Math.min(e.getEnergy() / ENERGY_ADJUST, Math.round(TARGET_DISTANCE / v0) * 0.5 - 0.05)));
-			//if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
+			eName = e.getName();
+
+			bPower = Math.min(3.0, Math.max(0.1, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0)));
+			//if (x < getEnergy() && getOthers() == 1) bPower = 0.1;
 
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
@@ -192,6 +194,14 @@ public class Wallaby extends AdvancedRobot
 			}
 		}
 	}
+
+	//	@Override
+	//	public void onHitRobot(HitRobotEvent e)
+	//	{
+	//		double[] enemy = allTargets.get(e.getName());
+	//		enemy[0] = getX();
+	//		enemy[1] = getY();
+	//	}
 
 	@Override
 	public void onRobotDeath(RobotDeathEvent e)
