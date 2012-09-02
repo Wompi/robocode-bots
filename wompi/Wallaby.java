@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import robocode.AdvancedRobot;
+import robocode.HitByBulletEvent;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
@@ -79,7 +80,7 @@ public class Wallaby extends AdvancedRobot
 
 	static double						bPower;
 
-	//static long							ramTime;
+	static double						combatForce;
 
 	@Override
 	public void run()
@@ -95,7 +96,7 @@ public class Wallaby extends AdvancedRobot
 		double[] enemy;
 		if ((enemy = allTargets.get(e.getName())) == null)
 		{
-			allTargets.put(e.getName(), enemy = new double[6]);
+			allTargets.put(e.getName(), enemy = new double[5]);
 		}
 		double v0;
 		double xg;
@@ -124,21 +125,21 @@ public class Wallaby extends AdvancedRobot
 		{
 			eRate = x;
 
-			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF) // if bytes left use Utils.normalizeRelative(..)
+			// if bytes left use Utils.normalizeRelative(..)
+			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF)
 			{
 				h0 = avgHeading = avgHeadCount = 0;
-			}
-
-			if (getEnergy() > bPower && getGunTurnRemaining() == 0)
-			{
-				setFire(bPower);
 			}
 
 			if (getGunHeat() < GUNLOCK || getOthers() == 1)
 			{
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
-				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())); // TODO: this needs an 0 check somehow - sitting duck in rare cases 
+				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())); // TODO: this needs an 0 check somehow - sitting duck in rare cases
+				if (getEnergy() > bPower)
+				{
+					setFire(bPower);
+				}
 			}
 			eName = e.getName();
 
@@ -162,8 +163,10 @@ public class Wallaby extends AdvancedRobot
 						Iterator<double[]> iter = allTargets.values().iterator();
 						while (true)
 						{
+
 							double[] coordinate;
 							r1 += TARGET_FORCE / Point2D.distanceSq((coordinate = iter.next())[0], coordinate[1], x, y);
+							//enemy[6] = Math.min(enemy[6], coordinate[6]);
 						}
 					}
 					catch (Exception e1)
@@ -187,13 +190,30 @@ public class Wallaby extends AdvancedRobot
 
 			}
 			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
-			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || rM > RATE_BORDER)
+
+			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || e.getDistance() < DIST || combatForce-- > 0)
 			{
+				//				if (isFree) setAllColors(Color.YELLOW);
+				//				else setAllColors(Color.RED);
+
 				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
 				setAhead(DIST * Math.cos(v1));
 			}
 		}
-		enemy[5] = e.getTime();
+	}
+
+	@Override
+	public void onHitByBullet(HitByBulletEvent e)
+	{
+		//System.out.format("[%4d] bear=%+7.2f (%+3.2f) dmg=%3.2f\n", getTime(), e.getBearing(), Math.cos(e.getBearingRadians()), e.getPower());
+		//		double factor = Math.abs(Math.cos(e.getBearingRadians()));
+		//		double dmg = Rules.getBulletDamage(e.getPower());
+		//		double eper = dmg / getEnergy();
+		//		System.out.format("[%4d] %3.2f dmg=%6.2f fdmg=%3.2f myE=%7.2f (%3.2f) %s\n", getTime(), factor, dmg, factor * dmg, getEnergy(), eper,
+		//				e.getName());
+		//
+		//		combatForce = TARGET_FORCE + 100000 * factor * dmg / getEnergy();
+		combatForce = 15;
 	}
 
 	@Override
