@@ -95,7 +95,7 @@ public class Wallaby extends AdvancedRobot
 		double[] enemy;
 		if ((enemy = allTargets.get(e.getName())) == null)
 		{
-			allTargets.put(e.getName(), enemy = new double[5]);
+			allTargets.put(e.getName(), enemy = new double[6]);
 		}
 		double v0;
 		double xg;
@@ -124,9 +124,14 @@ public class Wallaby extends AdvancedRobot
 		{
 			eRate = x;
 
-			if (Math.abs(h0 = Utils.normalRelativeAngle(-enemy[2] + (h1 = enemy[2] = e.getHeadingRadians()))) > MAX_HEAD_DIFF) // if bytes left use Utils.normalizeRelative(..)
+			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF) // if bytes left use Utils.normalizeRelative(..)
 			{
 				h0 = avgHeading = avgHeadCount = 0;
+			}
+
+			if (getEnergy() > bPower && getGunTurnRemaining() == 0)
+			{
+				setFire(bPower);
 			}
 
 			if (getGunHeat() < GUNLOCK || getOthers() == 1)
@@ -134,15 +139,10 @@ public class Wallaby extends AdvancedRobot
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())); // TODO: this needs an 0 check somehow - sitting duck in rare cases 
-				if (getEnergy() > bPower)
-				{
-					setFire(bPower);
-				}
 			}
 			eName = e.getName();
 
-			bPower = Math.min(3.0, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0));
-			if (e.getEnergy() < getEnergy() && getOthers() == 1) bPower = 0.1;
+			bPower = Math.min(3.0, Math.max(0.1, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0)));
 
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
@@ -176,7 +176,7 @@ public class Wallaby extends AdvancedRobot
 					}
 				}
 
-				if ((i += 0.9) * Rules.getBulletSpeed(bPower) < Math.hypot(xg, yg))
+				if (++i * Rules.getBulletSpeed(bPower) < Math.hypot(xg, yg))
 				{
 					if (!bField.contains((xg += (Math.sin(h1) * v2)) + getX(), (yg += (Math.cos(h1) * v2)) + getY()))
 					{
@@ -193,15 +193,8 @@ public class Wallaby extends AdvancedRobot
 				setAhead(DIST * Math.cos(v1));
 			}
 		}
+		enemy[5] = e.getTime();
 	}
-
-	//	@Override
-	//	public void onHitRobot(HitRobotEvent e)
-	//	{
-	//		double[] enemy = allTargets.get(e.getName());
-	//		enemy[0] = getX();
-	//		enemy[1] = getY();
-	//	}
 
 	@Override
 	public void onRobotDeath(RobotDeathEvent e)
