@@ -124,8 +124,7 @@ public class Wallaby extends AdvancedRobot
 			x = e.getEnergy();
 		}
 
-		ramTime--;
-		boolean isClose = false;
+		boolean isClose = ramTime-- > 0;
 		if (eRate > x || eName == e.getName())
 		{
 			eRate = x;
@@ -158,16 +157,10 @@ public class Wallaby extends AdvancedRobot
 				if ((bField = new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_W, WZ_G_H)).contains((x = (DIST * Math.sin(v0))) + getX(),
 						(y = (DIST * Math.cos(v0))) + getY()))
 				{
-					r1 = 0;
-					if (ramTime < 0)
+					if ((r1 = Math.abs(Math.cos(Math.atan2(enemy[0] - x, enemy[1] - y) - v0))) < RANDOM_RATE && getOthers() <= MAX_RANDOM_OPPONENTS)
 					{
-						if ((r1 = Math.abs(Math.cos(Math.atan2(enemy[0] - x, enemy[1] - y) - v0))) < RANDOM_RATE
-								&& getOthers() <= MAX_RANDOM_OPPONENTS)
-						{
-							r1 = RANDOM_RATE * Math.random();
-						}
+						r1 = RANDOM_RATE * Math.random();
 					}
-					else isClose = true;
 
 					try
 					{
@@ -235,9 +228,19 @@ public class Wallaby extends AdvancedRobot
 	}
 
 	@Override
-	public void onHitRobot(HitRobotEvent event)
+	public void onHitRobot(HitRobotEvent e)
 	{
-		ramTime = 20;
+		ramTime = 10;
+		try
+		{
+			double[] enemy = allTargets.get(e.getName());
+			enemy[0] = Math.sin(getHeadingRadians() + e.getBearingRadians()) * (enemy[5] = 36.0);
+			enemy[1] = Math.cos(getHeadingRadians() + e.getBearingRadians()) * 36.0;
+		}
+		catch (Exception e2)
+		{
+			// TODO: handle exception
+		}
 	}
 
 	@Override
