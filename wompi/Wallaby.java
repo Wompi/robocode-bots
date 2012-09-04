@@ -44,9 +44,6 @@ public class Wallaby extends AdvancedRobot
 	private static final double			FIELD_W					= 1000.0;
 	private static final double			FIELD_H					= 1000.0;
 
-	private static final double			WZ						= 20.0;
-	private static final double			WZ_W					= FIELD_W - 2 * WZ;
-	private static final double			WZ_H					= FIELD_H - 2 * WZ;
 	private static final double			WZ_G					= 17.0;
 	private static final double			WZ_G_W					= FIELD_W - 2 * WZ_G;
 	private static final double			WZ_G_H					= FIELD_H - 2 * WZ_G;
@@ -65,10 +62,9 @@ public class Wallaby extends AdvancedRobot
 	private final static int			MAX_RANDOM_OPPONENTS	= 5;
 	private final static int			MAX_ENERGY_OPPONENTS	= 2;
 	private final static double			ENERGY_ADJUST			= 3.0;
-	private final static double			RATE_BORDER				= 3.0;								//2.8;
 	private final static double			INF						= Double.POSITIVE_INFINITY;
 
-	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter
+	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter 5: distance
 	static HashMap<String, double[]>	allTargets				= new HashMap<String, double[]>();
 
 	static String						eName;
@@ -78,8 +74,6 @@ public class Wallaby extends AdvancedRobot
 	static double						avgHeadCount;
 
 	static double						bPower;
-
-	//	static double						freeMove;
 
 	@Override
 	public void run()
@@ -123,9 +117,10 @@ public class Wallaby extends AdvancedRobot
 		boolean isClose = false;
 		if (eRate > x || eName == name)
 		{
+			eName = name;
 			eRate = x;
-
-			if (getGunTurnRemaining() == 0 && getEnergy() > bPower)
+			if (getEnergy() > (bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0)))
+					&& getGunTurnRemaining() == 0)
 			{
 				setFire(bPower);
 			}
@@ -137,14 +132,8 @@ public class Wallaby extends AdvancedRobot
 			if (getGunHeat() < GUNLOCK || getOthers() == 1)
 			{
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
-				//System.out.format("[%d] lock %3.2f (%3.2f) %s\n", getTime(), Math.toDegrees(headDiff), Math.toDegrees(h0),e.getName());
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
 			}
-			eName = name;
-
-			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy(), TARGET_DISTANCE / v0)); // save one byte and put rM = v0 to
-			//if (eEnergy < getEnergy() && getOthers() == 1) bPower = 0.1;
-
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
 			Rectangle2D bField;
