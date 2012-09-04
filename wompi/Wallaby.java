@@ -12,6 +12,7 @@
 
 package wompi;
 
+import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
@@ -60,7 +61,7 @@ public class Wallaby extends AdvancedRobot
 	private final static double			MAX_HEAD_DIFF			= 0.161442955809475;				// 9.25 degree
 	private final static double			RANDOM_RATE				= 0.5;
 	private final static int			MAX_RANDOM_OPPONENTS	= 5;
-	private final static int			MAX_ENERGY_OPPONENTS	= 2;
+	private final static int			MAX_ENERGY_OPPONENTS	= 1;
 	private final static double			ENERGY_ADJUST			= 3.0;
 	private final static double			INF						= Double.POSITIVE_INFINITY;
 
@@ -78,7 +79,7 @@ public class Wallaby extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		//setAllColors(Color.RED);
+		setAllColors(Color.RED);
 		setAdjustGunForRobotTurn(true);
 		setTurnRadarRightRadians(eRate = INF);
 	}
@@ -119,8 +120,7 @@ public class Wallaby extends AdvancedRobot
 		{
 			eName = name;
 			eRate = x;
-			if (getEnergy() > (bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0)))
-					&& getGunTurnRemaining() == 0)
+			if (getEnergy() > bPower && getGunTurnRemaining() == 0)
 			{
 				setFire(bPower);
 			}
@@ -134,6 +134,7 @@ public class Wallaby extends AdvancedRobot
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				setTurnRadarRightRadians(INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()));
 			}
+			bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy() / ENERGY_ADJUST, TARGET_DISTANCE / v0));
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
 			Rectangle2D bField;
@@ -179,6 +180,9 @@ public class Wallaby extends AdvancedRobot
 			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
 			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose)
 			{
+				if (isClose) setAllColors(Color.YELLOW);
+				else setAllColors(Color.RED);
+
 				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
 				setAhead(DIST * Math.cos(v1));
 			}
