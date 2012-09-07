@@ -367,8 +367,8 @@ public class NumbatTarget extends Point2D.Double
 		eLastEnergy = eEnergy;
 		eEnergy = e.getEnergy();
 
-		x = Math.sin(eAbsBearing) * eDistance + status.getX();
-		y = Math.cos(eAbsBearing) * eDistance + status.getY();
+		x = Math.sin(eAbsBearing) * 40 + status.getX();
+		y = Math.cos(eAbsBearing) * 40 + status.getY();
 	}
 
 	public Color getBotColor()

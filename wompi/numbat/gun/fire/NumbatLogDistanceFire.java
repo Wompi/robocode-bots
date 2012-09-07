@@ -20,7 +20,7 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatLogDistanceFire extends ANumbatFire
 {
-	private final static double	TARGET_DISTANCE	= 600.0;
+	private final static double	TARGET_DISTANCE	= 450.0;
 
 	private boolean				isFire;
 
