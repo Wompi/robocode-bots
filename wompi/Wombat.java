@@ -51,56 +51,53 @@ import wompi.wallaby.PaintHelper;
  */
 public class Wombat extends AdvancedRobot
 {
-	private static final double			FIELD_W				= 1000.0;
-	private static final double			FIELD_H				= 1000.0;
+	private static final double				FIELD_W				= 1000.0;
+	private static final double				FIELD_H				= 1000.0;
 
-	private static final double			WZ_G				= 17.0;
-	private static final double			WZ_G_W				= FIELD_W - 2 * WZ_G;
-	private static final double			WZ_G_H				= FIELD_H - 2 * WZ_G;
+	private static final double				WZ_G				= 17.0;
+	private static final double				WZ_G_W				= FIELD_W - 2 * WZ_G;
+	private static final double				WZ_G_H				= FIELD_H - 2 * WZ_G;
 
-	private final static double			DIST				= 185;
-	private final static double			DIST_REMAIN			= 20;
+	private final static double				DIST				= 185;
+	private final static double				DIST_REMAIN			= 20;
 
-	private final static double			GUNLOCK				= 1.0;
-	private final static double			TARGET_FORCE		= 55000;							// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double			TARGET_DISTANCE		= 450.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
+	private final static double				GUNLOCK				= 1.0;
+	private final static double				TARGET_FORCE		= 55000;								// 100000 low dmg high surv - 10000 high dmg low surv  
+	private final static double				TARGET_DISTANCE		= 450.0;								// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
-	private final static double			PI_360				= Math.PI * 2.0;
-	private final static double			DELTA_RISK_ANGLE	= Math.PI / 32.0;
-	private final static double			MAX_HEAD_DIFF		= 0.161442955809475;				// 9.25 degree
-	private final static double			ENERGY_ADJUST		= 4.0;
-	private final static double			INF					= Double.POSITIVE_INFINITY;
-	private final static double			BMAX				= Rules.MAX_BULLET_POWER;
-	private final static double			BMIN				= Rules.MIN_BULLET_POWER;
+	private final static double				PI_360				= Math.PI * 2.0;
+	private final static double				DELTA_RISK_ANGLE	= Math.PI / 32.0;
+	private final static double				MAX_HEAD_DIFF		= 0.161442955809475;					// 9.25 degree
+	private final static double				ENERGY_ADJUST		= 4.0;
+	private final static double				INF					= Double.POSITIVE_INFINITY;
+	private final static double				BMAX				= Rules.MAX_BULLET_POWER;
+	private final static double				BMIN				= Rules.MIN_BULLET_POWER;
 
 	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter 5: distance 6:xGuess 7:yGuess 8: ticks
-	static HashMap<String, double[]>	allTargets;
+	static HashMap<String, WombatTarget>	allTargets			= new HashMap<String, WombatTarget>();
 
-	static String						eName;
-	static double						eRate;
+	static String							eName;
+	static double							eRate;
 
-	static double						avgHeading;
-	static double						avgHeadCount;
+	static double							avgHeading;
+	static double							avgHeadCount;
 
-	static double						bPower;
-	static double						rDist;
-
-	static ArrayList<DeltaBearing>		myMissses			= new ArrayList<DeltaBearing>();
+	static double							bPower;
+	static double							rDist;
 
 	@Override
 	public void run()
 	{
-		allTargets = new HashMap<String, double[]>();
 		setAllColors(Color.RED); // 7 byte
 		setAdjustGunForRobotTurn(true);
-		//setAdjustRadarForGunTurn(true);
+		setAdjustRadarForGunTurn(true);
 		setTurnRadarRightRadians(eRate = INF);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double[] enemy;
+		WombatTarget enemy;
 		double v0;
 		double xg;
 		double yg;
@@ -116,10 +113,11 @@ public class Wombat extends AdvancedRobot
 		String name;
 		if ((enemy = allTargets.get(name = e.getName())) == null)
 		{
-			allTargets.put(name, enemy = new double[9]);
+			allTargets.put(name, enemy = new WombatTarget());
 		}
-		xg = enemy[0] = Math.sin((rM = (getHeadingRadians() + e.getBearingRadians()))) * (v0 = enemy[5] = e.getDistance());
-		yg = enemy[1] = Math.cos(rM) * v0;
+		xg = enemy.x = Math.sin((rM = (getHeadingRadians() + e.getBearingRadians()))) * (v0 = enemy.eDistance = e.getDistance());
+		yg = enemy.y = Math.cos(rM) * v0;
+		enemy.isAlive = true;
 		//v2 = ((enemy[3] += (Math.abs(v1 = e.getVelocity()))) * Math.signum(v1)) / ++enemy[4];
 		v2 = v1 = e.getVelocity();
 
@@ -128,28 +126,27 @@ public class Wombat extends AdvancedRobot
 
 		if (eRate > v0 || eName == name)
 		{
-			eName = name;
-			if (getEnergy() > bPower && getGunTurnRemaining() == 0)
+			if (getEnergy() > bPower && getGunTurnRemaining() == 0 && (getTime() - enemy.eLastScan) == 1)
 			{
 				final Bullet shot = setFireBullet(bPower);
 				if (shot != null)
 				{
-					final double[] cEnemy = enemy;
+					final WombatTarget cEnemy = enemy;
 					addCustomEvent(new Condition()
 					{
 						Bullet	myBullet	= shot;
 						double	bx			= getX();
 						double	by			= getY();
-						double	ex			= cEnemy[6];
-						double	ey			= cEnemy[7];
-						double	time		= cEnemy[8];
+						double	ex			= cEnemy.eGuessX;
+						double	ey			= cEnemy.eGuessY;
+						double	time		= cEnemy.eGuessTime;
 
 						boolean	locked;
 
 						double	gAngle;
 						double	nAngle;
 						double	dist;
-						double	gDist;
+						double	gDist		= cEnemy.eGuessDistance;
 						double	delta;
 						Point2D	end;
 
@@ -162,52 +159,54 @@ public class Wombat extends AdvancedRobot
 
 							if (!locked)
 							{
-								gAngle = Math.atan2(ex, ey);
-								nAngle = Math.atan2(cEnemy[0] + lastX - bx, cEnemy[1] + lastY - by);
+								gAngle = Math.atan2(ex - bx, ey - by);
+								nAngle = Math.atan2(cEnemy.x + lastX - bx, cEnemy.y + lastY - by);
 								delta = Utils.normalRelativeAngle(nAngle - gAngle);
 
-								dist = Point2D.distance(bx, by, cEnemy[0] + lastX, cEnemy[1] + lastY);
-								gDist = Point2D.distance(bx + ex, by + ey, bx, by);
-								end = new Point2D.Double(cEnemy[0] + lastX, cEnemy[1] + lastY);
+								dist = Point2D.distance(bx, by, cEnemy.x + lastX, cEnemy.y + lastY);
+								end = new Point2D.Double(cEnemy.x + lastX, cEnemy.y + lastY);
 								lastX = getX();
 								lastY = getY();
 
 							}
 
-							if (getTime() >= time || !myBullet.isActive())
+							if (getTime() >= time || !myBullet.isActive() || !cEnemy.isAlive)
 							{
-								if (!locked)
+								if (!locked && cEnemy.isAlive && (getTime() - cEnemy.eLastScan) == 1)
 								{
-									System.out.format("[%d] delta=%3.2f dist=%3.2f gDist=%3.2f (%3.2f)\n", getTime(), Math.toDegrees(delta), dist,
-											gDist, dist - gDist);
+									System.out.format("[%d] delta=%3.2f dist=%3.2f gDist=%3.2f (%3.2f) [%3.2f:%3.2f]\n", getTime(),
+											Math.toDegrees(delta), dist, gDist, dist - gDist, end.getX(), end.getY());
 									DeltaBearing dBear = new DeltaBearing();
 									dBear.myDist = dist;
 									dBear.myAngle = delta;
-									myMissses.add(dBear);
+									dBear.myGuessDist = gDist;
+									cEnemy.myMissses.add(dBear);
 								}
 								locked = true;
 
-								if (getTime() > time + 10)
+								if (getTime() > time + 10 || !cEnemy.isAlive)
 								{
 									removeCustomEvent(this);
 								}
 							}
-							PaintHelper.drawLine(new Point2D.Double(bx, by), end, getGraphics(), Color.GREEN);
+							PaintHelper.drawLine(new Point2D.Double(bx, by), end, getGraphics(), Color.YELLOW);
 							PaintHelper.drawLine(new Point2D.Double(bx, by), new Point2D.Double(ex + bx, ey + by), getGraphics(), Color.BLUE);
 							return false;
 						}
 					});
 				}
 			}
+			eName = name;
 
-			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF)
+			if (Math.abs(h0 = -enemy.eHeading + (h1 = enemy.eHeading = e.getHeadingRadians())) > MAX_HEAD_DIFF)
 			{
 				h0 = avgHeading = avgHeadCount = 0;
 			}
-			if (getGunHeat() < GUNLOCK /*|| getOthers() == 1*/)
+			if (getGunHeat() < GUNLOCK || getOthers() == 1)
 			{
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
-				if (!Utils.isNear(0.0, x = INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()))) setTurnRadarRightRadians(x);
+				setTurnRadarLeft(getRadarTurnRemaining());
+				//if (!Utils.isNear(0.0, x = INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians()))) setTurnRadarRightRadians(x);
 			}
 
 			bPower = Math.min(BMAX, TARGET_DISTANCE / (eRate = v0));
@@ -221,15 +220,18 @@ public class Wombat extends AdvancedRobot
 				if ((bField = new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_W, WZ_G_H)).contains((x = (rDist * Math.sin(v0))) + getX(),
 						(y = (rDist * Math.cos(v0))) + getY()))
 				{
-					r1 = Math.abs(Math.cos(Math.atan2(enemy[0] - x, enemy[1] - y) - v0));
+					r1 = Math.abs(Math.cos(Math.atan2(enemy.x - x, enemy.y - y) - v0));
 					try
 					{
-						Iterator<double[]> iter = allTargets.values().iterator();
+						Iterator<WombatTarget> iter = allTargets.values().iterator();
 						while (true)
 						{
-							double[] coordinate;
-							r1 += TARGET_FORCE / Point2D.distanceSq((coordinate = iter.next())[0], coordinate[1], x, y);
-							isClose |= coordinate[5] < rDist;
+							WombatTarget target = iter.next();
+							if (target.isAlive)
+							{
+								r1 += TARGET_FORCE / target.distanceSq(x, y);
+								isClose |= target.eDistance < rDist;
+							}
 						}
 					}
 					catch (Exception e1)
@@ -253,9 +255,10 @@ public class Wombat extends AdvancedRobot
 				}
 			}
 
-			enemy[6] = xg;
-			enemy[7] = yg;
-			enemy[8] = getTime() + countTicks - 1;
+			enemy.eGuessX = xg + getX();
+			enemy.eGuessY = yg + getY();
+			enemy.eGuessTime = getTime() + countTicks;
+			enemy.eGuessDistance = Point2D.distance(getX(), getY(), enemy.eGuessX, enemy.eGuessY);
 
 			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
 			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose)
@@ -266,6 +269,7 @@ public class Wombat extends AdvancedRobot
 				setAhead(rDist * Math.cos(v1));
 			}
 		}
+		enemy.eLastScan = getTime();
 	}
 
 	@Override
@@ -279,20 +283,26 @@ public class Wombat extends AdvancedRobot
 	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
+		double bx = e.getBullet().getX();
+		double by = e.getBullet().getY();
 		try
 		{
-			allTargets.get(e.getName())[6] += 20;
+			WombatTarget hit = allTargets.get(e.getName());
+			hit.eDmg += Rules.getBulletDamage(e.getBullet().getPower());
+			hit.x = bx;
+			hit.y = by;
+			System.out.format("[%d] hit [%3.2f:%3.2f] (%d) %s\n", getTime(), bx, by, getTime() - hit.eLastScan, e.getName());
 		}
 		catch (Exception e0)
 		{}
-		System.out.format("[%d] hit\n", getTime());
 	}
 
 	@Override
 	public void onRobotDeath(RobotDeathEvent e)
 	{
 		eRate = INF;
-		allTargets.remove(e.getName());
+		WombatTarget dead = allTargets.get(e.getName());
+		dead.isAlive = false;
 	}
 
 	@Override
@@ -302,18 +312,48 @@ public class Wombat extends AdvancedRobot
 
 		double depp = getGunTurnRemainingRadians() + getGunHeadingRadians();
 		Point2D start = new Point2D.Double(getX(), getY());
-		for (DeltaBearing bear : myMissses)
+
+		WombatTarget target = allTargets.get(eName);
+		if (target != null)
 		{
-			Point2D end = RobotMath.calculatePolarPoint(depp + bear.myAngle, bear.myDist, start);
-			PaintHelper.drawLine(start, end, g, Color.lightGray);
+			for (DeltaBearing bear : target.myMissses)
+			{
+				if (target.eGuessDistance <= (bear.myGuessDist + 50) && target.eGuessDistance >= (bear.myGuessDist - 50))
+				{
+					Point2D end = RobotMath.calculatePolarPoint(depp + bear.myAngle, bear.myDist, start);
+					PaintHelper.drawLine(start, end, g, Color.lightGray);
+				}
+			}
 		}
 		Point2D gun = RobotMath.calculatePolarPoint(getGunHeadingRadians(), 400, start);
 		PaintHelper.drawLine(start, gun, g, Color.RED);
 	}
 }
 
+class WombatTarget extends Point2D.Double
+{
+	private static final long	serialVersionUID	= 1L;
+
+	double						eHeading;
+	double						eVeloCount;
+	double						eVeloAvg;
+	double						eDistance;
+	double						eDmg;
+
+	long						eLastScan;
+	boolean						isAlive;
+	double						eGuessX;
+	double						eGuessY;
+	double						eGuessTime;
+	double						eGuessDistance;
+
+	ArrayList<DeltaBearing>		myMissses			= new ArrayList<DeltaBearing>();
+
+}
+
 class DeltaBearing
 {
 	double	myDist;
 	double	myAngle;
+	double	myGuessDist;
 }
