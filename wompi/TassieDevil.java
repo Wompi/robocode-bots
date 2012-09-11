@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 
 import robocode.Bullet;
+import robocode.HitRobotEvent;
 import robocode.MessageEvent;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
@@ -67,13 +68,14 @@ public class TassieDevil extends TeamRobot
 	static TassieTarget			leader;
 	static TassieTarget			minion;
 
-	static TassieTarget			myTarget;
+	//static TassieTarget			myTarget;
 
 	static boolean				isLeader;
 	static double				myX;
 	static double				myY;
 
 	static HashSet<Bullet>		myBullets;
+	static double				rDist;
 
 	// debug
 	//	DebugPointLists debugPoints = new DebugPointLists();
@@ -103,8 +105,11 @@ public class TassieDevil extends TeamRobot
 		//		if (isLeader) myColor = Color.RED;
 		myBullets = new HashSet<Bullet>();
 
-		minion = null;
-		leader = null;
+		if (leader == null && minion == null) // maybe make this static
+		{
+			leader = new TassieTarget();
+			minion = new TassieTarget();
+		}
 
 		while (true)
 		{
@@ -113,16 +118,16 @@ public class TassieDevil extends TeamRobot
 			try
 			{
 
-				setMainTarget();
+				TassieTarget mainTarget = getMainTarget();
 				if (isLeader)
 				{
 					TassieLeadScanInfo lInfo = new TassieLeadScanInfo();
-					lInfo.leadScan = myTarget.name;
+					lInfo.leadScan = mainTarget.eName;
 					broadcastMessage(lInfo);
 				}
 
 				// dist200 && 2vs2 || 1vs2 && myleader
-				if ((myTarget.eDistance <= 200 && battleState == 4) /*|| (battleState == -1 && isLeader)*/)
+				if ((mainTarget.eDistance <= 200 && battleState == 4) /*|| (battleState == -1 && isLeader)*/)
 				{
 					//System.out.format("[%d] arg help me!\n",getTime());	
 					TassieProtectHelp pHelp = new TassieProtectHelp();
@@ -136,8 +141,8 @@ public class TassieDevil extends TeamRobot
 					{
 						double angle;
 						double aDist;
-						pHelp.x = getX() + Math.sin(angle = Math.atan2(myTarget.x - getX(), myTarget.y - getY()))
-								* (aDist = (myTarget.eDistance + 50));
+						pHelp.x = getX() + Math.sin(angle = Math.atan2(mainTarget.x - getX(), mainTarget.y - getY()))
+								* (aDist = (mainTarget.eDistance + 50));
 						pHelp.y = getY() + Math.cos(angle) * aDist;
 					}
 
@@ -149,14 +154,13 @@ public class TassieDevil extends TeamRobot
 				double mRate = Double.MAX_VALUE;
 				double v0 = 0;
 				double v1 = 0;
-				boolean isBulletEvade = false;
 				boolean isCloseCombat = false;
-				double protectDist = 0;
-
+				rDist = Math.min(DIST, rDist += 5);
+				boolean isClose = false;
 				while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 				{
-					double x = DIST * Math.sin(v0) + myX;
-					double y = DIST * Math.cos(v0) + myY;
+					double x = rDist * Math.sin(v0) + myX;
+					double y = rDist * Math.cos(v0) + myY;
 
 					if (new Rectangle2D.Double(WZ_M, WZ_M, WZ_SIZE_M_W, WZ_SIZE_M_H).contains(x, y))
 					{
@@ -166,35 +170,22 @@ public class TassieDevil extends TeamRobot
 						{
 							//							PaintHelper.drawArc(new Point2D.Double(protectHelp.x, protectHelp.y), 45.0, 0.0, PI_360, false, getGraphics(),Color.YELLOW);
 							isCloseCombat = true;
-							protectDist = Point2D.distance(protectHelp.x, protectHelp.y, getX(), getY());
+							//protectDist = Point2D.distance(protectHelp.x, protectHelp.y, getX(), getY());
 							force = 10000;
 							r1 -= 100000 / Point2D.distanceSq(protectHelp.x, protectHelp.y, x, y);
 						}
-						//else /* if (target.isAlive) */
-						{
-							try
-							{
-								r1 += force / Point2D.distanceSq(leader.x, leader.y, x, y);
-							}
-							catch (Exception e1)
-							{}
 
-							try
-							{
-								r1 += force / Point2D.distanceSq(minion.x, minion.y, x, y);
-							}
-							catch (Exception e1)
-							{}
+						if (leader.isAlive)
+						{
+							r1 += force / Point2D.distanceSq(leader.x, leader.y, x, y);
+							isClose |= leader.distance(myX, myY) < rDist;
 						}
 
-						//								double tEnergy = target.energyField[target.lastScan];
-						//								else if ((!isLeader && tEnergy < (getEnergy()-30)) || (isLeader && tEnergy < (getEnergy()-120)) || (enemys == 1 && tEnergy < getEnergy()-40))
-						//								{
-						//									isCloseCombat = true;
-						//									myTarget = target;
-						//									r1 -= 30000/Point2D.distanceSq(target.x, target.y, x, y);							
-						//									PaintHelper.drawArc(new Point2D.Double(target.x, target.y), 60.0, 0.0, PI_360, false, getGraphics(),Color.CYAN);
-						//								}
+						if (minion.isAlive)
+						{
+							r1 += force / Point2D.distanceSq(minion.x, minion.y, x, y);
+							isClose |= minion.distance(myX, myY) < rDist;
+						}
 
 						try
 						{
@@ -210,7 +201,7 @@ public class TassieDevil extends TeamRobot
 									{
 										//PaintHelper.drawArc(new Point2D.Double(bullet.getX(), bullet.getY()), 20, 0, PI_360, true, getGraphics(), Color.BLUE);
 										r1 += 100000 / Point2D.distanceSq(bullet.getX(), bullet.getY(), x, y);
-										isBulletEvade = true;
+										isClose = true;
 									}
 									//else PaintHelper.drawArc(new Point2D.Double(bullet.getX(), bullet.getY()), 20, 0, PI_360, true, getGraphics(), Color.RED);
 								}
@@ -219,14 +210,8 @@ public class TassieDevil extends TeamRobot
 						catch (Exception ex)
 						{}
 
-						if (isCloseCombat)
-						{
-							r1 += (Math.abs(Math.sin(Math.atan2(myTarget.x - x, myTarget.y - y) - v0)));
-						}
-						else
-						{
-							r1 += (Math.abs(Math.cos(Math.atan2(myTarget.x - x, myTarget.y - y) - v0)));
-						}
+						double buffy = Math.atan2(mainTarget.x - x, mainTarget.y - y) - v0;
+						r1 += Math.abs((isCloseCombat) ? Math.sin(buffy) : Math.cos(buffy));
 
 						if (Math.random() < 0.6 && r1 < mRate)
 						{
@@ -240,10 +225,10 @@ public class TassieDevil extends TeamRobot
 
 				//System.out.format("[%d] mRate=%3.2f\n",getTime(),mRate);
 
-				if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isBulletEvade || isCloseCombat || mRate > 1.3)
+				if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose || isCloseCombat)
 				{
 					setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-					setAhead(DIST * Math.cos(v1));
+					setAhead(rDist * Math.cos(v1));
 				}
 				//else if (getTurnRemainingRadians() == 0) setTurnRightRadians(Math.sin(getDistanceRemaining()/30)/20);
 
@@ -252,6 +237,12 @@ public class TassieDevil extends TeamRobot
 			{}
 			execute();
 		}
+	}
+
+	@Override
+	public void onHitRobot(HitRobotEvent event)
+	{
+		rDist = 50;
 	}
 
 	@Override
@@ -301,8 +292,7 @@ public class TassieDevil extends TeamRobot
 			eInfo.eName = name;
 			broadcastMessage(eInfo);
 
-			setMainTarget();
-			doGun();
+			doGun(enemy = getMainTarget(), e);
 
 			//System.out.format("[%d] batteState=%d send leadScan=%s scan=%s\n", getTime(),battleState,leadScanTarget,name);
 			// (2vs1 && heat)  || 1vs2 - 1vs1 || not leadscan     .... 
@@ -316,7 +306,7 @@ public class TassieDevil extends TeamRobot
 			catch (Exception e1)
 			{
 				// exception trown only for my leader and if the leader hasn't send his scan msg			
-				doRadar(Math.atan2(myTarget.x - myX, myTarget.y - myY));
+				doRadar(Math.atan2(enemy.x - myX, enemy.y - myY));
 			}
 		}
 		catch (Exception ex)
@@ -340,13 +330,13 @@ public class TassieDevil extends TeamRobot
 			return;
 		}
 
-		if (leader != null && name.equals(leader.name)) // null check for last dead if leader died first ... grrr
+		if (name.equals(leader.eName)) // null check for last dead if leader died first ... grrr
 		{
-			leader = null;
+			leader.isAlive = false;
 		}
 		else
 		{
-			minion = null;
+			minion.isAlive = false;
 		}
 	}
 
@@ -384,19 +374,19 @@ public class TassieDevil extends TeamRobot
 	//		//if (myTarget != null ) myTarget.myDisplacer.onPaint(g, Color.lightGray);
 	//	}
 
-	private void doGun()
+	private void doGun(TassieTarget target, ScannedRobotEvent e)
 	{
-		long i;
-		double bPower = Math.min(Rules.MAX_BULLET_POWER, TARGET_DISTANCE / myTarget.eDistance);
-		double v2 = myTarget.getAvgVelocity();
-		double xg = myTarget.x - myX;
-		double yg = myTarget.y - myY;
-		double gHead = myTarget.headingField[myTarget.lastScan];
-		double lastHead = myTarget.headingField[Math.max(myTarget.lastScan - 1, 0)];
+		double i;
+		double bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy() / 4.0, TARGET_DISTANCE / target.eDistance));
+		double v2 = target.getAvgVelocity();
+		double xg = target.x - myX;
+		double yg = target.y - myY;
+		double gHead = target.headingField[target.lastScan];
+		double lastHead = target.headingField[Math.max(target.lastScan - 1, 0)];
 		if (gHead == 0)
 		{
 			gHead = lastHead;
-			lastHead = myTarget.headingField[Math.max(myTarget.lastScan - 2, 0)];
+			lastHead = target.headingField[Math.max(target.lastScan - 2, 0)];
 		}
 		double headDiff;
 		if (Math.abs(headDiff = (gHead - lastHead)) > 0.161442955809475 || gHead == 0) headDiff = 0;
@@ -408,7 +398,7 @@ public class TassieDevil extends TeamRobot
 
 		//System.out.format("[%d] avgVelo=%3.2f gHead=%3.5f headDiff=%3.5f dist=%3.2f %s \n",getTime(),v2,gHead,headDiff,diplacerDist,myTarget.name);
 
-		while (++i * (20.0 - 3.0 * bPower) < Math.hypot(xg, yg))
+		while ((i += 0.9) * Rules.getBulletSpeed(bPower) < Math.hypot(xg, yg))
 		{
 			xg += (Math.sin(gHead) * v2);
 			yg += (Math.cos(gHead) * v2);
@@ -456,57 +446,24 @@ public class TassieDevil extends TeamRobot
 	// --------------------------------------------- code save and helper functions ----------------------------------------------------------------
 	public static TassieTarget getTarget(String name, double energy)
 	{
-		// holy wombat this is nasty but it saves alot of code size ... buahh i can't look it any longer
-		try
+		if (energy > 150 || name.equals(leader.eName)) // if energy drop below 150 the leader should have its name
 		{
-			try
-			{
-				if (name.equals(leader.name)) { return leader; }
-			}
-			catch (Exception e1)
-			{
-				if (energy > 150)
-				{
-					leader = new TassieTarget();
-					leader.name = name;
-					return leader;
-				}
-			}
-			if (name.equals(minion.name)) { return minion; }
+			leader.eName = name;
+			return leader;
 		}
-		catch (Exception e2)
-		{
-			minion = new TassieTarget();
-			minion.name = name;
-		}
+		minion.eName = name;
 		return minion;
 	}
 
-	public void setMainTarget()
+	public TassieTarget getMainTarget()
 	{
-		double tRate;
-		try
-		{
-			tRate = leader.energyField[leader.lastScan] + leader.eDistance * 0.8;
-			try
-			{
-				//double buffy;
-				myTarget = (tRate < (/*buffy=*/(minion.energyField[minion.lastScan] + minion.eDistance * 0.8))) ? leader : minion;
-				//System.out.format("[%d] leadRate=%3.2f minionRate=%3.2f \n", getTime(),tRate,buffy);
-			}
-			catch (Exception e2)
-			{
-				myTarget = leader;
-			}
-		}
-		catch (Exception e1)
-		{
-			myTarget = minion;
-		}
-
+		double lRate = leader.energyField[leader.lastScan] + leader.eDistance * 0.8;
+		double mRate = minion.energyField[minion.lastScan] + minion.eDistance * 0.8;
+		return ((leader.isAlive && (lRate < mRate || !minion.isAlive)) ? leader : minion);
 		//		PaintHelper.drawArc(new Point2D.Double(myTarget.x, myTarget.y), 50, 0, PI_360, false, getGraphics(), myColor);
 		//System.out.format("[%d] myTarget=%s distance=%3.2f\n", getTime(),myTarget.name,myTarget.eDistance);	
 	}
+
 }
 
 interface ITassieMessage
@@ -569,7 +526,7 @@ class TassieEnemyInfo extends Point2D.Double implements ITassieMessage
 		target.velocityField[lastScan] = eVelocity;
 		target.headingField[lastScan] = eHeading;
 		target.energyField[lastScan] = eEnergy;
-
+		target.isAlive = true;
 		// advance the target by one step
 		target.x = x + (Math.sin(eHeading) * eVelocity); // maybe take the headingDiff 
 		target.y = y + (Math.cos(eHeading) * eVelocity);
@@ -591,7 +548,8 @@ class TassieTarget extends Point2D.Double
 																		//	DisplacementVector myDisplacer = new DisplacementVector();
 
 	double						eDistance;
-	String						name;
+	String						eName;
+	boolean						isAlive;
 
 	// ooks ike i should get rid of this and use a simple avg
 	public double getAvgVelocity()
