@@ -9,84 +9,40 @@
  * Contributors:
  *     Wompi - initial API and implementation
  ******************************************************************************/
+
 package wompi;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
+import java.io.Serializable;
+import java.util.HashSet;
 
 import robocode.Bullet;
-import robocode.Condition;
 import robocode.MessageEvent;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.TeamRobot;
 import robocode.util.Utils;
 
 /**
- * Made by Wompi
- * Code is open source, released under the RoboWiki Public Code License:
- * http://robowiki.net/cgi-bin/robowiki?RWPCL
  * What the ... is a TassieDevil? (See: http://en.wikipedia.org/wiki/Tasmanian_devil)
- * Size: 1300+ v1.3
- * Well not much to say. I just include the source, so you can see my horrible programming draft. I really would spend more time with this, but
- * unfortunately
- * do i have not much time these days. The tassie devils have a little more team spirit and the leader will be guarded at certain battle field states.
- * I really would like to implement more TeamMessages for the enemy state and change the radar and and and ... but well no time. This one is a very
- * rough
- * draft so be gentle with me :).
- * I know there are a lot of code fails and way to naive functions but for a quick look it should be enough. I don't have the right feeling right now
- * for
- * the twin rumble but i'm sure this will come after more serious testing and implementing.
- * Credit: not much to say, its all based on Wallaby glued with naive team functions
- * Size: 1952 v1.4
- * Just a more enhanced draft this time. I like the new team messages, they really make the Tassies look like a team. Now they share every information
- * on targets and give them to the other team member. Also new is the scan behavior. The leader takes his target (closest) and send a message to the
- * minion. The minion now looks for the other target and scan lock it. Because every bot has the same information about the position, heading, avg
- * velocity and so on every bot can shoot blind on his best target and don't have to loose the scan lock, very neat i guess :). I'm still disappointed
- * about my gun. The gun is still useless against the 1v1 stallions but i don't want to switch to a more enhanced weapon until i didn't squeeze the
- * last
- * bit of performance out of the 'simple' gun. So still no chance against wave teams but very nice performance against everyone else.
- * The code is still draft status and could really use some love. Right now i reached the 2000byte barrier but there is still huge code size left if
- * proper coded.
- * Credit: i still try my own ideas
- * Man i'm so hooked into this twin stuff this is really good clean fun.
- * Size 1888 v1.5
- * This one got some nice improvements and i started to clean the code a little bit. For now both teammembers react on protect calls and help
- * each other in serious situations. I changed the fire target distance by 100 to save some energy against the long shot teams. The movement got
- * a little tweak by lowering the calculated RiskPoints and a sin move if the bot goes to the riskpoint. The targets are now hold by its own
- * variables, this saved a lot of code size but got uglier than ever. The radar got some love and lock now a little bit better. The protect react
- * force is now 100k to make a faster engagement of the protected target. Nice new battlestate variable for clean code size and smooth decision
- * making. The target is now not only the closest it is rated by energy and distance. This means if the target is near it will be selected but
- * if it is far away it depends on his energy state. The target distance is now correct calculated and if the target gets an update by team messages
- * it is advanced by 1 step (roughly guessed). The team message only has the values of the last round and if the target shots blind it was always one
- * step
- * behind the target.
- * Rednexala has changed his LunarTwins and after this they have beaten me very badly. This should be fixed with this version. But i call it a success
- * if the top leader changes his bots just because of me.
- * Credit: hmm
- * Still hooked and excited about this robocode stuff.
- * Size 1996 v1.6
- * Another day without sleep and i could fix some issues of the last version. It lost major score against some mid class bots just because the
- * movement was wrong. So i got rid of the 'jiggle' stuff. Some minor changes to the movement if the bot goes for close combat and a different
- * protectpoint for both bots. The minion now goes for protection to the last guessed point (collected by the gun) and the leader goes to the
- * opposite site (so the enemy stays between those both). The code size is a little bit of a problem (mostly to bring in some stuff against the top
- * teams)
- * The overall forces got a little change (not sure about this). The distance gets more weight for the targeting now.
- * I spotted some serious issues of the movement and this need some heavy debugging soon. Sometimes the call for help got no response and the bot
- * drives to the opposite (cowardly) direction. Also sometimes the bot get stuck in the middle of the field (i guess the risk function reaches it
- * local maximum .. escpecially if the dodge variables are true).
- * I played with lostCounts and going close combat if i loose to much but this wasn't really successful.
- * The gun has much trouble to even hit on a very close distance to some teams and this bugs me most. I think i should change the avgVeocity to
- * something more dynamic to picture the velocity changes more precise.
- * Credit: nothing today
- * Overtyred but still excited.
- * 06/06/20012
- **/
-
+ *  
+ * To keep track of what i have done, i update a little development diary at: 
+ * (if you are keen to read this ... be prepared for very bad English (i'm German)
+ * 		https://github.com/Wompi/robocode-bots/wiki/TassieDevils
+ * 
+ * The official version history can be found at:
+ *		http://robowiki.net/wiki/TassieDevils
+ * 
+ * If you want to talk about it - you find me at:
+ * 		http://robowiki.net/wiki/User:Wompi
+ * 
+ * @author Wompi 
+ * @date 11/09/2012
+**/
 public class TassieDevil extends TeamRobot
 {
 
@@ -101,22 +57,38 @@ public class TassieDevil extends TeamRobot
 
 	private final static double	RADAR_GUNLOCK		= 1.0;
 	private final static double	RADAR_WIDE			= 3.0;
-	private final static double	TARGET_DISTANCE		= 600.0;
+	private final static double	TARGET_FORCE		= 35000;
+	private final static double	TARGET_DISTANCE		= 500.0;
 
 	private final static double	PI_360				= Math.PI * 2.0;
 	private final static double	DELTA_RISK_ANGLE	= Math.PI / 20.0;
 	public static double		DIST				= 185;
-	private final static double	DEFAULT_FORCE		= DIST * DIST;		// normalize force to 1.0 at dist
-	private final static double	TARGET_FORCE		= 35000;
 
 	static TassieTarget			leader;
 	static TassieTarget			minion;
 
+	static TassieTarget			myTarget;
+
 	static boolean				isLeader;
-	static boolean				isMateDead;
-	static int					battleState;							// 7 = 2vs2 6 = 2vs1 5 = 1vs2 4 = 1vs1
-	static TassieTeamInfo		myInfo;
+	static double				myX;
+	static double				myY;
+
+	static HashSet<Bullet>		myBullets;
+
+	// debug
+	//	DebugPointLists debugPoints = new DebugPointLists();
+	//	static double teamDmg;
+	//	Color myColor;
+	//	static double maxRate = Double.MIN_VALUE;
+
+	static TassieProtectHelp	protectHelp;
 	static TassieTeamInfo		teamInfo;
+	static String				leadScanTarget;
+
+	static double				guessedX;
+	static double				guessedY;
+
+	static int					battleState;							// 4 = 2vs2  0 = 1vs1   1 = 2vs1   -1 = 1vs2  (me last)   
 
 	@Override
 	public void run()
@@ -125,226 +97,355 @@ public class TassieDevil extends TeamRobot
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
 
-		battleState = 7;
+		battleState = 4;
 		isLeader = (getEnergy() > 150);
+		//		myColor = Color.GREEN;
+		//		if (isLeader) myColor = Color.RED;
+		myBullets = new HashSet<Bullet>();
 
-		if (leader == null && minion == null) // maybe make this static
-		{
-			leader = new TassieTarget();
-			minion = new TassieTarget();
-		}
-		myInfo = new TassieTeamInfo();
+		minion = null;
+		leader = null;
 
 		while (true)
 		{
 			if (getRadarTurnRemaining() == 0.0) setTurnRadarRightRadians(Double.MAX_VALUE);
 
-			TassieTarget target = getMainTarget();
-
-			if (isLeader && minion.isAlive) target = minion;
-			boolean isCloseCombat = (leader.isAlive && leader.eDistance < 300) || (minion.isAlive && minion.eDistance < 300);
-
-			if (battleState == 7 /* || battleState == 5 */)
+			try
 			{
-				myInfo.x = getX();
-				myInfo.y = getY();
-				myInfo.protectPoint = null;
 
-				if (!myInfo.teamBullets.isEmpty() && !myInfo.teamBullets.get(0).isActive()) myInfo.teamBullets.remove(0);
-				if (isLeader) myInfo.leadScan = target.eName;
-
-				// isClose || (1vs2 && leader)
-				if (isCloseCombat || (battleState == 5))
+				setMainTarget();
+				if (isLeader)
 				{
-					myInfo.protectPoint = new Point2D.Double();
-					double angle;
-					double aDist;
-					myInfo.protectPoint.x = getX() + Math.sin(angle = Math.atan2(target.x - getX(), target.y - getY()))
-							* (aDist = (target.eDistance + 50));
-					myInfo.protectPoint.y = getY() + Math.cos(angle) * aDist;
+					TassieLeadScanInfo lInfo = new TassieLeadScanInfo();
+					lInfo.leadScan = myTarget.name;
+					broadcastMessage(lInfo);
 				}
-				else myInfo.protectPoint = null;
-				try
+
+				// dist200 && 2vs2 || 1vs2 && myleader
+				if ((myTarget.eDistance <= 200 && battleState == 4) /*|| (battleState == -1 && isLeader)*/)
 				{
-					broadcastMessage(myInfo);
-				}
-				catch (Exception e1)
-				{}
-			}
+					//System.out.format("[%d] arg help me!\n",getTime());	
+					TassieProtectHelp pHelp = new TassieProtectHelp();
 
-			double mRate = Double.MAX_VALUE;
-			double v0 = 0;
-			double v1 = 0;
-			boolean isBulletEvade = false;
-			double protectDist = 0;
-
-			while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
-			{
-				double x = DIST * Math.sin(v0) + getX();
-				double y = DIST * Math.cos(v0) + getY();
-
-				if (new Rectangle2D.Double(WZ_M, WZ_M, WZ_SIZE_M_W, WZ_SIZE_M_H).contains(x, y))
-				{
-					double r1 = 0;
-					double force = TARGET_FORCE;
-					if (teamInfo != null && teamInfo.protectPoint != null)
+					if (isLeader)
 					{
-						isCloseCombat = true;
-						protectDist = teamInfo.protectPoint.distance(getX(), getY());
-						force = 10000;
-						r1 -= 100000 / teamInfo.protectPoint.distanceSq(x, y);
-					}
-					r1 += (leader.isAlive) ? force / leader.distanceSq(x, y) : 0;
-					r1 += (minion.isAlive) ? force / minion.distanceSq(x, y) : 0;
-
-					if (teamInfo != null)
-					{
-						r1 += force / teamInfo.distanceSq(x, y);
-
-						for (Bullet bullet : teamInfo.teamBullets)
-						{
-							if (bullet.isActive())
-							{
-								double dist = Point2D.distance(bullet.getX(), bullet.getY(), getX(), getY());
-								if (dist <= DIST)
-								{
-									r1 += 100000 / Point2D.distanceSq(bullet.getX(), bullet.getY(), x, y);
-									isBulletEvade = true;
-								}
-							}
-						}
-					}
-
-					if (isCloseCombat)
-					{
-						r1 += (Math.abs(Math.sin(Math.atan2(target.x - x, target.y - y) - v0)));
+						pHelp.x = guessedX;
+						pHelp.y = guessedY;
 					}
 					else
 					{
-						r1 += (Math.abs(Math.cos(Math.atan2(target.x - x, target.y - y) - v0)));
+						double angle;
+						double aDist;
+						pHelp.x = getX() + Math.sin(angle = Math.atan2(myTarget.x - getX(), myTarget.y - getY()))
+								* (aDist = (myTarget.eDistance + 50));
+						pHelp.y = getY() + Math.cos(angle) * aDist;
 					}
 
-					if (r1 < mRate)
+					//					pHelp.x = myTarget.x;
+					//					pHelp.y = myTarget.y;
+					broadcastMessage(pHelp);
+				}
+
+				double mRate = Double.MAX_VALUE;
+				double v0 = 0;
+				double v1 = 0;
+				boolean isBulletEvade = false;
+				boolean isCloseCombat = false;
+				double protectDist = 0;
+
+				while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
+				{
+					double x = DIST * Math.sin(v0) + myX;
+					double y = DIST * Math.cos(v0) + myY;
+
+					if (new Rectangle2D.Double(WZ_M, WZ_M, WZ_SIZE_M_W, WZ_SIZE_M_H).contains(x, y))
 					{
-						mRate = r1;
-						v1 = v0;
+						double r1 = 0;
+						double force = TARGET_FORCE;
+						if (protectHelp != null)
+						{
+							//							PaintHelper.drawArc(new Point2D.Double(protectHelp.x, protectHelp.y), 45.0, 0.0, PI_360, false, getGraphics(),Color.YELLOW);
+							isCloseCombat = true;
+							protectDist = Point2D.distance(protectHelp.x, protectHelp.y, getX(), getY());
+							force = 10000;
+							r1 -= 100000 / Point2D.distanceSq(protectHelp.x, protectHelp.y, x, y);
+						}
+						//else /* if (target.isAlive) */
+						{
+							try
+							{
+								r1 += force / Point2D.distanceSq(leader.x, leader.y, x, y);
+							}
+							catch (Exception e1)
+							{}
+
+							try
+							{
+								r1 += force / Point2D.distanceSq(minion.x, minion.y, x, y);
+							}
+							catch (Exception e1)
+							{}
+						}
+
+						//								double tEnergy = target.energyField[target.lastScan];
+						//								else if ((!isLeader && tEnergy < (getEnergy()-30)) || (isLeader && tEnergy < (getEnergy()-120)) || (enemys == 1 && tEnergy < getEnergy()-40))
+						//								{
+						//									isCloseCombat = true;
+						//									myTarget = target;
+						//									r1 -= 30000/Point2D.distanceSq(target.x, target.y, x, y);							
+						//									PaintHelper.drawArc(new Point2D.Double(target.x, target.y), 60.0, 0.0, PI_360, false, getGraphics(),Color.CYAN);
+						//								}
+
+						try
+						{
+							//PaintHelper.drawPoint(new Point2D.Double(teamInfo.x,teamInfo.y), Color.MAGENTA, getGraphics(), 20);
+							r1 += force / Point2D.distanceSq(teamInfo.x, teamInfo.y, x, y);
+
+							for (Bullet bullet : teamInfo.teamBullets)
+							{
+								if (bullet.isActive())
+								{
+									double dist = Point2D.distance(bullet.getX(), bullet.getY(), myX, myY);
+									if (dist <= DIST)
+									{
+										//PaintHelper.drawArc(new Point2D.Double(bullet.getX(), bullet.getY()), 20, 0, PI_360, true, getGraphics(), Color.BLUE);
+										r1 += 100000 / Point2D.distanceSq(bullet.getX(), bullet.getY(), x, y);
+										isBulletEvade = true;
+									}
+									//else PaintHelper.drawArc(new Point2D.Double(bullet.getX(), bullet.getY()), 20, 0, PI_360, true, getGraphics(), Color.RED);
+								}
+							}
+						}
+						catch (Exception ex)
+						{}
+
+						if (isCloseCombat)
+						{
+							r1 += (Math.abs(Math.sin(Math.atan2(myTarget.x - x, myTarget.y - y) - v0)));
+						}
+						else
+						{
+							r1 += (Math.abs(Math.cos(Math.atan2(myTarget.x - x, myTarget.y - y) - v0)));
+						}
+
+						if (Math.random() < 0.6 && r1 < mRate)
+						{
+							mRate = r1;
+							v1 = v0;
+						}
+						// debug
+						//						PaintMinRiskPoints.registerRiskPoint(getTime(), x, y, r1);
 					}
 				}
-			}
 
-			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isBulletEvade || isCloseCombat || mRate > 1.3)
-			{
-				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians() + ((isCloseCombat) ? Math.sin(protectDist / 30.0) / 10.0 : 0)));
-				setAhead(DIST * Math.cos(v1));
+				//System.out.format("[%d] mRate=%3.2f\n",getTime(),mRate);
+
+				if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isBulletEvade || isCloseCombat || mRate > 1.3)
+				{
+					setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
+					setAhead(DIST * Math.cos(v1));
+				}
+				//else if (getTurnRemainingRadians() == 0) setTurnRightRadians(Math.sin(getDistanceRemaining()/30)/20);
+
 			}
+			catch (Exception ex)
+			{}
 			execute();
 		}
+	}
 
+	@Override
+	public void onStatus(StatusEvent e)
+	{
+		try
+		{
+			myX = getX();
+			myY = getY();
+			protectHelp = null;
+			teamInfo = null;
+
+			TassieTeamInfo tInfo = new TassieTeamInfo();
+			tInfo.teamBullets = myBullets; // should be striped of the inactive bullets
+			tInfo.x = myX;
+			tInfo.y = myY;
+			broadcastMessage(tInfo);
+			//System.out.format("[%d] msg send force[%3.2f] %s\n", getTime(),force,getName());
+		}
+		catch (Exception e2)
+		{}
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		String name;
-		if (isTeammate(name = e.getName())) return;   // all team informations per message
-
-		TassieTarget enemy = getTarget(name, e.getEnergy());
-
-		double v3;
-		enemy.eDistance = e.getDistance();
-		enemy.isAlive = true;
-		TassieEnemyInfo eInfo;
-		setPolarPoint(eInfo = new TassieEnemyInfo(), getX(), getY(), v3 = (getHeadingRadians() + e.getBearingRadians()), e.getDistance());
-		enemy.x = eInfo.x;
-		enemy.y = eInfo.y;
-		enemy.eVelocity = eInfo.eVelocity = e.getVelocity();
-		enemy.eHeading = eInfo.eHeading = e.getHeadingRadians();
-		eInfo.segments = enemy.segments;
-		eInfo.eName = name;
-
 		try
 		{
+			String name;
+			if (isTeammate(name = e.getName())) return; // all team infos per msg
+
+			TassieTarget enemy = getTarget(name, e.getEnergy());
+
+			int scanTime;
+			double v3;
+			//			enemy.myDisplacer.registerPostion(enemy.x,enemy.y, getTime());
+
+			enemy.eDistance = e.getDistance();
+
+			TassieEnemyInfo eInfo = new TassieEnemyInfo();
+			eInfo.lastScan = enemy.lastScan = scanTime = (int) getTime();
+			eInfo.x = enemy.x = myX + Math.sin((v3 = (getHeadingRadians() + e.getBearingRadians()))) * e.getDistance();
+			eInfo.y = enemy.y = myY + Math.cos(v3) * e.getDistance();
+			eInfo.eVelocity = enemy.velocityField[scanTime] = e.getVelocity();
+			eInfo.eHeading = enemy.headingField[scanTime] = e.getHeadingRadians();
+			eInfo.eEnergy = enemy.energyField[scanTime] = e.getEnergy();
+			eInfo.eName = name;
 			broadcastMessage(eInfo);
+
+			setMainTarget();
+			doGun();
+
+			//System.out.format("[%d] batteState=%d send leadScan=%s scan=%s\n", getTime(),battleState,leadScanTarget,name);
+			// (2vs1 && heat)  || 1vs2 - 1vs1 || not leadscan     .... 
+			try
+			{
+				if ((battleState == 1 && getGunHeat() < RADAR_GUNLOCK) || battleState <= 0 || !leadScanTarget.equals(name))
+				{
+					doRadar(v3);
+				}
+			}
+			catch (Exception e1)
+			{
+				// exception trown only for my leader and if the leader hasn't send his scan msg			
+				doRadar(Math.atan2(myTarget.x - myX, myTarget.y - myY));
+			}
 		}
-		catch (Exception e1)
+		catch (Exception ex)
 		{}
-
-		doGun(enemy = getMainTarget(), e);
-
-		// System.out.format("[%d] batteState=%d target=%s heat=%3.2f\n", getTime(),battleState,enemy.eName,getGunHeat());
-
-		// 1vs1 || 1vs2 || (2vs1 && heat) || (2vs2 && isLead) - lock radar to myTarget
-		if (battleState <= 5 || (battleState == 6 && getGunHeat() < RADAR_GUNLOCK) || (battleState == 7 && isLeader))
-		{
-			doRadar(Math.atan2(enemy.x - getX(), enemy.y - getY()));
-		}
-		else if (teamInfo != null && !teamInfo.leadScan.equals(name))  // the null because (2vs1 && gunheat) can be false .. grrr i hate null checks
-		{
-			doRadar(v3);
-		}
 	}
 
 	@Override
 	public void onMessageReceived(MessageEvent event)
 	{
-		((ITassieMessage) event.getMessage()).proccedMessage(this);
+		((ITassieMessage) event.getMessage()).proccedMessage();
 	}
 
 	@Override
 	public void onRobotDeath(RobotDeathEvent event)
 	{
 		String name;
+		battleState = getOthers() - 3;
 		if (isTeammate(name = event.getName()))
 		{
-			teamInfo = null;
-			isMateDead = true;
-			battleState--;
+			battleState += 2;
 			return;
 		}
-		battleState -= 2;
-		if (name.equals(leader.eName))
+
+		if (leader != null && name.equals(leader.name)) // null check for last dead if leader died first ... grrr
 		{
-			leader.isAlive = false;
-			return;
+			leader = null;
 		}
-		minion.isAlive = false;
+		else
+		{
+			minion = null;
+		}
 	}
 
-	public void onPaint(Graphics2D g)
-	{}
+	//	@Override
+	//	public void onBulletHit(BulletHitEvent e)
+	//	{
+	//		if (isTeammate(e.getName()))
+	//		{
+	//			System.out.format("[%d] grr stop shooting at me dude!\n",getTime());
+	//			teamDmg += Rules.getBulletDamage(e.getBullet().getPower());
+	//		}
+	//	}	
+	//	
+	//	@Override
+	//	public void onDeath(DeathEvent e)
+	//	{
+	//		//lostCount++;
+	//		System.out.format("TeamDmg: %3.2f LostCount: %d\n", teamDmg,0);
+	//	}
+	//	
+	//	@Override 
+	//	public void onWin(WinEvent e)
+	//	{
+	//		System.out.format("TeamDmg: %3.2f\n", teamDmg);
+	//		//lostCount = 0;
+	//	}
+	//	
 
-	private void doGun(TassieTarget target, ScannedRobotEvent e)
+	//	public void onPaint(Graphics2D g)
+	//	{
+	//		//PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
+	//		PaintMinRiskPoints.onPaint(g);		
+	//		debugPoints.onPaint(g);	
+	//		if (debugPoints.targetPoint != null) PaintHelper.drawLine(new Point2D.Double(getX(), getY()), debugPoints.targetPoint, g, PaintHelper.whiteTrans);
+	//		//if (myTarget != null ) myTarget.myDisplacer.onPaint(g, Color.lightGray);
+	//	}
+
+	private void doGun()
 	{
-		double absBearing = getHeadingRadians() + e.getBearingRadians();
-		double bPower = Math.min(Rules.MAX_BULLET_POWER, TARGET_DISTANCE / target.eDistance);
-		if (getGunTurnRemaining() == 0) setFire(bPower);
-
-		if (e.getVelocity() != 0)
+		long i;
+		double bPower = Math.min(Rules.MAX_BULLET_POWER, TARGET_DISTANCE / myTarget.eDistance);
+		double v2 = myTarget.getAvgVelocity();
+		double xg = myTarget.x - myX;
+		double yg = myTarget.y - myY;
+		double gHead = myTarget.headingField[myTarget.lastScan];
+		double lastHead = myTarget.headingField[Math.max(myTarget.lastScan - 1, 0)];
+		if (gHead == 0)
 		{
-			target.eDir = (Math.sin(e.getHeadingRadians() - absBearing) * e.getVelocity() < 0) ? -1 : 1;
+			gHead = lastHead;
+			lastHead = myTarget.headingField[Math.max(myTarget.lastScan - 2, 0)];
+		}
+		double headDiff;
+		if (Math.abs(headDiff = (gHead - lastHead)) > 0.161442955809475 || gHead == 0) headDiff = 0;
+
+		i = 0;
+		//		debugPoints.reset();
+		//double distance = Point2D.distance(myTarget.x+getX(), myTarget.y+getY(), getX(), getY());
+		//double diplacerDist = myTarget.myDisplacer.avgDist(bPower,distance,getTime());
+
+		//System.out.format("[%d] avgVelo=%3.2f gHead=%3.5f headDiff=%3.5f dist=%3.2f %s \n",getTime(),v2,gHead,headDiff,diplacerDist,myTarget.name);
+
+		while (++i * (20.0 - 3.0 * bPower) < Math.hypot(xg, yg))
+		{
+			xg += (Math.sin(gHead) * v2);
+			yg += (Math.cos(gHead) * v2);
+			//double relD = Point2D.distance(xg, yg, myTarget.x-getX(), myTarget.y-getY());
+			//System.out.format("[%d] xg=%3.2f yg=%3.2f relD=%3.2f \n", getTime(),xg+getX(),yg+getY(),relD);
+			//boolean check = (relD > diplacerDist); 
+			if (!new Rectangle2D.Double(WZ, WZ, WZ_SIZE_W, WZ_SIZE_H).contains(xg + myX, yg + myY) /*|| check*/)
+			{
+				//System.out.format("[%d] not xg=%3.2f yg=%3.2f \n", getTime(),xg+getX(),yg+getY());
+				v2 = -v2;
+				//headDiff = -headDiff;
+				//				debugPoints.badPoints.add(new Point2D.Double(xg+getX(), yg+getY()));
+			}
+			else
+			{
+				//				debugPoints.goodPoints.add(new Point2D.Double(xg+getX() ,yg+getY()));
+			}
+			gHead += headDiff;
 		}
 
-		int[] cSegments = target.segments[(int) (target.eDistance / 200)][(int) Math.abs(e.getVelocity() / 2)][(int) Math.abs(target.eVelocity / 2)];
-		target.eVelocity = e.getVelocity();
-
-		TassieWave wave = new TassieWave();
-		wave.myTarget = target;
-		wave.eAbsBearing = absBearing;
-		wave.eDirection = target.eDir;
-		wave.segResult = cSegments;
-		wave.rx = getX();
-		wave.ry = getY();
-		wave.bSpeed = Rules.getBulletSpeed(bPower);
-		addCustomEvent(wave);
-
-		int bIndex = 12;
-		for (int i = 0; i < 25; i++)
+		if (getGunTurnRemainingRadians() == 0 && getEnergy() > bPower)
 		{
-			if (cSegments[bIndex] < cSegments[i]) bIndex = i;
+			Bullet bullet;
+			if ((bullet = setFireBullet(bPower)) != null)
+			{
+				myBullets.add(bullet);
+				//				Point2D bulPos = new Point2D.Double(bullet.getX(), bullet.getY());
+				//				PaintHelper.drawLine(bulPos, RobotMath.calculatePolarPoint(bullet.getHeadingRadians(), 500, bulPos), getGraphics(), Color.CYAN);	
+			}
 		}
-		double gFactor = (double) (bIndex - (cSegments.length - 1) / 2) / ((cSegments.length - 1) / 2);
-		double gunDelta = target.eDir * gFactor * Math.asin(8 / wave.bSpeed);
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + gunDelta - getGunHeadingRadians()));
+
+		//		debugPoints.targetPoint = new Point2D.Double(xg+getX(), yg+getY());
+
+		guessedX = getX() + xg;
+		guessedY = getY() + yg;
+
+		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
 	}
 
 	public void doRadar(double angle)
@@ -355,80 +456,99 @@ public class TassieDevil extends TeamRobot
 	// --------------------------------------------- code save and helper functions ----------------------------------------------------------------
 	public static TassieTarget getTarget(String name, double energy)
 	{
-		if (energy > 150 || name.equals(leader.eName)) // if energy drop below 150 the leader should have its name
+		// holy wombat this is nasty but it saves alot of code size ... buahh i can't look it any longer
+		try
 		{
-			leader.eName = name;
-			return leader;
+			try
+			{
+				if (name.equals(leader.name)) { return leader; }
+			}
+			catch (Exception e1)
+			{
+				if (energy > 150)
+				{
+					leader = new TassieTarget();
+					leader.name = name;
+					return leader;
+				}
+			}
+			if (name.equals(minion.name)) { return minion; }
 		}
-		minion.eName = name;
+		catch (Exception e2)
+		{
+			minion = new TassieTarget();
+			minion.name = name;
+		}
 		return minion;
 	}
 
-	public TassieTarget getMainTarget()
+	public void setMainTarget()
 	{
-		double lRate = leader.eEnergy + leader.eDistance * 0.6;
-		double mRate = minion.eEnergy + minion.eDistance * 0.0;
-		return ((leader.isAlive && (lRate < mRate || !minion.isAlive)) ? leader : minion);
-	}
-
-	public static void setPolarPoint(Point2D resultPoint, double x, double y, double angle, double dist)
-	{
-		resultPoint.setLocation(x + Math.sin(angle) * dist, y + Math.cos(angle) * dist);
-	}
-
-	class TassieWave extends Condition
-	{
-		TassieTarget	myTarget;
-		double			eAbsBearing;
-		double			eDirection;
-		double			rx;
-		double			ry;
-		double			bSpeed;
-		private double	count;
-		int[]			segResult;
-
-		@Override
-		public boolean test()
+		double tRate;
+		try
 		{
-			if (myTarget.distance(rx, ry) < (++count * bSpeed))
+			tRate = leader.energyField[leader.lastScan] + leader.eDistance * 0.8;
+			try
 			{
-				double eGunDelta = Utils.normalRelativeAngle(Math.atan2(myTarget.x - rx, myTarget.y - ry) - eAbsBearing);
-				double guessFactor = Math.max(-1, Math.min(1, eGunDelta / Math.asin(8 / bSpeed))) * eDirection;
-				int index = (int) Math.round((segResult.length - 1) / 2 * (guessFactor + 1));
-				segResult[index]++;
-				removeCustomEvent(this);
-				return true;
+				//double buffy;
+				myTarget = (tRate < (/*buffy=*/(minion.energyField[minion.lastScan] + minion.eDistance * 0.8))) ? leader : minion;
+				//System.out.format("[%d] leadRate=%3.2f minionRate=%3.2f \n", getTime(),tRate,buffy);
 			}
-			return false;
+			catch (Exception e2)
+			{
+				myTarget = leader;
+			}
 		}
+		catch (Exception e1)
+		{
+			myTarget = minion;
+		}
+
+		//		PaintHelper.drawArc(new Point2D.Double(myTarget.x, myTarget.y), 50, 0, PI_360, false, getGraphics(), myColor);
+		//System.out.format("[%d] myTarget=%s distance=%3.2f\n", getTime(),myTarget.name,myTarget.eDistance);	
 	}
 }
 
 interface ITassieMessage
 {
-	public void proccedMessage(TassieDevil bot);
+	public void proccedMessage();
+}
+
+class TassieLeadScanInfo implements Serializable, ITassieMessage
+{
+	private static final long	serialVersionUID	= 1L;
+
+	String						leadScan;
+
+	@Override
+	public void proccedMessage()
+	{
+		TassieDevil.leadScanTarget = leadScan;
+	}
 }
 
 class TassieTeamInfo extends Point2D.Double implements ITassieMessage
 {
 	private static final long	serialVersionUID	= 2L;
 
-	ArrayList<Bullet>			teamBullets;
-	String						leadScan;
-
-	Point2D.Double				protectPoint;
-
-	public TassieTeamInfo()
-	{
-		teamBullets = new ArrayList<Bullet>();
-		leadScan = "";
-	}
+	HashSet<Bullet>				teamBullets;
 
 	@Override
-	public void proccedMessage(TassieDevil bot)
+	public void proccedMessage()
 	{
 		TassieDevil.teamInfo = this;
-		// /PaintHelper.drawArc(new Point2D.Double(x,y), 40, 0, Math.PI * 2, false, bot.getGraphics(), bot.myColor);
+		//		PaintHelper.drawArc(new Point2D.Double(x,y), 40, 0, PI_360, false, getGraphics(), myColor);
+	}
+}
+
+class TassieProtectHelp extends Point2D.Double implements ITassieMessage
+{
+	private static final long	serialVersionUID	= 3L;
+
+	@Override
+	public void proccedMessage()
+	{
+		TassieDevil.protectHelp = this;
 	}
 }
 
@@ -436,45 +556,61 @@ class TassieEnemyInfo extends Point2D.Double implements ITassieMessage
 {
 	private static final long	serialVersionUID	= 4L;
 
+	int							lastScan;
+	double						eVelocity;
+	double						eHeading;
 	String						eName;
 	double						eEnergy;
-	double						eHeading;
-	double						eVelocity;
-	int[][][][]					segments;
 
 	@Override
-	public void proccedMessage(TassieDevil bot)
+	public void proccedMessage()
 	{
-		TassieTarget target;
+		TassieTarget target = TassieDevil.getTarget(eName, eEnergy);
+		target.velocityField[lastScan] = eVelocity;
+		target.headingField[lastScan] = eHeading;
+		target.energyField[lastScan] = eEnergy;
+
 		// advance the target by one step
-		TassieDevil.setPolarPoint(target = TassieDevil.getTarget(eName, eEnergy), x, y, eHeading, eVelocity);
-		target.isAlive = true;
-		target.segments = segments;
-		target.eDistance = Point2D.distance(x, y, bot.getX(), bot.getY());
+		target.x = x + (Math.sin(eHeading) * eVelocity); // maybe take the headingDiff 
+		target.y = y + (Math.cos(eHeading) * eVelocity);
+		target.lastScan = Math.max(target.lastScan, lastScan);
+		target.eDistance = Point2D.distance(x, y, TassieDevil.myX, TassieDevil.myY);
+		//		target.myDisplacer.registerPostion(target.x, target.y, tInfo.lastScan);
+		//System.out.format("[%d] updated target %s\n", getTime(),target.name);
+
 	}
 }
 
 class TassieTarget extends Point2D.Double
 {
 	private static final long	serialVersionUID	= 5L;
-	boolean						isAlive;
-	String						eName;
-
-	private static final int	DISTANCE_INDEXES	= 5;
-	private static final int	VELOCITY_INDEXES	= 5;
-	private static final int	BINS				= 25;
-
-	double						eDir;
-	int[][][][]					segments;
+	int							lastScan;
+	double[]					velocityField		= new double[6000];
+	double[]					headingField		= new double[6000];
+	double[]					energyField			= new double[6000]; // could be changed to just one energy variable but who knows for what it is usefull later
+																		//	DisplacementVector myDisplacer = new DisplacementVector();
 
 	double						eDistance;
-	double						eEnergy;
-	double						eVelocity;
-	double						eHeading;
+	String						name;
 
-	public TassieTarget()
+	// ooks ike i should get rid of this and use a simple avg
+	public double getAvgVelocity()
 	{
-		eName = "";
-		segments = new int[DISTANCE_INDEXES][VELOCITY_INDEXES][VELOCITY_INDEXES][BINS];
+		double lastVelocity = velocityField[lastScan];
+
+		if (lastVelocity == 0) return 0; // this should be adjusted to probability depend on avg dir changes
+
+		double count = 0;
+		double result = 0;
+		for (int i = 0; i <= lastScan; i++)
+		{
+			double velocity;
+			if (Math.signum(velocity = velocityField[i]) == Math.signum(lastVelocity))
+			{
+				result += velocity;
+				count++;
+			}
+		}
+		return result / count;
 	}
 }
