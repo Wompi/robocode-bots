@@ -141,13 +141,10 @@ public class TassieDevil extends TeamRobot
 					{
 						double angle;
 						double aDist;
-						pHelp.x = getX() + Math.sin(angle = Math.atan2(mainTarget.x - getX(), mainTarget.y - getY()))
-								* (aDist = (mainTarget.eDistance + 50));
-						pHelp.y = getY() + Math.cos(angle) * aDist;
+						pHelp.x = myX + Math.sin(angle = Math.atan2(mainTarget.x - myX, mainTarget.y - myY)) * (aDist = (mainTarget.eDistance + 50));
+						pHelp.y = myY + Math.cos(angle) * aDist;
 					}
 
-					//					pHelp.x = myTarget.x;
-					//					pHelp.y = myTarget.y;
 					broadcastMessage(pHelp);
 				}
 
@@ -170,7 +167,6 @@ public class TassieDevil extends TeamRobot
 						{
 							//							PaintHelper.drawArc(new Point2D.Double(protectHelp.x, protectHelp.y), 45.0, 0.0, PI_360, false, getGraphics(),Color.YELLOW);
 							isCloseCombat = true;
-							//protectDist = Point2D.distance(protectHelp.x, protectHelp.y, getX(), getY());
 							force = 10000;
 							r1 -= 100000 / Point2D.distanceSq(protectHelp.x, protectHelp.y, x, y);
 						}
@@ -194,6 +190,7 @@ public class TassieDevil extends TeamRobot
 
 							for (Bullet bullet : teamInfo.teamBullets)
 							{
+								// TODO: if the bullet has past me it shouldn't generate a force
 								if (bullet.isActive())
 								{
 									double dist = Point2D.distance(bullet.getX(), bullet.getY(), myX, myY);
@@ -223,14 +220,11 @@ public class TassieDevil extends TeamRobot
 					}
 				}
 
-				//System.out.format("[%d] mRate=%3.2f\n",getTime(),mRate);
-
 				if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose || isCloseCombat)
 				{
 					setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
 					setAhead(rDist * Math.cos(v1));
 				}
-				//else if (getTurnRemainingRadians() == 0) setTurnRightRadians(Math.sin(getDistanceRemaining()/30)/20);
 
 			}
 			catch (Exception ex)
@@ -278,8 +272,6 @@ public class TassieDevil extends TeamRobot
 
 			int scanTime;
 			double v3;
-			//			enemy.myDisplacer.registerPostion(enemy.x,enemy.y, getTime());
-
 			enemy.eDistance = e.getDistance();
 
 			TassieEnemyInfo eInfo = new TassieEnemyInfo();
@@ -330,7 +322,7 @@ public class TassieDevil extends TeamRobot
 			return;
 		}
 
-		if (name.equals(leader.eName)) // null check for last dead if leader died first ... grrr
+		if (name.equals(leader.eName))
 		{
 			leader.isAlive = false;
 		}
@@ -394,8 +386,6 @@ public class TassieDevil extends TeamRobot
 		i = 0;
 		//		debugPoints.reset();
 		//double distance = Point2D.distance(myTarget.x+getX(), myTarget.y+getY(), getX(), getY());
-		//double diplacerDist = myTarget.myDisplacer.avgDist(bPower,distance,getTime());
-
 		//System.out.format("[%d] avgVelo=%3.2f gHead=%3.5f headDiff=%3.5f dist=%3.2f %s \n",getTime(),v2,gHead,headDiff,diplacerDist,myTarget.name);
 
 		while ((i += 0.9) * Rules.getBulletSpeed(bPower) < Math.hypot(xg, yg))
@@ -432,8 +422,8 @@ public class TassieDevil extends TeamRobot
 
 		//		debugPoints.targetPoint = new Point2D.Double(xg+getX(), yg+getY());
 
-		guessedX = getX() + xg;
-		guessedY = getY() + yg;
+		guessedX = myX + xg;
+		guessedY = myY + yg;
 
 		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
 	}
@@ -551,7 +541,7 @@ class TassieTarget extends Point2D.Double
 	String						eName;
 	boolean						isAlive;
 
-	// ooks ike i should get rid of this and use a simple avg
+	// looks like i should get rid of this and use a simple avg
 	public double getAvgVelocity()
 	{
 		double lastVelocity = velocityField[lastScan];
