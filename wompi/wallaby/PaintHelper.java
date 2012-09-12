@@ -17,6 +17,7 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.GeneralPath;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 
 public class PaintHelper
@@ -57,8 +58,16 @@ public class PaintHelper
 		return path;
 	}
 
+	public static void drawLine(Line2D line, Graphics2D g, Color color)
+	{
+		if (line == null) return;
+		g.setColor(color);
+		g.draw(line);
+	}
+
 	public static void drawLine(Point2D start, Point2D ende, Graphics2D g2, Color color)
 	{
+		if (start == null || ende == null) return;
 		g2.setColor(color);
 		g2.drawLine((int) start.getX(), (int) start.getY(), (int) ende.getX(), (int) ende.getY());
 	}
