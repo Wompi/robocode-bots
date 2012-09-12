@@ -294,7 +294,6 @@ public class TassieDevil extends TeamRobot
 
 			doGun(enemy = getMainTarget(), e);
 
-			//System.out.format("[%d] batteState=%d send leadScan=%s scan=%s\n", getTime(),battleState,leadScanTarget,name);
 			// (2vs1 && heat)  || 1vs2 - 1vs1 || not leadscan     .... 
 			if (battleState <= 5 || (battleState == 6 && getGunHeat() < RADAR_GUNLOCK) || (battleState == 7 && isLeader))
 			{
@@ -304,19 +303,6 @@ public class TassieDevil extends TeamRobot
 			{
 				doRadar(v3);
 			}
-
-			//			try
-			//			{
-			//				if ((battleState == 1 && getGunHeat() < RADAR_GUNLOCK) || battleState <= 0 || !leadScanTarget.equals(name))
-			//				{
-			//					doRadar(v3);
-			//				}
-			//			}
-			//			catch (Exception e1)
-			//			{
-			//				// exception trown only for my leader and if the leader hasn't send his scan msg			
-			//				doRadar(Math.atan2(enemy.x - myX, enemy.y - myY));
-			//			}
 		}
 		catch (Exception ex)
 		{}
@@ -345,23 +331,6 @@ public class TassieDevil extends TeamRobot
 			return;
 		}
 		minion.setDead();
-
-		//		String name;
-		//		battleState = getOthers() - 3;
-		//		if (isTeammate(name = event.getName()))
-		//		{
-		//			battleState += 2;
-		//			return;
-		//		}
-		//
-		//		if (name.equals(leader.eName))
-		//		{
-		//			leader.setDead();
-		//		}
-		//		else
-		//		{
-		//			minion.setDead();
-		//		}
 	}
 
 	//	@Override
@@ -482,8 +451,8 @@ public class TassieDevil extends TeamRobot
 
 	public TassieTarget getMainTarget()
 	{
-		double lRate = leader.energyField[leader.lastScan] + leader.eDistance * 0.8;
-		double mRate = minion.energyField[minion.lastScan] + minion.eDistance * 0.8;
+		double lRate = Math.max(1, leader.energyField[leader.lastScan] - 100) * leader.eDistance * 0.6;
+		double mRate = Math.max(1, minion.energyField[minion.lastScan]) * minion.eDistance * 0.8;
 		return (lRate < mRate) ? leader : minion;
 		//		PaintHelper.drawArc(new Point2D.Double(myTarget.x, myTarget.y), 50, 0, PI_360, false, getGraphics(), myColor);
 		//System.out.format("[%d] myTarget=%s distance=%3.2f\n", getTime(),myTarget.name,myTarget.eDistance);	
