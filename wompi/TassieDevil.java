@@ -315,7 +315,7 @@ public class TassieDevil extends TeamRobot
 
 	public static int getIndex(TassieTarget enemy)
 	{
-		return (int) ((enemy.eDistance / 200) - 1);
+		return (int) ((enemy.eDistance / 400) - 1);
 	}
 
 	@Override
@@ -399,7 +399,7 @@ public class TassieDevil extends TeamRobot
 		double head;
 		if (Math.abs(headdiff = ((head = target.eHeading) - target.eLastHeading)) > 0.161442955809475) headdiff = 0;
 
-		if (getGunHeat() < 0.6)
+		if (getGunHeat() < 0.4)
 		{
 			headdiff = (target.headAvg += Math.abs(headdiff)) / ++target.headCount * Math.signum(headdiff);
 		}
@@ -414,7 +414,7 @@ public class TassieDevil extends TeamRobot
 		{
 			xg += (Math.sin(head) * v2);
 			yg += (Math.cos(head) * v2);
-			if (!new Rectangle2D.Double(WZ, WZ, WZ_G_W, WZ_G_H).contains(xg + myX, yg + myY) /*|| check*/)
+			if (!new Rectangle2D.Double(WZ, WZ, WZ_G_W, WZ_G_H).contains(xg + myX, yg + myY))
 			{
 				v2 = -v2;
 			}
