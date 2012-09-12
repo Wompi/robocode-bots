@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 
 import robocode.Bullet;
+import robocode.Condition;
 import robocode.HitRobotEvent;
 import robocode.MessageEvent;
 import robocode.RobotDeathEvent;
@@ -292,7 +293,7 @@ public class TassieDevil extends TeamRobot
 			eInfo.eName = name;
 			broadcastMessage(eInfo);
 
-			doGun(enemy = getMainTarget(), e);
+			doGun(enemy = getMainTarget());
 
 			// (2vs1 && heat)  || 1vs2 - 1vs1 || not leadscan     .... 
 			if (battleState <= 5 || (battleState == 6 && getGunHeat() < RADAR_GUNLOCK) || (battleState == 7 && isLeader))
@@ -370,11 +371,12 @@ public class TassieDevil extends TeamRobot
 	//		PaintHelper.drawLine(new Point2D.Double(getX(), getY()), moveEnd, g, Color.YELLOW);
 	//	}
 
-	private void doGun(TassieTarget target, ScannedRobotEvent e)
+	private void doGun(final TassieTarget target)
 	{
 		double i;
-		double bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(e.getEnergy() / 4.0, TARGET_DISTANCE / target.eDistance));
-		double v2 = target.getAvgVelocity();
+		double bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(target.energyField[target.lastScan] / 4.0, TARGET_DISTANCE / target.eDistance));
+		//double v2 = target.getAvgVelocity((int) (target.eDistance / Rules.getBulletSpeed(bPower)), target.velocityField[target.lastScan]);
+		double v2 = target.velocityField[target.lastScan];
 		double xg = target.x - myX;
 		double yg = target.y - myY;
 		double gHead = target.headingField[target.lastScan];
@@ -388,10 +390,15 @@ public class TassieDevil extends TeamRobot
 		if (Math.abs(headDiff = (gHead - lastHead)) > 0.161442955809475 || gHead == 0) headDiff = 0;
 
 		i = 0;
+
+		final double hDiff = headDiff;
+		final double vAvg = v2;
+
 		//		debugPoints.reset();
 		//double distance = Point2D.distance(myTarget.x+getX(), myTarget.y+getY(), getX(), getY());
 		//System.out.format("[%d] avgVelo=%3.2f gHead=%3.5f headDiff=%3.5f dist=%3.2f %s \n",getTime(),v2,gHead,headDiff,diplacerDist,myTarget.name);
 
+		int ticks = 0;
 		while ((i += 0.9) * Rules.getBulletSpeed(bPower) < Math.hypot(xg, yg))
 		{
 			xg += (Math.sin(gHead) * v2);
@@ -411,7 +418,12 @@ public class TassieDevil extends TeamRobot
 				//				debugPoints.goodPoints.add(new Point2D.Double(xg+getX() ,yg+getY()));
 			}
 			gHead += headDiff;
+			ticks++;
 		}
+
+		guessedX = myX + xg;
+		guessedY = myY + yg;
+		final long hit = getTime() + ticks;
 
 		if (getGunTurnRemainingRadians() == 0 && getEnergy() > bPower)
 		{
@@ -420,16 +432,55 @@ public class TassieDevil extends TeamRobot
 			{
 				myBullets.add(bullet);
 				//				Point2D bulPos = new Point2D.Double(bullet.getX(), bullet.getY());
-				//				PaintHelper.drawLine(bulPos, RobotMath.calculatePolarPoint(bullet.getHeadingRadians(), 500, bulPos), getGraphics(), Color.CYAN);	
+				//				PaintHelper.drawLine(bulPos, RobotMath.calculatePolarPoint(bullet.getHeadingRadians(), 500, bulPos), getGraphics(), Color.CYAN);
+				addCustomEvent(new Condition()
+				{
+					double		bx		= getX();
+					double		by		= getY();
+					double		ex		= guessedX;
+					double		ey		= guessedY;
+					long		time	= hit;
+
+					int			vIndex	= (int) Math.round(vAvg) + 8;
+					int			hIndex	= (int) Math.round(Math.toDegrees(hDiff)) + 10;
+					double[]	adjust	= target.targetAdjust[vIndex][hIndex];
+
+					@Override
+					public boolean test()
+					{
+						if (getTime() >= time)
+						{
+							if (getTime() - target.lastScan == 1)
+							{
+								try
+								{
+									double gAngle = Math.atan2(ex - bx, ey - by);
+									double nAngle = Math.atan2(target.x - bx, target.y - by);
+									int delta = (int) Math.round(Math.toDegrees(Utils.normalRelativeAngle(nAngle - gAngle)));
+									adjust[delta + 90]++;
+									System.out.format("[%d] delta=%d count=%3.2f vIndex=%d hIndex=%d\n", getTime(), delta, adjust[delta + 90],
+											vIndex, hIndex);
+								}
+								catch (Exception e)
+								{
+									e.printStackTrace();
+								}
+							}
+							//System.out.format("[%d] remove\n", getTime());
+							removeCustomEvent(this);
+						}
+						return false;
+					}
+				});
+
 			}
 		}
 
 		//		debugPoints.targetPoint = new Point2D.Double(xg+getX(), yg+getY());
+		double adjust = target.getAdjust(v2, hDiff);
 
-		guessedX = myX + xg;
-		guessedY = myY + yg;
-
-		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
+		//System.out.format("[%d] adjust=%3.2f\n", getTime(), adjust);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - adjust - getGunHeadingRadians()));
 	}
 
 	public void doRadar(double angle)
@@ -451,8 +502,11 @@ public class TassieDevil extends TeamRobot
 
 	public TassieTarget getMainTarget()
 	{
-		double lRate = Math.max(1, leader.energyField[leader.lastScan] - 100) * leader.eDistance * 0.6;
-		double mRate = Math.max(1, minion.energyField[minion.lastScan]) * minion.eDistance * 0.8;
+		//		double lRate = Math.max(1, leader.energyField[leader.lastScan] - 100) * leader.eDistance * 0.6;
+		//		double mRate = Math.max(1, minion.energyField[minion.lastScan]) * minion.eDistance * 0.8;
+		double lRate = Math.max(1, leader.energyField[leader.lastScan]) + leader.eDistance * 0.8;
+		double mRate = Math.max(1, minion.energyField[minion.lastScan]) + minion.eDistance * 0.8;
+
 		return (lRate < mRate) ? leader : minion;
 		//		PaintHelper.drawArc(new Point2D.Double(myTarget.x, myTarget.y), 50, 0, PI_360, false, getGraphics(), myColor);
 		//System.out.format("[%d] myTarget=%s distance=%3.2f\n", getTime(),myTarget.name,myTarget.eDistance);	
@@ -536,8 +590,12 @@ class TassieTarget extends Point2D.Double
 	int							lastScan;
 	double[]					velocityField		= new double[6000];
 	double[]					headingField		= new double[6000];
-	double[]					energyField			= new double[6000]; // could be changed to just one energy variable but who knows for what it is usefull later
-																		//	DisplacementVector myDisplacer = new DisplacementVector();
+	double[]					energyField			= new double[6000];				// could be changed to just one energy variable but who knows for what it is useful later
+
+	private static int			VELO				= 16;
+	private static int			HEAD				= 20;
+	private static int			ADJUST				= 180;
+	double[][][]				targetAdjust		= new double[VELO][HEAD][ADJUST];
 
 	double						eDistance;
 	String						eName;
@@ -549,8 +607,26 @@ class TassieTarget extends Point2D.Double
 		x = y = eDistance = java.lang.Double.POSITIVE_INFINITY;
 	}
 
+	public double getAdjust(double velo, double hDiff)
+	{
+		double[] adjust = targetAdjust[(int) Math.round(velo) + 8][(int) Math.round(Math.toDegrees(hDiff)) + 10];
+		double max = 0;
+		double result = 0;
+		for (int i = 0; i < ADJUST; i++)
+		{
+			if (adjust[i] > 0 && adjust[i] > max)
+			{
+				max = adjust[i];
+				result = i;
+			}
+		}
+		//System.out.format("max=%3.2f\n", max);
+		if (max > 0) return Math.toRadians(result - 90);
+		return 0;
+	}
+
 	// looks like i should get rid of this and use a simple avg
-	public double getAvgVelocity()
+	public double getAvgVelocity(int ticks, double velo)
 	{
 		double lastVelocity = velocityField[lastScan];
 
@@ -560,11 +636,14 @@ class TassieTarget extends Point2D.Double
 		double result = 0;
 		for (int i = 0; i <= lastScan; i++)
 		{
-			double velocity;
-			if (Math.signum(velocity = velocityField[i]) == Math.signum(lastVelocity))
+			double velocity = velocityField[i];
+			if (Utils.isNear(Math.round(velocity), Math.round(velo)))
 			{
-				result += velocity;
-				count++;
+				for (int j = i; j <= Math.min(i + ticks, lastScan); j++)
+				{
+					result += velocityField[j];
+					count++;
+				}
 			}
 		}
 		return result / count;
