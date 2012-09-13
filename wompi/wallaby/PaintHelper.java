@@ -61,6 +61,7 @@ public class PaintHelper
 	public static void drawLine(Line2D line, Graphics2D g, Color color)
 	{
 		if (line == null) return;
+		if (Double.isInfinite(line.getP1().distance(line.getP2()))) return;
 		g.setColor(color);
 		g.draw(line);
 	}
@@ -68,6 +69,8 @@ public class PaintHelper
 	public static void drawLine(Point2D start, Point2D ende, Graphics2D g2, Color color)
 	{
 		if (start == null || ende == null) return;
+		if (Double.isInfinite(start.distance(ende))) return;
+
 		g2.setColor(color);
 		g2.drawLine((int) start.getX(), (int) start.getY(), (int) ende.getX(), (int) ende.getY());
 	}
