@@ -33,6 +33,7 @@ import robocode.TeamRobot;
 import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.DebugPointLists;
+import wompi.echidna.misc.painter.PaintMinRiskPoints;
 import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.robomath.RobotMath;
 import wompi.wallaby.PaintHelper;
@@ -68,15 +69,17 @@ public class TassieDevil extends TeamRobot
 
 	private final static double	RADAR_GUNLOCK		= 1.0;
 	private final static double	RADAR_WIDE			= 3.0;
-	private final static double	TARGET_FORCE		= 35000;
-	private final static double	TARGET_DISTANCE		= 500.0;
+	private final static double	TARGET_FORCE		= 45000;
+	private final static double	TARGET_DISTANCE		= 350.0;
 
 	private final static double	PI_360				= Math.PI * 2.0;
 	private final static double	DELTA_RISK_ANGLE	= Math.PI / 20.0;
-	public static double		DIST				= 185;
+	public static double		DIST				= 100;
 
 	static TassieTarget			leader;
 	static TassieTarget			minion;
+	static double				bPower;
+	static boolean				isSave;
 
 	static boolean				isLeader;
 	static double				myX;
@@ -87,6 +90,7 @@ public class TassieDevil extends TeamRobot
 
 	// debug
 	DebugPointLists				debugPoints			= new DebugPointLists();
+	PaintMinRiskPoints			allRisk				= new PaintMinRiskPoints();
 	static double				teamDmg;
 	Color						myColor;
 	Point2D						moveEnd;
@@ -137,23 +141,23 @@ public class TassieDevil extends TeamRobot
 					broadcastMessage(lInfo);
 				}
 
-				// dist200 && 2vs2 || 1vs2 && myleader
-				if ((mainTarget.eDistance <= 200 && battleState == 7) /*|| (battleState == -1 && isLeader)*/)
+				// dist200 && 2vs2
+				//if ((mainTarget.eDistance <= 200 && battleState == 7))
 				{
 					TassieProtectHelp pHelp = new TassieProtectHelp();
 
-					if (isLeader)
-					{
-						pHelp.x = guessedX;
-						pHelp.y = guessedY;
-					}
-					else
-					{
-						double angle;
-						double aDist;
-						pHelp.x = myX + Math.sin(angle = Math.atan2(mainTarget.x - myX, mainTarget.y - myY)) * (aDist = (mainTarget.eDistance + 50));
-						pHelp.y = myY + Math.cos(angle) * aDist;
-					}
+					//					if (isLeader)
+					//					{
+					//						pHelp.x = guessedX;
+					//						pHelp.y = guessedY;
+					//					}
+					//					else
+					//					{
+					double angle;
+					double aDist;
+					pHelp.x = myX + Math.sin(angle = Math.atan2(mainTarget.x - myX, mainTarget.y - myY)) * (aDist = (mainTarget.eDistance + 100));
+					pHelp.y = myY + Math.cos(angle) * aDist;
+					//					}
 
 					broadcastMessage(pHelp);
 				}
@@ -164,11 +168,13 @@ public class TassieDevil extends TeamRobot
 				boolean isCloseCombat = false;
 
 				rDist = Math.min(DIST, rDist += 5);
-				boolean isClose = Math.min(leader.eDistance, minion.eDistance) < DIST;
+				double buffyDist = Math.max(100, (mainTarget.eDistance - 50) * 8.0 / Rules.getBulletSpeed(bPower));
+
+				boolean isClose = Math.min(leader.eDistance, minion.eDistance) < buffyDist;
 				while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 				{
-					double x = rDist * Math.sin(v0) + myX;
-					double y = rDist * Math.cos(v0) + myY;
+					double x = buffyDist * Math.sin(v0) + myX;
+					double y = buffyDist * Math.cos(v0) + myY;
 
 					if (new Rectangle2D.Double(WZ_M, WZ_M, WZ_M_W, WZ_M_H).contains(x, y))
 					{
@@ -183,12 +189,18 @@ public class TassieDevil extends TeamRobot
 							r1 -= 100000 / protectHelp.distanceSq(x, y);
 						}
 
-						r1 += force / leader.distanceSq(x, y);
-						r1 += force / minion.distanceSq(x, y);
+						if (!isCloseCombat)
+						{
+							r1 += (force * leader.eEnergy / 100.0) / leader.distanceSq(x, y);
+							r1 += (force * minion.eEnergy / 100.0) / minion.distanceSq(x, y);
+							//							r1 += force / leader.distanceSq(x, y);
+							//							r1 += force / minion.distanceSq(x, y);
+						}
 
 						try
 						{
-							r1 += force / teamInfo.distanceSq(x, y);
+							r1 += 30000 / teamInfo.distanceSq(x, y);
+							isClose |= teamInfo.distance(myX, myY) < rDist;
 
 							for (Bullet bullet : teamInfo.teamBullets)
 							{
@@ -211,35 +223,39 @@ public class TassieDevil extends TeamRobot
 						catch (Exception ex)
 						{}
 
+						double adjust = 1.0;
+						if (isClose) adjust = (Math.min(leader.eDistance, minion.eDistance) / DIST);
+
 						double buffy = Math.atan2(mainTarget.x - x, mainTarget.y - y) - v0;
-						r1 += Math.abs((isCloseCombat) ? Math.sin(buffy) : Math.cos(buffy));
+						r1 += Math.abs((isCloseCombat) ? Math.sin(buffy) : Math.cos(buffy) * adjust);
 
-						if (!isLeader)
-						{
-							double tDist = 0;
-							//if (battleState == 7 )
-							{
-								double tDist_pos = RobotMath.calculatePolarPoint(mainTarget.eHeading, 300, mainTarget).distance(x, y);
-								double tDist_neg = RobotMath.calculatePolarPoint(mainTarget.eHeading - Math.PI, 300, mainTarget).distance(x, y);
-								tDist = Math.min(tDist_pos, tDist_neg);
-								r1 += tDist / 400;
-							}
-						}
-
-						if (Math.random() < 0.6 && r1 < mRate)
+						//						if (!isLeader)
+						//						{
+						//							double tDist = 0;
+						//							//if (battleState == 7 )
+						//							{
+						//								double tDist_pos = RobotMath.calculatePolarPoint(mainTarget.eHeading, 300, mainTarget).distance(x, y);
+						//								double tDist_neg = RobotMath.calculatePolarPoint(mainTarget.eHeading - Math.PI, 300, mainTarget).distance(x, y);
+						//								tDist = Math.min(tDist_pos, tDist_neg);
+						//								r1 += tDist / 400;
+						//							}
+						//						}
+						//
+						if ((isClose || Math.random() < 0.6) && r1 < mRate)
 						{
 							mRate = r1;
 							v1 = v0;
 						}
 						// debug
-						//						PaintMinRiskPoints.registerRiskPoint(getTime(), x, y, r1);
+						allRisk.registerRiskPoint(getTime(), x, y, r1, myX, myY, buffyDist);
 					}
 				}
 
 				if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose || isCloseCombat)
 				{
 					setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-					setAhead(rDist * Math.cos(v1));
+
+					setAhead(buffyDist * Math.cos(v1));
 
 					// debug
 					Point2D start = new Point2D.Double(getX(), getY());
@@ -306,7 +322,12 @@ public class TassieDevil extends TeamRobot
 
 			if (battleState == 7) broadcastMessage(eInfo);
 
-			doGun(enemy = getMainTarget());
+			isSave = doGun(enemy = getMainTarget());
+			if (!isSave)
+			{
+				if (enemy == leader && !Double.isInfinite(minion.eDistance)) isSave = doGun(minion);
+				if (enemy == minion && !Double.isInfinite(leader.eDistance)) isSave = doGun(leader);
+			}
 
 			// (2vs1 && heat)  || 1vs2 - 1vs1 || not leadscan     .... 
 			if (battleState <= 5 || (battleState == 6 && getGunHeat() < RADAR_GUNLOCK) || (battleState == 7 && isLeader))
@@ -398,6 +419,8 @@ public class TassieDevil extends TeamRobot
 		double mDist = getPositionLine(minion).ptSegDist(getX(), getY());
 		double lDist = getPositionLine(leader).ptSegDist(getX(), getY());
 		PaintHelper.drawString(g, String.format("%3.2f / %3.2f", mDist, lDist), getX(), getY() + 40, Color.RED);
+
+		allRisk.onPaint(g, false);
 	}
 
 	// debug
@@ -409,10 +432,21 @@ public class TassieDevil extends TeamRobot
 		return new Line2D.Double(target, end);
 	}
 
-	private void doGun(final TassieTarget target)
+	private boolean doGun(final TassieTarget target)
 	{
 		double i;
-		double bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(target.eEnergy / 4.0, TARGET_DISTANCE / target.eDistance));
+		if (getGunTurnRemainingRadians() == 0 && getEnergy() > bPower && isSave)
+		{
+			Bullet bullet;
+			if ((bullet = setFireBullet(bPower)) != null)
+			{
+				myBullets.add(bullet);
+			}
+		}
+
+		double bDist = TARGET_DISTANCE / target.eDistance;
+		//if (protectHelp != null) bDist *= 3;
+		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(target.eEnergy / 4.0, bDist));
 
 		double avg = target.veloAvg[getIndex(target)];
 		double count = target.veloCount[getIndex(target)];
@@ -461,18 +495,24 @@ public class TassieDevil extends TeamRobot
 		guessedX = myX + xg;
 		guessedY = myY + yg;
 
-		//debug
-		debugPoints.targetPoint = new Point2D.Double(guessedX, guessedY);
-
-		if (getGunTurnRemainingRadians() == 0 && getEnergy() > bPower)
+		try
 		{
-			Bullet bullet;
-			if ((bullet = setFireBullet(bPower)) != null)
+			Rectangle2D mate = new Rectangle2D.Double(teamInfo.x - 18, teamInfo.y - 18, 36, 36);
+			Line2D targetLine = new Line2D.Double(getX(), getY(), guessedX, guessedY);
+
+			if (targetLine.intersects(mate))
 			{
-				myBullets.add(bullet);
+				System.out.format("[%d] i would hit my mate! NO SHOOTING\n", getTime());
+				return false;
 			}
 		}
+		catch (Exception e) // teaminfo can be null;
+		{}
+
+		//debug
+		debugPoints.targetPoint = new Point2D.Double(guessedX, guessedY);
 		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
+		return true;
 	}
 
 	public void doRadar(double angle)
@@ -494,9 +534,9 @@ public class TassieDevil extends TeamRobot
 
 	public TassieTarget getMainTarget()
 	{
-		//		double lRate = Math.max(1, leader.eEnergy) * leader.eDistance * 0.4;
+		//		double lRate = Math.max(1, leader.eEnergy) * leader.eDistance * 0.6;
 		//		double mRate = Math.max(1, minion.eEnergy) * minion.eDistance * 0.8;
-		double lRate = leader.eEnergy + leader.eDistance * 0.8;
+		double lRate = leader.eEnergy + leader.eDistance * 0.2;
 		double mRate = minion.eEnergy + minion.eDistance * 0.8;
 		return (lRate < mRate) ? leader : minion;
 	}
