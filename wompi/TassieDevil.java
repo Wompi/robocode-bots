@@ -59,7 +59,7 @@ public class TassieDevil extends TeamRobot
 
 	private static final double	FIELD				= 800.0;
 	private static final double	WZ					= 17.0;
-	private static final double	WZ_M				= 20.0;
+	private static final double	WZ_M				= 18.0;
 	private static final double	WZ_G_W				= FIELD - 2 * WZ;
 	private static final double	WZ_G_H				= FIELD - 2 * WZ;
 	private static final double	WZ_M_W				= FIELD - 2 * WZ_M;
@@ -74,7 +74,7 @@ public class TassieDevil extends TeamRobot
 
 	private final static double	PI_360				= Math.PI * 2.0;
 	private final static double	DELTA_RISK_ANGLE	= Math.PI / 20.0;
-	public static double		DIST				= 100;
+	public static double		DIST				= 150;
 
 	static TassieTarget			leader;
 	static TassieTarget			minion;
@@ -142,22 +142,22 @@ public class TassieDevil extends TeamRobot
 				}
 
 				// dist200 && 2vs2
-				//if ((mainTarget.eDistance <= 200 && battleState == 7))
+				if ((mainTarget.eDistance <= 200 && battleState == 7))
 				{
 					TassieProtectHelp pHelp = new TassieProtectHelp();
 
-					//					if (isLeader)
-					//					{
-					//						pHelp.x = guessedX;
-					//						pHelp.y = guessedY;
-					//					}
-					//					else
-					//					{
-					double angle;
-					double aDist;
-					pHelp.x = myX + Math.sin(angle = Math.atan2(mainTarget.x - myX, mainTarget.y - myY)) * (aDist = (mainTarget.eDistance + 100));
-					pHelp.y = myY + Math.cos(angle) * aDist;
-					//					}
+					if (isLeader)
+					{
+						pHelp.x = guessedX;
+						pHelp.y = guessedY;
+					}
+					else
+					{
+						double angle;
+						double aDist;
+						pHelp.x = myX + Math.sin(angle = Math.atan2(mainTarget.x - myX, mainTarget.y - myY)) * (aDist = (mainTarget.eDistance + 100));
+						pHelp.y = myY + Math.cos(angle) * aDist;
+					}
 
 					broadcastMessage(pHelp);
 				}
@@ -168,9 +168,9 @@ public class TassieDevil extends TeamRobot
 				boolean isCloseCombat = false;
 
 				rDist = Math.min(DIST, rDist += 5);
-				double buffyDist = Math.max(100, (mainTarget.eDistance - 50) * 8.0 / Rules.getBulletSpeed(bPower));
+				double buffyDist = Math.max(rDist, (mainTarget.eDistance - 50) * 8.0 / Rules.getBulletSpeed(bPower));
 
-				boolean isClose = Math.min(leader.eDistance, minion.eDistance) < buffyDist;
+				boolean isClose = Math.min(leader.eDistance, minion.eDistance) < DIST;
 				while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 				{
 					double x = buffyDist * Math.sin(v0) + myX;
@@ -189,13 +189,11 @@ public class TassieDevil extends TeamRobot
 							r1 -= 100000 / protectHelp.distanceSq(x, y);
 						}
 
-						if (!isCloseCombat)
-						{
-							r1 += (force * leader.eEnergy / 100.0) / leader.distanceSq(x, y);
-							r1 += (force * minion.eEnergy / 100.0) / minion.distanceSq(x, y);
-							//							r1 += force / leader.distanceSq(x, y);
-							//							r1 += force / minion.distanceSq(x, y);
-						}
+						//						r1 += (force * Math.max(0.1, Math.min(leader.eEnergy / getEnergy(), 3))) / leader.distanceSq(x, y);
+						//						r1 += (force * Math.max(0.1, Math.min(minion.eEnergy / getEnergy(), 3))) / minion.distanceSq(x, y);
+
+						r1 += force / leader.distanceSq(x, y);
+						r1 += force / minion.distanceSq(x, y);
 
 						try
 						{
@@ -226,22 +224,27 @@ public class TassieDevil extends TeamRobot
 						double adjust = 1.0;
 						if (isClose) adjust = (Math.min(leader.eDistance, minion.eDistance) / DIST);
 
-						double buffy = Math.atan2(mainTarget.x - x, mainTarget.y - y) - v0;
-						r1 += Math.abs((isCloseCombat) ? Math.sin(buffy) : Math.cos(buffy) * adjust);
+						boolean isCoward = isLeader && battleState == 5 && teamInfo.distance(mainTarget) > mainTarget.distance(myX, myY);
 
-						//						if (!isLeader)
-						//						{
-						//							double tDist = 0;
-						//							//if (battleState == 7 )
-						//							{
-						//								double tDist_pos = RobotMath.calculatePolarPoint(mainTarget.eHeading, 300, mainTarget).distance(x, y);
-						//								double tDist_neg = RobotMath.calculatePolarPoint(mainTarget.eHeading - Math.PI, 300, mainTarget).distance(x, y);
-						//								tDist = Math.min(tDist_pos, tDist_neg);
-						//								r1 += tDist / 400;
-						//							}
-						//						}
-						//
-						if ((isClose || Math.random() < 0.6) && r1 < mRate)
+						double buffy = Math.atan2(mainTarget.x - x, mainTarget.y - y) - v0;
+						if (!isCoward)
+						{
+							r1 += Math.abs((isCloseCombat) ? Math.sin(buffy) : Math.cos(buffy) * adjust);
+						}
+
+						if (!isLeader)
+						{
+							double tDist = 0;
+							//if (battleState == 7 )
+							{
+								double tDist_pos = RobotMath.calculatePolarPoint(mainTarget.eHeading, 300, mainTarget).distance(x, y);
+								double tDist_neg = RobotMath.calculatePolarPoint(mainTarget.eHeading - Math.PI, 300, mainTarget).distance(x, y);
+								tDist = Math.min(tDist_pos, tDist_neg);
+								r1 += tDist / 400;
+							}
+						}
+
+						if (Math.random() < 0.6 && r1 < mRate)
 						{
 							mRate = r1;
 							v1 = v0;
@@ -536,8 +539,8 @@ public class TassieDevil extends TeamRobot
 	{
 		//		double lRate = Math.max(1, leader.eEnergy) * leader.eDistance * 0.6;
 		//		double mRate = Math.max(1, minion.eEnergy) * minion.eDistance * 0.8;
-		double lRate = leader.eEnergy + leader.eDistance * 0.2;
-		double mRate = minion.eEnergy + minion.eDistance * 0.8;
+		double lRate = leader.eEnergy + leader.eDistance;
+		double mRate = minion.eEnergy + minion.eDistance;
 		return (lRate < mRate) ? leader : minion;
 	}
 }
