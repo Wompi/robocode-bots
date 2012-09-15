@@ -69,8 +69,8 @@ public class TassieDevil extends TeamRobot
 
 	private final static double	RADAR_GUNLOCK		= 1.0;
 	private final static double	RADAR_WIDE			= 3.0;
-	private final static double	TARGET_FORCE		= 45000;
-	private final static double	TARGET_DISTANCE		= 350.0;
+	private final static double	TARGET_FORCE		= 35000;
+	private final static double	TARGET_DISTANCE		= 500.0;
 
 	private final static double	PI_360				= Math.PI * 2.0;
 	private final static double	DELTA_RISK_ANGLE	= Math.PI / 20.0;
