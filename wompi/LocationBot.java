@@ -39,6 +39,7 @@ public class LocationBot extends AdvancedRobot
 			}
 			while (Point2D.distanceSq(getX(), getY(), 500, 500) > 0.1);
 
+			System.out.format("[%d] lets go\n", getTime());
 			turnRightRadians(Math.random() * 2 * Math.PI);
 			double distance = (300 + (Math.random() * 1000)) * ((Math.random() > 0.5) ? 1 : -1);
 			double turn = (Math.random() * 4 * Math.PI) - (2 * Math.PI);
@@ -63,14 +64,24 @@ public class LocationBot extends AdvancedRobot
 				debug += String.format("[%d]   Max Veocity: %8.3f\n", getTime(), maxVelocity);
 			}
 
-			test += String.format("[%d] %10.4f, %10.4f, %10.4f, %10.4f L, %10.4f, %10.4f, %10.2f, ", getTime(), getX(), getY(), getHeadingRadians(),
-					getVelocity(), distance, turn, maxVelocity);
+			test += String.format("[%d] %10.10f, %10.10f, %10.10f, %10.10f L, %10.10f, %10.10f, %10.10f, ", getTime(), getX(), getY(),
+					getHeadingRadians(), getVelocity(), distance, turn, maxVelocity);
+
+			System.out.format("[%d] Start: %s\n", getTime(), test);
+
+			System.out.format("double angle = %10.10f;\n", turn);
+			System.out.format("NanoSimWompi.x = %10.10f;\n", getX());
+			System.out.format("NanoSimWompi.y = %10.10f;\n", getY());
+			System.out.format("NanoSimWompi.h = %10.10f;\n", getHeadingRadians());
+			System.out.format("NanoSimWompi.v = %10.10f;\n", getVelocity());
+			System.out.format("double maxv = %10.10f;\n", maxVelocity);
 
 			setMaxVelocity(maxVelocity);
 			setAhead(distance);
 			setTurnRightRadians(turn);
 			do
 			{
+				System.out.format("[%d] %10.4f, %10.4f, %10.4f, %10.4f \n", getTime(), getX(), getY(), getHeadingRadians(), getVelocity());
 				execute();
 			}
 			while (Math.abs(getDistanceRemaining()) > 0.000001);
