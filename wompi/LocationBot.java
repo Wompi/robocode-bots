@@ -1,13 +1,12 @@
 package wompi;
 
+import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
 import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.util.Utils;
-import wompi.teststuff.NatSim;
-import wompi.teststuff.NatSim.PredictionStatus;
 
 public class LocationBot extends AdvancedRobot
 {
@@ -160,16 +159,23 @@ public class LocationBot extends AdvancedRobot
 		}
 	}
 
-	private void testPrediction(double startX, double startY, double startHeading, double startVelocity, long startTime, double distance,
-			double turn, double maxVelocity, long endTime, double endX, double endY, double endHeading)
+	@Override
+	public void onPaint(Graphics2D g)
 	{
-		PredictionStatus startState = new PredictionStatus(startX, startY, startHeading, startVelocity, startTime);
-		long ticks = endTime - startTime;
-		PredictionStatus endState = NatSim.predict(startState, endHeading, maxVelocity);
-
-		if (Math.abs(endX - endState.x) > 0.01) System.out.format("[%d] wrong x\n", endTime);
-		if (Math.abs(endY - endState.x) > 0.01) System.out.format("[%d] wrong y\n", endTime);
-
-		//		assertEquals(Utils.normalAbsoluteAngle(endHeading), Utils.normalAbsoluteAngle(endState.heading), 0.01);
+		// TODO: make the prediction visible
 	}
+
+	// TODO: later
+	//	private void testPrediction(double startX, double startY, double startHeading, double startVelocity, long startTime, double distance,
+	//			double turn, double maxVelocity, long endTime, double endX, double endY, double endHeading)
+	//	{
+	//		PredictionStatus startState = new PredictionStatus(startX, startY, startHeading, startVelocity, startTime);
+	//		long ticks = endTime - startTime;
+	//		PredictionStatus endState = NatSim.predict(startState, endHeading, maxVelocity);
+	//
+	//		if (Math.abs(endX - endState.x) > 0.01) System.out.format("[%d] wrong x\n", endTime);
+	//		if (Math.abs(endY - endState.x) > 0.01) System.out.format("[%d] wrong y\n", endTime);
+	//
+	//		//		assertEquals(Utils.normalAbsoluteAngle(endHeading), Utils.normalAbsoluteAngle(endState.heading), 0.01);
+	//	}
 }
