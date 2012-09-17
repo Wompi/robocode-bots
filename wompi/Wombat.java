@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import robocode.AdvancedRobot;
+import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
@@ -42,34 +43,44 @@ import wompi.wallaby.PaintHelper;
  */
 public class Wombat extends AdvancedRobot
 {
-	private static final double	WZ						= 20.0;
-	private static final double	WZ_G					= 0.0;
+	private static final double				FIELD_W					= 1000.0;
+	private static final double				FIELD_H					= 1000.0;
 
-	private final static double	DIST					= 185;
-	private final static double	DIST_REMAIN				= 20;
+	private static final double				WZ						= 20.0;
+	private static final double				WZ_W					= FIELD_W - 2 * WZ;
+	private static final double				WZ_H					= FIELD_H - 2 * WZ;
+	private static final double				WZ_G					= 17.0;
+	private static final double				WZ_G_W					= FIELD_W - 2 * WZ_G;
+	private static final double				WZ_G_H					= FIELD_H - 2 * WZ_G;
 
-	private final static double	TARGET_FORCE			= 65000;			// 100000
-																			// low dmg high surv - 10000 high dmg low surv
-	private final static double	TARGET_DISTANCE			= 600.0;
+	private final static double				DIST					= 185;
+	private final static double				DIST_REMAIN				= 20;
 
-	private final static double	PI_360					= Math.PI * 2.0;
-	private final static double	DELTA_RISK_ANGLE		= Math.PI / 32.0;
-	private final static double	MAX_HEAD_DIFF			= 0.1745329252;	// 10
-																			// degree
+	private final static double				TARGET_FORCE			= 405000;								// 100000
+																											// low dmg high surv - 10000 high dmg low surv
+	private final static double				TARGET_DISTANCE			= 400.0;
 
-	public final static int		MAX_PATTERN_LENGTH		= 30;
-	public final static double	MAX_RADAR_RATE			= 0.05;
-	public final static double	MAX_MOVE_ESCAPE_RATE	= 9.0;
-	public final static int		MAX_ENDGAME_OPPONENTS	= 2;
-	public final static double	DEFAULT_RADAR_WIDTH		= 2.0;
-	private static final double	DEAULT_HALF_BOTWEIGHT	= 18;
+	private final static double				PI_360					= Math.PI * 2.0;
+	private final static double				DELTA_RISK_ANGLE		= Math.PI / 32.0;
+	private final static double				MAX_HEAD_DIFF			= 0.1745329252;						// 10
+																											// degree
 
-	public static Rectangle2D	B_FIELD_GUN;
-	public static Rectangle2D	B_FIELD_MOVE;
+	public final static int					MAX_PATTERN_LENGTH		= 30;
+	public final static double				MAX_RADAR_RATE			= 0.05;
+	public final static double				MAX_MOVE_ESCAPE_RATE	= 9.0;
+	public final static int					MAX_ENDGAME_OPPONENTS	= 2;
+	public final static double				DEFAULT_RADAR_WIDTH		= 2.0;
+	private static final double				DEAULT_HALF_BOTWEIGHT	= 18;
 
-	static WombatTarget			myTarget;
-	static double				bPower;
-	static boolean				canShoot;
+	public static Rectangle2D				B_FIELD_GUN;
+	public static Rectangle2D				B_FIELD_MOVE;
+
+	static HashMap<String, WombatTarget>	allTargets				= new HashMap<String, WombatTarget>();
+	static double							bPower;
+	static boolean							canShoot;
+
+	static double							eRate;
+	static String							eName;
 
 	@Override
 	public void run()
@@ -79,18 +90,24 @@ public class Wombat extends AdvancedRobot
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+
+		for (WombatTarget target : allTargets.values())
+		{
+			target.init();
+		}
+
+		eRate = Double.POSITIVE_INFINITY;
 		B_FIELD_GUN = new Rectangle2D.Double(WZ_G, WZ_G, getBattleFieldWidth() - 2 * WZ_G, getBattleFieldHeight() - 2 * WZ_G);
 		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, getBattleFieldWidth() - 2 * WZ, getBattleFieldHeight() - 2 * WZ);
 
-		if (myTarget != null)
-		{
-			myTarget.init();
-		}
-
 		while (true)
 		{
-			doFire();
-			canShoot = doGun();
+			WombatTarget target = allTargets.get(eName);
+			if (target != null)
+			{
+				doFire();
+				canShoot = doGun(target);
+			}
 			execute();
 		}
 	}
@@ -98,14 +115,31 @@ public class Wombat extends AdvancedRobot
 	@Override
 	public void onScannedRobot(final ScannedRobotEvent e)
 	{
-		if (myTarget == null) myTarget = new WombatTarget();
-		myTarget.addScan(e, getHeadingRadians(), getX(), getY());
-		myTarget.calculateDisplaceVectors();
+		WombatTarget enemy;
+		if ((enemy = allTargets.get(e.getName())) == null)
+		{
+			allTargets.put(e.getName(), enemy = new WombatTarget());
+		}
+		enemy.isAlive = true;
+		enemy.addScan(e, getHeadingRadians(), getX(), getY());
+		enemy.calculateDisplaceVectors();
 
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY
-				* Math.signum(Utils.normalRelativeAngle(getHeadingRadians() + e.getBearingRadians() - getRadarHeadingRadians()) + 0.0001)); // TODO:
-		// tweak the radar
-		doMove();
+		if (eRate > e.getDistance() || eName == e.getName())
+		{
+			eRate = e.getDistance();
+			eName = e.getName();
+
+			if (getGunHeat() < 1.0 || getOthers() == 1)
+			{
+				double x;
+				if (!Utils.isNear(
+						0.0,
+						x = Double.POSITIVE_INFINITY
+								* Utils.normalRelativeAngle(getHeadingRadians() + e.getBearingRadians() - getRadarHeadingRadians()))) setTurnRadarRightRadians(x);
+			}
+
+			doMove(enemy);
+		}
 	}
 
 	private void doFire()
@@ -116,70 +150,77 @@ public class Wombat extends AdvancedRobot
 		}
 	}
 
-	private void doMove()
+	private void doMove(WombatTarget target)
 	{
-		double maxRate = Double.MAX_VALUE;
-		double riskAngle;
-		double mx;
-		double my;
-		double moveTurn;
-		riskAngle = moveTurn = 0;
 
-		while ((riskAngle += DELTA_RISK_ANGLE) <= PI_360)
+		double v0;
+		double v1;
+		double r1;
+		double rM;
+		double x;
+		double y;
+
+		WombatScan lastScan = target.getLastScan();
+
+		rM = Double.MAX_VALUE;
+		v1 = v0 = 0;
+		double rDist = DIST;
+		boolean isClose = false;
+		double buffyDist = Math.max(100, (lastScan.distance(getX(), getY()) - 50) * 8.0 / Rules.getBulletSpeed(bPower));
+
+		while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 		{
-			if (B_FIELD_MOVE.contains(mx = DIST * Math.sin(riskAngle) + getX(), my = DIST * Math.cos(riskAngle) + getY()))
+			x = buffyDist * Math.sin(v0);
+			y = buffyDist * Math.cos(v0);
+
+			if (B_FIELD_MOVE.contains(x + getX(), y + getY()))
 			{
-				WombatScan lastScan = myTarget.getLastScan();
-				double riskRate = TARGET_FORCE / Point2D.distanceSq(lastScan.x, lastScan.y, mx, my);
-
-				double perpRate = Math.abs(Math.cos(Math.atan2(lastScan.x - mx, lastScan.y - my) - riskAngle));
-
-				if (getOthers() <= 5 && perpRate < 0.5)
+				r1 = Math.abs(Math.cos(Math.atan2(lastScan.x - getX() - x, lastScan.y - getY() - y) - v0));
+				try
 				{
-					riskRate += (perpRate = (0.5 * Math.random()));
+					Iterator<WombatTarget> iter = allTargets.values().iterator();
+					while (true)
+					{
+						WombatTarget coordinate = iter.next();
+						if (coordinate.isAlive)
+						{
+							WombatScan s = coordinate.getLastScan();
+							r1 += TARGET_FORCE / Point2D.distanceSq(s.x, s.y, x + getX(), y + getY());
+							isClose |= s.distance(getX(), getY()) < rDist;
+						}
+					}
 				}
-				else
-				{
-					riskRate += perpRate;
-				}
+				catch (Exception e1)
+				{}
 
-				if (riskRate < maxRate)
+				if (Math.random() < 0.7 && r1 < rM)
 				{
-					maxRate = riskRate;
-					moveTurn = riskAngle;
+					rM = r1;
+					v1 = v0;
 				}
-
-				// debugRiskPerp.registerRiskPoint(getTime(), mx, my, perpRate,
-				// getX(), getY(), DIST);
 			}
 		}
-		if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || maxRate > MAX_MOVE_ESCAPE_RATE)
+		if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose)
 		{
-			setTurnRightRadians(Math.tan(moveTurn -= getHeadingRadians()));
-			setAhead(DIST * Math.cos(moveTurn));
+			setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
+			setAhead(buffyDist * Math.cos(v1));
 		}
 	}
 
-	private boolean doGun()
+	private boolean doGun(WombatTarget target)
 	{
-		if (myTarget == null)
-		{
-			//System.out.format("[%d] Sorry no Traget yet!\n", getTime());
-			return false;
-		}
-
-		WombatScan lastKeyScan = null;
+		WombatScan lastKeyScan;
 		try
 		{
-			lastKeyScan = myTarget.getLastKeyScan();
+			lastKeyScan = target.getLastKeyScan();
+
 		}
-		catch (Exception e0)
+		catch (Exception e)
 		{
-			//System.out.format("[%d] Sorry no keyScan available!\n", getTime());
 			return false;
 		}
 
-		WombatVectorHolder holder = myTarget.mySnapShots.get(lastKeyScan.sKey);
+		WombatVectorHolder holder = target.mySnapShots.get(lastKeyScan.sKey);
 		if (holder == null)
 		{
 			//System.out.format("[%d] NO HOLDER for key =%d \n", getTime(), lastKeyScan.sKey);
@@ -212,6 +253,7 @@ public class Wombat extends AdvancedRobot
 		double myY = getY();
 
 		int tickTaken = 0;
+
 		for (int i = minTick; i <= maxTick; i++)
 		{
 			ArrayList<WombatDisplaceVector> myVectors = holder.myVectors.get(i);
@@ -242,7 +284,6 @@ public class Wombat extends AdvancedRobot
 
 					int xIndex = (int) (Math.toDegrees(Utils.normalAbsoluteAngle(vHead)) / 720.0);
 					int yIndex = (int) (vDist / 2.0);
-
 					int count = mostUsed[xIndex][yIndex]++;
 					PaintHelper.drawLine(lastKeyScan, new Point2D.Double(lastKeyScan.x + xg, lastKeyScan.y + yg), g, Color.GRAY);
 
@@ -253,10 +294,12 @@ public class Wombat extends AdvancedRobot
 						dy = (int) yg;
 						tickTaken = i;
 					}
+					vector.takenCount++;
 				}
 			}
 			//		System.out.format("[%d] maxVector: %d (%3.5f,%3.2f)\n", getTime(), maxCount, Math.toDegrees(maxVector.relAngle), maxVector.relDist);
 		}
+
 		double gx = lastKeyScan.x + dx;
 		double gy = lastKeyScan.y + dy;
 
@@ -269,6 +312,22 @@ public class Wombat extends AdvancedRobot
 		double gunAngle = Math.atan2(gx - getX(), gy - getY());
 		setTurnGunRightRadians(Utils.normalRelativeAngle(gunAngle - getGunHeadingRadians()));
 		return true;
+	}
+
+	@Override
+	public void onRobotDeath(RobotDeathEvent e)
+	{
+		WombatTarget target = allTargets.get(e.getName());
+		if (target != null)
+		{
+			if (eName == e.getName())
+			{
+				eName = null;
+				eRate = Double.POSITIVE_INFINITY;
+			}
+			target.isAlive = false;
+		}
+
 	}
 
 	@Override
@@ -291,6 +350,7 @@ class WombatTarget
 	private final static int				MAX_SHOOT_TICKS		= 75;
 	private final static double				MAX_HEAD_DIFF		= 0.1745329252;								// 10
 																												// degree
+	public boolean							isAlive;
 
 	public WombatTarget()
 	{
@@ -412,6 +472,7 @@ class WombatDisplaceVector
 	// shoot, latVel and so on
 	double	relAngle;
 	double	relDist;
+	long	takenCount;
 
 }
 
@@ -429,7 +490,18 @@ class WombatVectorHolder
 		}
 		list.add(vector);
 
-		if (list.size() > 500) list.remove(0);
+		if (list.size() > 500)
+		{
+			Iterator<WombatDisplaceVector> iter = list.iterator();
+			while (iter.hasNext())
+			{
+				WombatDisplaceVector v = iter.next();
+				if (v.takenCount < 5)
+				{
+					iter.remove();
+				}
+			}
+		}
 	}
 
 	@Override
