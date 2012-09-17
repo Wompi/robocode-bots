@@ -20,7 +20,7 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatLogDistanceFire extends ANumbatFire
 {
-	private final static double	TARGET_DISTANCE	= 600.0;
+	private final static double	TARGET_DISTANCE	= 450.0;
 
 	private boolean				isFire;
 
@@ -37,7 +37,7 @@ public class NumbatLogDistanceFire extends ANumbatFire
 		myTarget = targetMan.getGunTarget();
 
 		lastBulletPower = bPower;
-		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(myTarget.eEnergy / 3.0, TARGET_DISTANCE / myTarget.getDistance(status)));
+		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(myTarget.eEnergy / 4.0, TARGET_DISTANCE / myTarget.getDistance(status)));
 
 		if (status.getGunTurnRemaining() == 0)
 		{

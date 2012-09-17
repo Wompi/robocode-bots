@@ -275,8 +275,27 @@ public class TassieDevil extends TeamRobot
 	@Override
 	public void onHitRobot(HitRobotEvent event)
 	{
+<<<<<<< HEAD
 		rDist = 50;
 	}
+=======
+		String name;
+		if (isTeammate(name = e.getName())) return; // all team informations per message
+
+		TassieTarget enemy = getTarget(name, e.getEnergy());
+
+		double v3;
+		enemy.eDistance = e.getDistance();
+		enemy.isAlive = true;
+		TassieEnemyInfo eInfo;
+		setPolarPoint(eInfo = new TassieEnemyInfo(), getX(), getY(), v3 = (getHeadingRadians() + e.getBearingRadians()), e.getDistance());
+		enemy.x = eInfo.x;
+		enemy.y = eInfo.y;
+		enemy.eVelocity = eInfo.eVelocity = e.getVelocity();
+		enemy.eHeading = eInfo.eHeading = e.getHeadingRadians();
+		eInfo.segments = enemy.segments;
+		eInfo.eName = name;
+>>>>>>> refs/heads/develop-numbat
 
 	@Override
 	public void onStatus(StatusEvent e)
@@ -308,6 +327,7 @@ public class TassieDevil extends TeamRobot
 
 			TassieTarget enemy = getTarget(name, e.getEnergy());
 
+<<<<<<< HEAD
 			double v3;
 			enemy.eDistance = e.getDistance();
 
@@ -341,6 +361,16 @@ public class TassieDevil extends TeamRobot
 			{
 				doRadar(v3);
 			}
+=======
+		// 1vs1 || 1vs2 || (2vs1 && heat) || (2vs2 && isLead) - lock radar to myTarget
+		if (battleState <= 5 || (battleState == 6 && getGunHeat() < RADAR_GUNLOCK) || (battleState == 7 && isLeader))
+		{
+			doRadar(Math.atan2(enemy.x - getX(), enemy.y - getY()));
+		}
+		else if (teamInfo != null && !teamInfo.leadScan.equals(name)) // the null because (2vs1 && gunheat) can be false .. grrr i hate null checks
+		{
+			doRadar(v3);
+>>>>>>> refs/heads/develop-numbat
 		}
 		catch (Exception ex)
 		{}
@@ -377,6 +407,7 @@ public class TassieDevil extends TeamRobot
 	}
 
 	@Override
+<<<<<<< HEAD
 	public void onBulletHit(BulletHitEvent e)
 	{
 		if (isTeammate(e.getName()))
@@ -399,6 +430,8 @@ public class TassieDevil extends TeamRobot
 	}
 
 	@Override
+=======
+>>>>>>> refs/heads/develop-numbat
 	public void onPaint(Graphics2D g)
 	{
 		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);

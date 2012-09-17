@@ -76,13 +76,14 @@ public class Wallaby extends AdvancedRobot
 	static double						bPower;
 	static double						rDist;
 
+	//static long							ramTime;
+
 	@Override
 	public void run()
 	{
 		allTargets = new HashMap<String, double[]>();
 		//setAllColors(Color.RED); // 7 byte
 		setAdjustGunForRobotTurn(true);
-		//setAdjustRadarForGunTurn(true);
 		setTurnRadarRightRadians(eRate = INF);
 	}
 
@@ -177,6 +178,7 @@ public class Wallaby extends AdvancedRobot
 				setAhead(rDist * Math.cos(v1));
 			}
 		}
+		enemy[5] = e.getTime();
 	}
 
 	@Override

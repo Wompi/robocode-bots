@@ -28,29 +28,26 @@ public class NumbatMinRiskMove extends ANumbatMove
 	private final static double	DELTA_RISK_ANGLE	= Math.PI / 32.0;
 	private final static double	DIST				= 185;
 	private final static double	DIST_REMAIN			= 20;
-	private final static double	TARGET_FORCE		= 45000;			// 100000 low dmg high surv - 10000 high dmg low surv
-	private final static double	MAX_RANDOM_PERP		= 0.5;
+	private final static double	TARGET_FORCE		= 55000;			// 100000 low dmg high surv - 10000 high dmg low surv
 
 	private static Rectangle2D	B_FIELD_MOVE;
 	private boolean				isMoveing;
 	private double				moveTurn;
-	private HitRobotEvent		ramBot;
-	private double				moveDist;
 
 	// debug
-	// public boolean isDebug = false;
-	// PaintMinRiskPoints debugRiskPerp = new PaintMinRiskPoints();
-	// PaintMinRiskPoints debugRiskForce = new PaintMinRiskPoints();
-	// PaintMinRiskPoints debugRiskAll = new PaintMinRiskPoints();
-	// PaintMinRiskPoints debugRiskPerpBullet = new PaintMinRiskPoints();
-	// PaintMinRiskPoints debugRiskForceBullet = new PaintMinRiskPoints();
+	//	public boolean				isDebug					= true;
+	//	PaintMinRiskPoints			debugRiskPerp			= new PaintMinRiskPoints();
+	//	PaintMinRiskPoints			debugRiskForce			= new PaintMinRiskPoints();
+	//	PaintMinRiskPoints			debugRiskAll			= new PaintMinRiskPoints();
+	//	PaintMinRiskPoints			debugRiskPerpBullet		= new PaintMinRiskPoints();
+	//	PaintMinRiskPoints			debugRiskForceBullet	= new PaintMinRiskPoints();
 	double						maxRate;
+	double						moveDist;
 
 	@Override
 	public void init(RobotStatus status)
 	{
 		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
-		ramBot = null;
 	}
 
 	@Override
@@ -69,10 +66,11 @@ public class NumbatMinRiskMove extends ANumbatMove
 
 		boolean isClose = false;
 
+		moveDist = Math.min(DIST, moveDist += 5);
 		while ((riskAngle += DELTA_RISK_ANGLE) <= PI_360)
 		{
-			mx = DIST * Math.sin(riskAngle) + status.getX();
-			my = DIST * Math.cos(riskAngle) + status.getY();
+			mx = moveDist * Math.sin(riskAngle) + status.getX();
+			my = moveDist * Math.cos(riskAngle) + status.getY();
 
 			if (B_FIELD_MOVE.contains(mx, my))
 			{
@@ -82,23 +80,8 @@ public class NumbatMinRiskMove extends ANumbatMove
 				{
 					if (enemy.isAlive)
 					{
-						double force = TARGET_FORCE; // + 2000*enemy.getScanDifference(status);
-						if (ramBot != null && ramBot.getName() == enemy.eName)
-						{
-							// what a mess :(
-							long ramTime = status.getTime() - ramBot.getTime();
-							if (ramTime <= 5)
-							{
-								force = 2000000; // well maybe to much :)
-								isClose = true;
-							}
-							else
-							{
-								ramBot = null;
-							}
-						}
-						else if (enemy.getDistance(status) <= DIST) isClose = true;
-						riskForce += force / enemy.distanceSq(mx, my);
+						isClose |= (enemy.getDistance(status) <= moveDist);
+						riskForce += TARGET_FORCE / enemy.distanceSq(mx, my);
 					}
 				}
 				riskRate += riskForce;
@@ -107,35 +90,29 @@ public class NumbatMinRiskMove extends ANumbatMove
 				{
 
 					double perpRate = Math.abs(Math.cos(Math.atan2(target.x - mx, target.y - my) - riskAngle));
-
-					if ((status.getOthers() <= 5 && perpRate < MAX_RANDOM_PERP) || isFireRule)
-					{
-						riskRate += (perpRate = (MAX_RANDOM_PERP * Math.random()));
-					}
-					else
-					{
-						riskRate += perpRate;
-					}
+					riskRate += perpRate;
 
 					// debug
-					// if (isDebug)
-					// {
-					// debugRiskPerp.registerRiskPoint(status.getTime(), mx, my, perpRate, status.getX(), status.getY(), DIST-20);
-					// //debugRiskPerpBullet.registerRiskPoint(status.getTime(),mx, my, bulletPerpRate, status.getX(), status.getY(), DIST-20);
-					// //debugRiskForceBullet.registerRiskPoint(status.getTime(),mx, my, bulletForceRate, status.getX(), status.getY(), DIST-30);
-					// }
+					//					if (isDebug)
+					//					{
+					//						debugRiskPerp.registerRiskPoint(status.getTime(), mx, my, perpRate, status.getX(), status.getY(), DIST - 20);
+					//						//						debugRiskPerpBullet.registerRiskPoint(status.getTime(), mx, my, bulletPerpRate, status.getX(), status.getY(), DIST - 20);
+					//						//						debugRiskForceBullet.registerRiskPoint(status.getTime(), mx, my, bulletForceRate, status.getX(), status.getY(), DIST - 30);
+					//					}
 				}
 
-				if (riskRate < maxRate)
+				boolean isGood = Math.random() < 0.6;
+				if (isGood && riskRate < maxRate)
 				{
 					maxRate = riskRate;
 					moveTurn = riskAngle;
 				}
-				// if (isDebug)
-				// {
-				// debugRiskAll.registerRiskPoint(status.getTime(), mx, my, riskRate, status.getX(), status.getY(), DIST);
-				// debugRiskForce.registerRiskPoint(status.getTime(), mx, my, riskForce, status.getX(), status.getY(), DIST-10);
-				// }
+				//				if (isDebug && isGood)
+				//				{
+				//
+				//					debugRiskAll.registerRiskPoint(status.getTime(), mx, my, riskRate, status.getX(), status.getY(), DIST);
+				//					debugRiskForce.registerRiskPoint(status.getTime(), mx, my, riskForce, status.getX(), status.getY(), DIST - 10);
+				//				}
 
 			}
 		}
@@ -143,14 +120,11 @@ public class NumbatMinRiskMove extends ANumbatMove
 		if (Math.abs(status.getDistanceRemaining()) <= DIST_REMAIN || isFreeMove(status, isClose, isFireRule))
 		{
 			isMoveing = true;
-			moveDist = target.getDistance(status) * 8.0 / 15.7;
 
 		}
 
 		moveTurn -= status.getHeadingRadians();
 	}
-
-	double	headJiggle;
 
 	@Override
 	public void excecute(AdvancedRobot myBot)
@@ -160,30 +134,12 @@ public class NumbatMinRiskMove extends ANumbatMove
 			myBot.setTurnRightRadians(Math.tan(moveTurn));
 			myBot.setAhead(moveDist * Math.cos(moveTurn));
 		}
-		//		if (Math.random() > 0.8)
-		//		{
-		//			//			if (Utils.isNear(0, myBot.getTurnRemainingRadians()))
-		//			//			{
-		//			//				double maxRand = Rules.getTurnRateRadians(myBot.getVelocity()) * Math.random();
-		//			//				double odd = Math.signum(Math.random() - 0.5);
-		//			//				myBot.setTurnRightRadians(headJiggle += (odd * maxRand));
-		//			//			}
-		//			myBot.setMaxVelocity((Math.abs(myBot.getVelocity()) - 1));
-		//			myBot.setAllColors(Color.YELLOW);
-		//		}
-		//		else
-		//		{
-		//			//			if (headJiggle != 0) myBot.setTurnRightRadians(-headJiggle);
-		//			myBot.setMaxVelocity(8.0);
-		//			myBot.setAllColors(Color.RED);
-		//			headJiggle = 0;
-		//		}
 	}
 
 	@Override
 	public void onHitRobot(HitRobotEvent e, RobotStatus myBotStatus)
 	{
-		ramBot = e;
+		moveDist = 50;
 	}
 
 	private boolean isFreeMove(RobotStatus status, boolean isClose, boolean isFire)
@@ -197,16 +153,16 @@ public class NumbatMinRiskMove extends ANumbatMove
 	@Override
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
-		// if (isDebug)
-		// {
-		// debugRiskPerp.onPaint(g, false);
-		// debugRiskAll.onPaint(g, false);
-		// debugRiskForce.onPaint(g, false);
-		// //debugRiskPerpBullet.onPaint(g, false);
-		// //debugRiskForceBullet.onPaint(g, false);
-		// //PaintHelper.drawArc(new Point2D.Double(status.getX(), status.getY()), 400,0, PI_360, true, g, PaintHelper.whiteTrans);
-		// PaintHelper.drawString(g, String.format("%3.2f", maxRate), status.getX(), status.getY()+40, Color.YELLOW);
-		// }
+		//		if (isDebug)
+		//		{
+		//			debugRiskPerp.onPaint(g, false);
+		//			debugRiskAll.onPaint(g, false);
+		//			debugRiskForce.onPaint(g, false);
+		//			//debugRiskPerpBullet.onPaint(g, false);
+		//			//debugRiskForceBullet.onPaint(g, false);
+		//			//PaintHelper.drawArc(new Point2D.Double(status.getX(), status.getY()), 400,0, PI_360, true, g, PaintHelper.whiteTrans);
+		//			PaintHelper.drawString(g, String.format("%3.2f", maxRate), status.getX(), status.getY() + 40, Color.YELLOW);
+		//		}
 	}
 
 	@Override

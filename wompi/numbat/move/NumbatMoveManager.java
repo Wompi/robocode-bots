@@ -24,11 +24,11 @@ import wompi.numbat.target.ITargetManager;
 
 public class NumbatMoveManager
 {
-	private RobotStatus				botStatus;
-	private ITargetManager			myTargetMan;
+	private RobotStatus						botStatus;
+	private ITargetManager					myTargetMan;
 
-	private ANumbatMove				myMove;
-	private ArrayList<ANumbatMove>	allMoves;
+	private ANumbatMove						myMove;
+	private final ArrayList<ANumbatMove>	allMoves;
 
 	public NumbatMoveManager()
 	{
@@ -62,7 +62,7 @@ public class NumbatMoveManager
 
 	public void onPaint(Graphics2D g)
 	{
-
+		myMove.onPaint(g, botStatus);
 	}
 
 	public void setMove()
@@ -84,7 +84,7 @@ public class NumbatMoveManager
 				if (myMove != move)
 				{
 					myMove = move;
-					myMove.init(botStatus);  // TODO: this is bad design and should be fixed, init has to be called only once a battle
+					myMove.init(botStatus); // TODO: this is bad design and should be fixed, init has to be called only once a battle
 					DebugMoveProperties.debugCurrentMove(myMove.getName());
 				}
 				return;
