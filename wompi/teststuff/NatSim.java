@@ -88,7 +88,7 @@ public class NatSim
 		List<PredictionStatus> predicted = new ArrayList<PredictionStatus>(20);
 		predicted.add(status);
 
-		while (distanceRemaining > 0)
+		while (Math.abs(distanceRemaining) > 0)
 		{
 			status = _predict(status, goAngle, maxVelocity, distanceRemaining);
 			predicted.add(status);

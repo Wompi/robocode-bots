@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
@@ -27,6 +28,7 @@ import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.teststuff.NatSim;
 import wompi.wallaby.PaintHelper;
 
 /**
@@ -81,6 +83,9 @@ public class Wombat extends AdvancedRobot
 
 	static double							eRate;
 	static String							eName;
+
+	// debug
+	List<NatSim.PredictionStatus>			list;
 
 	@Override
 	public void run()
@@ -205,6 +210,10 @@ public class Wombat extends AdvancedRobot
 		{
 			setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
 			setAhead(buffyDist * Math.cos(v1));
+
+			list = NatSim.predict(new NatSim.PredictionStatus(getX(), getY(), getHeadingRadians(), getVelocity(), getTime()), getHeadingRadians()
+					+ getTurnRemainingRadians(), 8.0, getDistanceRemaining());
+
 		}
 	}
 
@@ -333,7 +342,16 @@ public class Wombat extends AdvancedRobot
 
 	@Override
 	public void onPaint(Graphics2D g)
-	{}
+	{
+		if (list != null)
+		{
+			for (NatSim.PredictionStatus status : list)
+			{
+				PaintHelper.drawPoint(status, Color.CYAN, g, 4);
+			}
+		}
+
+	}
 }
 
 class WombatTarget
