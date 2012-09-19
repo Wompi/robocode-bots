@@ -63,16 +63,24 @@ public class NumbatMinRiskMove extends ANumbatMove
 
 		NumbatTarget target = targetMan.getMoveTarget();
 
-		boolean isFireRule = (Math.random() <= 0.33) ? target.isTargetFireing() : false; // use the fire rule on 1/3 of times
+		boolean adjustRule = status.getOthers() <= 2 && Math.random() < 0.33;
+		boolean isFireRule = target.myBulletTracker.hasFired(target.getLastScanDifference()) && targetMan.isNearest(target)
+				&& (status.getOthers() > 2 || adjustRule);
+
+		// debug
+		//		if (isFireRule)
+		//		{
+		//			System.out.format("[%d] fire rule for %s\n", status.getTime(), target.eName);
+		//		}
 
 		boolean isClose = false;
 
 		moveDist = Math.min(DIST, moveDist += 5);
 
 		double power = 1.5;
-		if (target.lastTargetFirPower > 0)
+		if (target.myBulletTracker.myLastFirePower > 0)
 		{
-			power = target.lastTargetFirPower;
+			power = target.myBulletTracker.myLastFirePower;
 		}
 
 		if (status.getOthers() == 1) moveDist = Math.max(20, (target.getDistance(status) - 50) * 8.0 / Rules.getBulletSpeed(power));

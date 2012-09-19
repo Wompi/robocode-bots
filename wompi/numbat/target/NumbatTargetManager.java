@@ -146,6 +146,20 @@ public class NumbatTargetManager implements ITargetManager
 		return closestBots;
 	}
 
+	public boolean isNearest(NumbatTarget target)
+	{
+		double cDist = target.getDistance(botStatus);
+		double minDist = Double.MAX_VALUE;
+		for (NumbatTarget enemy : allTargets.values())
+		{
+			if (enemy.isAlive && enemy != target)
+			{
+				minDist = Math.min(minDist, enemy.distance(target));
+			}
+		}
+		return minDist >= cDist;
+	}
+
 	private void setClosestBotCount()
 	{
 		closestBots = 0;
