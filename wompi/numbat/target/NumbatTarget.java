@@ -64,6 +64,7 @@ public class NumbatTarget extends Point2D.Double
 	private double						eLastDistance;
 	private double						eDistance;
 	public boolean						hasFired;
+	public double						lastTargetFirPower;
 
 	public int							eScanState;
 	public String						eName;
@@ -238,7 +239,11 @@ public class NumbatTarget extends Point2D.Double
 	public boolean isTargetFireing()
 	{
 		double energyDiff = getEnergyDifference();
-		if (energyDiff <= 3.0 && energyDiff >= .1) { return true; }
+		if (energyDiff <= 3.0 && energyDiff >= .1)
+		{
+			lastTargetFirPower = energyDiff;
+			return true;
+		}
 		return false;
 
 	}

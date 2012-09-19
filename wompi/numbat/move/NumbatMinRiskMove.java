@@ -17,6 +17,7 @@ import java.awt.geom.Rectangle2D;
 import robocode.AdvancedRobot;
 import robocode.HitRobotEvent;
 import robocode.RobotStatus;
+import robocode.Rules;
 import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
@@ -67,6 +68,15 @@ public class NumbatMinRiskMove extends ANumbatMove
 		boolean isClose = false;
 
 		moveDist = Math.min(DIST, moveDist += 5);
+
+		double power = 1.5;
+		if (target.lastTargetFirPower > 0)
+		{
+			power = target.lastTargetFirPower;
+		}
+
+		if (status.getOthers() == 1) moveDist = Math.max(20, (target.getDistance(status) - 50) * 8.0 / Rules.getBulletSpeed(power));
+
 		while ((riskAngle += DELTA_RISK_ANGLE) <= PI_360)
 		{
 			mx = moveDist * Math.sin(riskAngle) + status.getX();
@@ -120,7 +130,6 @@ public class NumbatMinRiskMove extends ANumbatMove
 		if (Math.abs(status.getDistanceRemaining()) <= DIST_REMAIN || isFreeMove(status, isClose, isFireRule))
 		{
 			isMoveing = true;
-
 		}
 
 		moveTurn -= status.getHeadingRadians();

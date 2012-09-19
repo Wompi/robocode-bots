@@ -19,7 +19,7 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatWeightedRadar extends ANumbatRadar
 {
-	public final static double	MAX_RADAR_RATE		= 0.07; // less is more search
+	public final static double	MAX_RADAR_RATE		= 0.03; // less is more search
 	public final static double	DEFAULT_RADAR_WIDTH	= 5.0;
 	public final static double	DEFAULT_RADAR_LOCK	= 0.8;
 
