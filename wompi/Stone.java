@@ -13,6 +13,7 @@ package wompi;
 
 import java.awt.Color;
 
+import robocode.Droid;
 import robocode.Robot;
 
 /**
@@ -20,11 +21,12 @@ import robocode.Robot;
  * 
  * @author rschott
  */
-public class Stone extends Robot
+public class Stone extends Robot implements Droid
 {
+
+	@Override
 	public void run()
 	{
-
 		setBodyColor(Color.DARK_GRAY);
 		setRadarColor(Color.RED);
 		setGunColor(Color.GRAY);

@@ -59,6 +59,7 @@ public class PaintHelper
 
 	public static void drawLine(Point2D start, Point2D ende, Graphics2D g2, Color color)
 	{
+		if (start == null || ende == null) return;
 		g2.setColor(color);
 		g2.drawLine((int) start.getX(), (int) start.getY(), (int) ende.getX(), (int) ende.getY());
 	}
