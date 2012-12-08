@@ -63,7 +63,6 @@ public class NumbatTarget extends Point2D.Double
 
 	private double						eLastDistance;
 	private double						eDistance;
-	public boolean						hasFired;
 
 	public int							eScanState;
 	public String						eName;
@@ -72,6 +71,7 @@ public class NumbatTarget extends Point2D.Double
 	public boolean						isAlive;
 
 	private ArrayList<Bullet>			eFiredBullets;
+	public final NumbatBulletTracker	myBulletTracker;
 
 	// singe tick pattern gun
 	public Map<Integer, INumbatTick>	matcherMap;
@@ -98,6 +98,8 @@ public class NumbatTarget extends Point2D.Double
 	{
 		init();
 		myColor = BOT_COLORS[colorIndex++];
+
+		myBulletTracker = new NumbatBulletTracker();
 	}
 
 	public void init()
@@ -126,12 +128,6 @@ public class NumbatTarget extends Point2D.Double
 	public void onScannedRobot(ScannedRobotEvent scan, RobotStatus status)
 	{
 
-		// boolean bugCheck = scan.getTime()-eScan == 0;
-		// if (bugCheck)
-		// {
-		// System.out.format("[%d] absBear=%3.4f distance=%3.4f lastHead=%3.5f head=%3.5f lastVelo=%3.2f velo=%3.2f lastEnergy=%3.2f energy=%3.2f x=%3.4f y=%3.4f \n",
-		// status.getTime(),eAbsBearing,eDistance,eLastHeading,eHeading,eLastVelocity,eVelocity,eLastEnergy,eEnergy,x,y);
-		// }
 		eVisits++;
 
 		eAbsBearing = status.getHeadingRadians() + scan.getBearingRadians();
@@ -163,16 +159,15 @@ public class NumbatTarget extends Point2D.Double
 
 		DebugRadarProperties.debugScanDifference(getLastScanDifference());
 
-		// vAvgSimple.avg(scan.getVelocity(), scan.getTime());
+		myBulletTracker.registerTrack(eDistance, getEnergyDifference(), eScan);
 
-		// myPointHandler.registerRelativePoint(scan.getTime(),getLastScanDifference(),eVelocity, eLastVelocity, eHeading, eLastHeading);
-		// myPointHandler.registerAbsolutePoint(scan.getTime(),getLastScanDifference(),x,y,eVelocity, eLastVelocity, eHeading, eLastHeading);
-		// System.out.format("[%d] absBear=%3.4f distance=%3.4f lastHead=%3.5f head=%3.5f lastVelo=%3.2f velo=%3.2f lastEnergy=%3.2f energy=%3.2f x=%3.4f y=%3.4f %s\n",
-		// status.getTime(),eAbsBearing,eDistance,eLastHeading,eHeading,eLastVelocity,eVelocity,eLastEnergy,eEnergy,x,y,eName);
-		// if (bugCheck)
-		// {
-		// System.out.format("depp\n");
-		// }
+		// debug
+		//		if (myBulletTracker.hasFired(0))
+		//		{
+		//			System.out.format("[%d] target has fired %3.2f - %s (%d +-%d) \n", eScan, myBulletTracker.myLastFirePower, eName,
+		//					myBulletTracker.nextZeroHeat(), getLastScanDifference());
+		//		}
+
 	}
 
 	public double getEnergyDifference()
@@ -233,14 +228,6 @@ public class NumbatTarget extends Point2D.Double
 	{
 		if (eScan == status.getTime()) return eDistance;
 		return this.distance(status.getX(), status.getY());
-	}
-
-	public boolean isTargetFireing()
-	{
-		double energyDiff = getEnergyDifference();
-		if (energyDiff <= 3.0 && energyDiff >= .1) { return true; }
-		return false;
-
 	}
 
 	public int getAveragePatternLength()

@@ -17,6 +17,7 @@ import java.awt.geom.Rectangle2D;
 import robocode.AdvancedRobot;
 import robocode.HitRobotEvent;
 import robocode.RobotStatus;
+import robocode.Rules;
 import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
@@ -62,11 +63,28 @@ public class NumbatMinRiskMove extends ANumbatMove
 
 		NumbatTarget target = targetMan.getMoveTarget();
 
-		boolean isFireRule = (Math.random() <= 0.33) ? target.isTargetFireing() : false; // use the fire rule on 1/3 of times
+		boolean adjustRule = status.getOthers() <= 2 && Math.random() < 0.33;
+		boolean isFireRule = target.myBulletTracker.hasFired(target.getLastScanDifference()) && targetMan.isNearest(target)
+				&& (status.getOthers() > 2 || adjustRule);
+
+		// debug
+		//		if (isFireRule)
+		//		{
+		//			System.out.format("[%d] fire rule for %s\n", status.getTime(), target.eName);
+		//		}
 
 		boolean isClose = false;
 
 		moveDist = Math.min(DIST, moveDist += 5);
+
+		double power = 1.5;
+		if (target.myBulletTracker.myLastFirePower > 0)
+		{
+			power = target.myBulletTracker.myLastFirePower;
+		}
+
+		if (status.getOthers() == 1) moveDist = Math.max(20, (target.getDistance(status) - 50) * 8.0 / Rules.getBulletSpeed(power));
+
 		while ((riskAngle += DELTA_RISK_ANGLE) <= PI_360)
 		{
 			mx = moveDist * Math.sin(riskAngle) + status.getX();
@@ -120,7 +138,6 @@ public class NumbatMinRiskMove extends ANumbatMove
 		if (Math.abs(status.getDistanceRemaining()) <= DIST_REMAIN || isFreeMove(status, isClose, isFireRule))
 		{
 			isMoveing = true;
-
 		}
 
 		moveTurn -= status.getHeadingRadians();

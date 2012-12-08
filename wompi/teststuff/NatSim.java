@@ -28,8 +28,7 @@ public class NatSim
 	}
 
 	/**
-	 * Calculate next tick prediction status. This always simulate accelerate to
-	 * max velocity.
+	 * Calculate next tick prediction status. This always simulate accelerate to max velocity.
 	 * 
 	 * @param status
 	 *            beginning status
@@ -45,8 +44,7 @@ public class NatSim
 	}
 
 	/**
-	 * Calculate next tick prediction status. This always simulate accelerate to
-	 * max velocity.
+	 * Calculate next tick prediction status. This always simulate accelerate to max velocity.
 	 * 
 	 * @param status
 	 *            beginning status
@@ -70,8 +68,7 @@ public class NatSim
 	}
 
 	/**
-	 * Calculate predicted status for every ticks before it reach its
-	 * destination.
+	 * Calculate predicted status for every ticks before it reach its destination.
 	 * 
 	 * @param status
 	 *            beginning status
@@ -83,12 +80,13 @@ public class NatSim
 	 *            remain distance before stop
 	 * @return list of predicted status
 	 */
-	public static List<PredictionStatus> predict(PredictionStatus status, double goAngle, double maxVelocity, double distanceRemaining)
+	public static List<PredictionStatus> predict(PredictionStatus status, double goAngle, double maxVelocity,
+			double distanceRemaining)
 	{
 		List<PredictionStatus> predicted = new ArrayList<PredictionStatus>(20);
 		predicted.add(status);
 
-		while (Math.abs(distanceRemaining) > 0)
+		while (distanceRemaining > 0)
 		{
 			status = _predict(status, goAngle, maxVelocity, distanceRemaining);
 			predicted.add(status);
@@ -128,8 +126,7 @@ public class NatSim
 	}
 
 	/**
-	 * Calculate predicted status for every ticks before it reach its
-	 * destination, or until timer run out.
+	 * Calculate predicted status for every ticks before it reach its destination, or until timer run out.
 	 * 
 	 * @param status
 	 *            beginning status
@@ -143,7 +140,8 @@ public class NatSim
 	 *            remain distance before stop
 	 * @return list of predicted status
 	 */
-	public static List<PredictionStatus> predict(PredictionStatus status, int tick, double goAngle, double maxVelocity, double distanceRemaining)
+	public static List<PredictionStatus> predict(PredictionStatus status, int tick, double goAngle, double maxVelocity,
+			double distanceRemaining)
 	{
 		List<PredictionStatus> predicted = new ArrayList<PredictionStatus>(tick + 2);
 		predicted.add(status);
@@ -161,8 +159,7 @@ public class NatSim
 	}
 
 	/**
-	 * Calculate next tick prediction status. This always simulate accelerate to
-	 * max velocity.
+	 * Calculate next tick prediction status. This always simulate accelerate to max velocity.
 	 * 
 	 * @param status
 	 *            beginning status
@@ -174,7 +171,8 @@ public class NatSim
 	 *            the remaining distance
 	 * @return predicted state next tick
 	 */
-	private static PredictionStatus _predict(PredictionStatus status, double goAngle, double maxVelocity, double distanceRemaining)
+	private static PredictionStatus _predict(PredictionStatus status, double goAngle, double maxVelocity,
+			double distanceRemaining)
 	{
 		double x = status.x;
 		double y = status.y;
@@ -209,8 +207,7 @@ public class NatSim
 	}
 
 	/**
-	 * This function return the new velocity base on the maximum velocity and
-	 * distance remaining. This is copied from internal bug-fixed Robocode
+	 * This function return the new velocity base on the maximum velocity and distance remaining. This is copied from internal bug-fixed Robocode
 	 * engine.
 	 * 
 	 * @param currentVelocity
@@ -250,8 +247,10 @@ public class NatSim
 				// Hence, v = d / 1 => v = d
 				// However, the new velocity must be limited by the max.
 				// velocity
-				newVelocity = Math.min(maxSpeed,
-						Math.min(Rules.DECELERATION * decelTime * decelTime + Rules.ACCELERATION * accelTime * accelTime, distanceRemaining));
+				newVelocity = Math.min(
+						maxSpeed,
+						Math.min(Rules.DECELERATION * decelTime * decelTime + Rules.ACCELERATION * accelTime
+								* accelTime, distanceRemaining));
 
 				// Note: We change the sign here due to the sign check later
 				// when returning the result

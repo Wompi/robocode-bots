@@ -12,14 +12,17 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
+import robocode.DeathEvent;
 import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.ScannedRobotEvent;
 import robocode.SkippedTurnEvent;
 import robocode.StatusEvent;
+import robocode.WinEvent;
 import wompi.numbat.debug.DebugBot;
 import wompi.numbat.gun.NumbatGunManager;
 import wompi.numbat.misc.NumbatBattleField;
@@ -205,32 +208,32 @@ public class Numbat extends AdvancedRobot
 	//		// PaintHitCloud.registerHit(e);
 	//	}
 
-	//	@Override
-	//	public void onPaint(Graphics2D g)
-	//	{
-	//		//		if (debugCenter == null) debugCenter = new PaintCenterSegments();
-	//		//		//debugCenter.onPaint(g);
-	//		//		debugCenter.drawFieldGrid(g, null, NumbatBattleField.BATTLE_FIELD_W, NumbatBattleField.BATTLE_FIELD_H);
-	//
-	//		//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
-	//		//		// PaintHitCloud.onPaint(g);
-	//		//		myTargetMan.onPaint(g);
-	//		//		myMoveMan.onPaint(g);
-	//		//		myGunMan.onPaint(g);
-	//		//		myRadarMan.onPaint(g);
-	//	}
-	//
-	//	@Override
-	//	public void onDeath(DeathEvent event)
-	//	{
-	//		//		DebugMiscProperties.debugWinStats(getOthers());
-	//	}
-	//
-	//	@Override
-	//	public void onWin(WinEvent event)
-	//	{
-	//		//		DebugMiscProperties.debugWinStats(getOthers());
-	//	}
+	@Override
+	public void onPaint(Graphics2D g)
+	{
+		//		if (debugCenter == null) debugCenter = new PaintCenterSegments();
+		//		//debugCenter.onPaint(g);
+		//		debugCenter.drawFieldGrid(g, null, NumbatBattleField.BATTLE_FIELD_W, NumbatBattleField.BATTLE_FIELD_H);
+
+		//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
+		//		// PaintHitCloud.onPaint(g);
+		//		myTargetMan.onPaint(g);
+		//		myMoveMan.onPaint(g);
+		//		myGunMan.onPaint(g);
+		//		myRadarMan.onPaint(g);
+	}
+
+	@Override
+	public void onDeath(DeathEvent event)
+	{
+		//		DebugMiscProperties.debugWinStats(getOthers());
+	}
+
+	@Override
+	public void onWin(WinEvent event)
+	{
+		//		DebugMiscProperties.debugWinStats(getOthers());
+	}
 
 	//	@Override
 	//	public void onKeyPressed(KeyEvent e)

@@ -12,317 +12,282 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 import robocode.AdvancedRobot;
+import robocode.Bullet;
 import robocode.BulletHitEvent;
+import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
+import robocode.HitWallEvent;
 import robocode.RobotDeathEvent;
 import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.numbat.debug.DebugBot;
+import wompi.numbat.debug.DebugGunProperties;
+import wompi.paint.WompiSimPaint;
+import wompi.paint.WompiSimPaint.WSimData;
+import wompi.robomath.RobotMath;
+import wompi.teststuff.WompiSim;
+import wompi.wallaby.PaintHelper;
 
 public class Irukandji extends AdvancedRobot
 {
-	public final static double				MAX_RADAR_RATE			= 0.07;									// less is more search
-	public final static double				DEFAULT_RADAR_WIDTH		= 5.0;
-	private final static double				TARGET_DISTANCE			= 600.0;
-	private static final double				WZ						= 20.0;
-	private static final double				WZ_SIZE_W				= 1000 - 2 * WZ;
-	private static final double				WZ_SIZE_H				= 1000 - 2 * WZ;
-	private static final double				WZ_G					= 17.0;
-	private static final double				WZ_G_SIZE_W				= 1000 - 2 * WZ_G;
-	private static final double				WZ_G_SIZE_H				= 1000 - 2 * WZ_G;
+	private final static double	RADAR				= 1.9;
+	private final static double	PI_90				= Math.PI / 2;
+	private final static double	PI_45				= Math.PI / 4;
 
-	private final static double				RADAR_GUNLOCK			= 1.0;
-	private final static double				DIST					= 185;
-	private final static double				DIST_REMAIN				= 20;
-	private final static double				PI_360					= Math.PI * 2.0;
-	private final static double				DELTA_RISK_ANGLE		= Math.PI / 32.0;
-	private final static double				DEFAULT_RANDOM_RATE		= 0.5;
-	private final static double				TARGET_FORCE			= 65000;									// 100000 low dmg high surv - 10000
-																												// high dmg low surv
+	private static Rectangle2D	bField;
 
-	public final static int					DEFAULT_PATTERN_LENGTH	= 30;
-	private final int						DELTA_HEADING_INDEX		= 20;
-	private final int						VELOCITY_INDEX			= 16;
-	private final double					HEAD_FACTOR				= 2.0;
-	private final double					VELO_FACTOR				= 2.0;
+	// debug
+	private final List<Point2D>	myChasePoints		= new ArrayList<Point2D>();
+	private final List<Point2D>	myTargetGoodPoints	= new ArrayList<Point2D>();
+	private final List<Point2D>	myTargetWallPoints	= new ArrayList<Point2D>();
+	private final List<Bullet>	myBullets			= new ArrayList<Bullet>();
 
-	static HashMap<String, IrukandjiTarget>	allTargets				= new HashMap<String, IrukandjiTarget>();
+	Point2D						myLastPosition;
+	Point2D						myPosition;
+	double						bPower;
+	double						lastHead;
 
-	static String							eName;
-	static double							eRate;
-	static double							eEnergy;
+	IruTarget					myTarget			= new IruTarget();
+	double						dir					= 1;
+	boolean						eShot;
 
 	public Irukandji()
-	{
+	{}
 
-	}
-
+	@Override
 	public void run()
 	{
+		DebugBot.init(this);
+		WompiSimPaint.init(this);
 		setAllColors(Color.RED);
-		setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(eRate = eEnergy = Double.POSITIVE_INFINITY);
+		myLastPosition = myPosition = new Point2D.Double(getX(), getY());
+		myTarget.eEnergy = getEnergy();
+		myTarget.eGunHeat = getGunHeat();
+		bField = new Rectangle2D.Double(17d, 17d, getBattleFieldWidth() - 34d, getBattleFieldHeight() - 34d);
 	}
 
+	@Override
+	public void onStatus(StatusEvent e)
+	{
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		myLastPosition = myPosition;
+		myPosition = new Point2D.Double(getX(), getY());
+
+		DebugGunProperties.execute();
+	}
+
+	double	delta;
+
+	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		IrukandjiTarget enemy;
-		if ((enemy = allTargets.get(e.getName())) == null) allTargets.put(e.getName(), enemy = new IrukandjiTarget());
+		double aBear = getHeadingRadians() + e.getBearingRadians();
+		setTurnRadarRightRadians(Utils.normalRelativeAngle(aBear - getRadarHeadingRadians()) * RADAR);
 
-		double d0; // absBearing
-		double d1; // distance -> bPower
-		double xg, yg;
+//		if (myTarget.isShooting(e.getEnergy()))
+//		{
+//			addCustomEvent(new Condition()
+//			{
+//				Point2D	start	= new Point2D.Double(myTarget.x, myTarget.y);
+//				double	head	= RobotMath.calculateAngle(start, myLastPosition);
+//				double	ePower	= myTarget.ePower;
+//				long	count	= 1;
+//
+//				@Override
+//				public boolean test()
+//				{
+//					Point2D end = RobotMath.calculatePolarPoint(head, ++count * Rules.getBulletSpeed(ePower), start);
+//					PaintHelper.drawArc(start, count * Rules.getBulletSpeed(ePower), 0, PI_360, false, getGraphics(),
+//							Color.DARK_GRAY);
+//					PaintHelper.drawLine(start, end, getGraphics(), Color.DARK_GRAY);
+//					PaintTargetSquare.drawTargetSquare(getGraphics(), 0, end.getX(), end.getY(), false, Color.GRAY);
+//					for (int i = 2; i < 40; i++)
+//					{
+//						Point2D p = RobotMath.calculatePolarPoint(head, i * Rules.getBulletSpeed(ePower), start);
+//						PaintHelper.drawPoint(p, Color.BLUE, getGraphics(), 2);
+//					}
+//					if (count > 40) removeCustomEvent(this);
+//					return false;
+//				}
+//			});
+//		}
+		myTarget.x = myPosition.getX() + Math.sin(aBear) * e.getDistance();
+		myTarget.y = myPosition.getY() + Math.cos(aBear) * e.getDistance();
+		myTarget.eDistance = e.getDistance();
+		myTarget.eHeading = e.getHeadingRadians();
+		myTarget.eVelocity = e.getVelocity();
+		myTarget.eMaxVelocity = Math.max(myTarget.eMaxVelocity, Math.abs(e.getVelocity()));
 
-		xg = enemy.x = getX() + Math.sin((d0 = (getHeadingRadians() + e.getBearingRadians()))) * (d1 = e.getDistance());
-		yg = enemy.y = getY() + Math.cos(d0) * d1;
-		enemy.isAlive = true;
+		if (myTarget.isShooting(e.getEnergy())) dir = -dir;
+		//setTurnRightRadians(Math.cos(e.getBearingRadians()));
+		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * (getVelocity() / 2500)));
+		setAhead(100 * dir);
 
-		// gun feeding
-		int tick;
-		if ((e.getTime() - enemy.eLastScan) == 1)
+		if (getGunTurnRemainingRadians() == 0)
 		{
-			tick = encodeTick(Utils.normalRelativeAngle(e.getHeadingRadians() - enemy.eLastHeading), e.getVelocity());
-
-			for (int i = 0; i <= enemy.eHistory.length(); ++i)
+			Bullet b = setFireBullet(bPower);
+			if (b != null)
 			{
-				int pHash;
-				IrukandjiMultiTick multiTick; // automatic cast to Integer
-				if ((multiTick = enemy.matcherMap.get(pHash = enemy.eHistory.substring(0, i).hashCode())) == null)
-				{
-					enemy.matcherMap.put(pHash, multiTick = new IrukandjiMultiTick(tick));
-				}
-				multiTick.incrementCount(tick);
-			}
-			enemy.eHistory.insert(0, (char) (tick)).setLength(Math.min(DEFAULT_PATTERN_LENGTH, enemy.eHistory.length()));
-		}
-		else enemy.eHistory.setLength(0); // TODO: maybe return
-
-		if (((getOthers() <= 2) ? (eEnergy > e.getEnergy()) : (eRate > (d1 - enemy.eScore * 3))) || eName == e.getName())
-		{
-			eName = e.getName();
-
-			// gun
-			eRate = d1 - enemy.eScore * 3;
-			d1 = Math.min(Rules.MAX_BULLET_POWER, Math.min(((eEnergy = e.getEnergy()) / 3.0), TARGET_DISTANCE / (d1)));
-
-			if (getGunHeat() < RADAR_GUNLOCK || getOthers() == 1) setTurnRadarRightRadians(Double.POSITIVE_INFINITY
-					* Utils.normalRelativeAngle(d0 - getRadarHeadingRadians()));
-
-			if (eEnergy < getEnergy() && getOthers() == 1) d1 = 0.1;
-
-			if (getGunTurnRemaining() == 0) setFire(d1);
-
-			double heading = e.getHeadingRadians();
-			double velocity = 0;
-			double pHeadChange = 0;
-			StringBuilder ePattern = new StringBuilder(enemy.eHistory);
-
-			if (ePattern.length() > 0)
-			{
-				boolean check = true;
-				for (double bDist = 0; bDist < Point2D.distance(getX(), getY(), xg, yg); bDist += Rules.getBulletSpeed(d1))
-				{
-					int nextStep = 0;
-					int patternLength = Math.min(DEFAULT_PATTERN_LENGTH, ePattern.length());
-					IrukandjiMultiTick sTick = null;
-					int len = 0;
-					for (len = patternLength; sTick == null; --len)
-					{
-						sTick = enemy.matcherMap.get(ePattern.substring(0, len).hashCode());	// automatic cast to Integer
-					}
-					if (check)
-					{
-						enemy.avgPatternLength += len + 1;
-						enemy.avgPatternCount++;
-						setDebugProperty("AVG: " + e.getName(), String.format("%3.2f", enemy.avgPatternLength / enemy.avgPatternCount));
-						check = false;
-					}
-					nextStep = sTick.getMaxKey();
-
-					pHeadChange = Math.toRadians((double) ((nextStep >> 9) - DELTA_HEADING_INDEX) / HEAD_FACTOR);		// delta heading
-					velocity = (double) (((nextStep >> 3) - ((nextStep >> 9) << 6)) - VELOCITY_INDEX) / VELO_FACTOR;								// velocity
-
-					heading += pHeadChange;
-
-					xg += velocity * Math.sin(heading);
-					yg += velocity * Math.cos(heading);
-
-					if (!new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_SIZE_W, WZ_G_SIZE_H).contains(xg, yg))
-					{
-						nextStep = encodeTick(pHeadChange, velocity);
-					}
-					ePattern.insert(0, (char) nextStep);
-				}
-			}
-			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg - getX(), yg - getY()) - getGunHeadingRadians()));
-
-			// move
-			double rM = Double.MAX_VALUE;
-			double v0 = 0, v1 = 0;
-			double x, y, r1;
-			while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
-			{
-				if (new Rectangle2D.Double(WZ, WZ, WZ_SIZE_W, WZ_SIZE_H).contains(x = DIST * Math.sin(v0) + getX(), y = DIST * Math.cos(v0) + getY()))
-				{
-					if (((r1 = Math.abs(Math.cos(Math.atan2(enemy.x - x, enemy.y - y) - v0))) < DEFAULT_RANDOM_RATE && getOthers() <= 5))
-					{
-						r1 = DEFAULT_RANDOM_RATE * Math.random();
-					}
-
-					try
-					{
-						Iterator<IrukandjiTarget> iter = allTargets.values().iterator();
-						while (true)
-						{
-							IrukandjiTarget target;
-							if ((target = iter.next()).isAlive)
-							{
-								r1 += TARGET_FORCE / (target.distanceSq(x, y));
-							}
-						}
-					}
-					catch (Exception e1)
-					{}
-
-					if (r1 < rM)
-					{
-						rM = r1;
-						v1 = v0;
-					}
-				}
-			}
-			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || rM > 9.0)
-			{
-				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-				setAhead(DIST * Math.cos(v1));
+				DebugGunProperties.debugGunHitRate(b);
+				myBullets.add(b);
 			}
 		}
-		enemy.eLastScan = e.getTime();
-		enemy.eLastHeading = e.getHeadingRadians();
+
+		//bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
+		bPower = 0.1;
+		//bPower = 3.0;
+
+		double v2 = e.getVelocity();
+		double h1 = e.getHeadingRadians();
+		double i = 0;
+		double xg = myTarget.x - myPosition.getX();
+		double yg = myTarget.y - myPosition.getY();
+
+		double h0 = WompiSim.limit(Rules.getTurnRateRadians(v2),
+				Utils.normalRelativeAngle(e.getHeadingRadians() - lastHead));
+		double dist = 0;
+		// consider dist + 18 ; to save all the intersect operations (should be close enough)
+
+		double dir = Math.signum(e.getVelocity());
+
+		while ((dist = ((i++ * Rules.getBulletSpeed(bPower)))) < Math.hypot(xg, yg))
+		{
+			v2 = WompiSim.nextVeocity(v2, dir, myTarget.eMaxVelocity);
+			xg += Math.sin(h1) * v2;
+			yg += Math.cos(h1) * v2;
+
+			Point2D tPoint = new Point2D.Double(xg + myPosition.getX(), yg + myPosition.getY());
+
+			if (!bField.contains(tPoint))
+			{
+				v2 = 0;
+				dir = -dir;
+				PaintHelper.drawPoint(tPoint, Color.MAGENTA, getGraphics(), 2);
+			}
+			else
+			{
+				Rectangle2D rect = new Rectangle2D.Double(tPoint.getX() - 18.0, tPoint.getY() - 18.0, 36.0, 36.0);
+
+				double tangle = RobotMath.calculateAngle(myPosition, tPoint);
+				Point2D lP = RobotMath.calculatePolarPoint(tangle, dist, myPosition);
+				Line2D line = new Line2D.Double(myPosition, lP);
+
+				if (rect.intersectsLine(line))
+				{
+					break;
+				}
+
+				PaintHelper.drawPoint(tPoint, Color.ORANGE, getGraphics(), 2);
+			}
+			h1 += WompiSim.limit(Rules.getTurnRateRadians(v2), Utils.normalRelativeAngle(h0));
+		}
+		setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
+
+		PaintHelper.drawLine(myPosition, new Point2D.Double(xg + myPosition.getX(), yg + myPosition.getY()),
+				getGraphics(), Color.BLUE);
+
+		lastHead = e.getHeadingRadians();
+	}
+
+	int	minTick	= 1000;
+	int	maxTick	= 0;
+
+	@Override
+	public void onHitWall(HitWallEvent event)
+	{
+		dir = -dir;
 	}
 
 	@Override
 	public void onRobotDeath(RobotDeathEvent e)
+	{}
+
+	@Override
+	public void onHitByBullet(HitByBulletEvent e)
 	{
-		eRate = eEnergy = Double.POSITIVE_INFINITY;
-		IrukandjiTarget target;
-		try
-		{
-			(target = allTargets.get(e.getName())).isAlive = false;
-			target.eScore = 0;
-		}
-		catch (Exception e2)
-		{}
+		myTarget.eEnergy += 3.0 * e.getBullet().getPower();
 	}
 
+	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
-		allTargets.get(e.getName()).eScore += Rules.getBulletDamage(e.getBullet().getPower());
-		// eEnergy -= dmg;
+		myTarget.eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
 	}
 
 	public void onHitRobot(HitRobotEvent e, RobotStatus status)
-	{
-		// eAbsBearing = status.getHeadingRadians() + e.getBearingRadians();
-		//
-		// eLastVelocity = eVelocity;
-		// eVelocity = 0;
-		//
-		// eLastEnergy = eEnergy;
-		// eEnergy = e.getEnergy();
-		//
-		// x = Math.sin(eAbsBearing) * eDistance + status.getX();
-		// y = Math.cos(eAbsBearing) * eDistance + status.getY();
-	}
-
-	private int encodeTick(double deltaHeading, double velocity)
-	{
-		return ((((int) Math.rint(Math.toDegrees(deltaHeading * HEAD_FACTOR)) + DELTA_HEADING_INDEX) << 6) + ((int) (Math
-				.rint(velocity * VELO_FACTOR)) + VELOCITY_INDEX)) << 3;
-	}
-}
-
-class IrukandjiTarget extends Point2D.Double
-{
-	private static final long				serialVersionUID	= 8658460686386618844L;
-
-	public boolean							isAlive;
-
-	// radar
-	double									eSlipDir;
-	long									eLastScan;
-
-	// gun
-	StringBuilder							eHistory;
-	public Map<Integer, IrukandjiMultiTick>	matcherMap;
-	double									eLastHeading;
-
-	double									avgPatternLength;
-	double									avgPatternCount;
-
-	double									eScore;
-
-	public IrukandjiTarget()
-	{
-		eHistory = new StringBuilder(Irukandji.DEFAULT_PATTERN_LENGTH);
-		matcherMap = new LinkedHashMap<Integer, IrukandjiMultiTick>(500000);
-	}
-}
-
-class IrukandjiCountTick implements Comparable<IrukandjiCountTick>
-
-{
-	public int	myKey;
-	public int	myCount;
+	{}
 
 	@Override
-	public int compareTo(IrukandjiCountTick o)
+	public void onPaint(Graphics2D g)
 	{
-		return o.myCount - this.myCount; // descending order
+
+//		PaintRobotPath.onPaint(g, "", getTime(), myTarget.x, myTarget.y, Color.GRAY);
+//		WompiPaint.paintWallDistance(getX(), getY(), 0, g, getBattleFieldWidth(), getBattleFieldHeight());
+//		WompiPaint.paintWallDistance(myTarget.x, myTarget.y, 0, getGraphics(), getBattleFieldWidth(),
+//				getBattleFieldHeight());
+
+		WSimData data = new WompiSimPaint().new WSimData();
+		data.bPos = myPosition;
+		data.tPos = myTarget;
+		data.bPower = bPower;
+		data.eDistance = myTarget.eDistance;
+		data.eHeading = myTarget.eHeading;
+		data.eVelocity = myTarget.eVelocity;
+		data.eMaxVelocity = myTarget.eMaxVelocity;
+		data.bHeat = getGunHeat();
+		data.bBullets = myBullets;
+
+		WompiSimPaint.onPaint(g, data);
+
+		WSimData bData = new WompiSimPaint().new WSimData();
+		bData.bPos = myTarget;
+		bData.tPos = myPosition;
+		bData.bPower = myTarget.ePower;
+		bData.eDistance = myTarget.eDistance;
+		bData.eHeading = getHeadingRadians();
+		bData.eVelocity = getVelocity();
+		bData.eMaxVelocity = 8.0;
+		bData.bHeat = getGunHeat();
+		bData.bBullets = myBullets;
+
+		WompiSimPaint.onPaint(g, bData);
 	}
 }
 
-class IrukandjiMultiTick
+class IruTarget extends Point2D.Double
 {
-	public ArrayList<IrukandjiCountTick>	vCount; // sorted list with max vCount at index 0
+	private static final long	serialVersionUID	= 1796092649355538977L;
 
-	public IrukandjiMultiTick(int key)
-	{
-		IrukandjiCountTick newTick = new IrukandjiCountTick();
-		newTick.myKey = key;
-		(vCount = new ArrayList<IrukandjiCountTick>()).add(newTick);
-	}
+	double						eEnergy;
+	double						eGunHeat;
+	double						ePower;
+	double						eDistance;
+	double						eHeading;
+	double						eVelocity;
+	double						eMaxVelocity;
 
-	public int getMaxKey()
+	public boolean isShooting(double energy)
 	{
-		return vCount.get(0).myKey;
-	}
-
-	public void incrementCount(int key)
-	{
-		for (IrukandjiCountTick singleTick : vCount)
+		boolean result = false;
+		double diff = eEnergy - energy;
+		if (diff >= 0.1 && diff <= 3.0)
 		{
-			if (singleTick.myKey == key)
-			{
-				singleTick.myCount++;
-				return;
-			}
+			System.out.format("he fired %f\n", diff);
+			ePower = diff;
+			result = true;
 		}
-		IrukandjiCountTick newTick = new IrukandjiCountTick();
-		newTick.myCount++;
-		newTick.myKey = key;
-		vCount.add(newTick);
-		Collections.sort(vCount);
+		eEnergy = energy;
+		return result;
 	}
 }

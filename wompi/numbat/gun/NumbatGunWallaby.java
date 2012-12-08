@@ -66,15 +66,15 @@ public class NumbatGunWallaby extends ANumbatGun
 
 		while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 		{
-			if ((++i * (18.0 - 2.7 * fire.getBulletPower()) < Math.hypot(xg, yg)))
+			if (((i += 0.9) * Rules.getBulletSpeed(fire.getBulletPower()) < Math.hypot(xg, yg)))
 			{
+				h1 += hDiff;
 				xg += Math.sin(h1) * v2;
 				yg += Math.cos(h1) * v2;
 				if (!bField.contains(xg, yg))
 				{
 					v2 = -v2;
 				}
-				h1 += hDiff;
 			}
 		}
 		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY()) - status.getGunHeadingRadians());
@@ -98,7 +98,7 @@ public class NumbatGunWallaby extends ANumbatGun
 		if (r3)
 		{
 			r4 = target.getDistance(status) <= 300;
-			r5 = target.getAveragePatternLength() <= 10 && target.eVisits > 300;
+			r5 = target.getAveragePatternLength() <= 10; /*&& target.eVisits > 300*/;
 
 		}
 		return r1 && r2 & r3 && r4 && r5;

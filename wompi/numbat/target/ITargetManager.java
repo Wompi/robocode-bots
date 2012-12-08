@@ -29,5 +29,7 @@ public interface ITargetManager
 
 	public int getCloseBots();
 
+	public boolean isNearest(NumbatTarget target);
+
 	public Collection<NumbatTarget> getAllTargets();
 }

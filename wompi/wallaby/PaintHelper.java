@@ -30,18 +30,22 @@ public class PaintHelper
 	public static Color		greenTrans	= new Color(0x00, 0xFF, 0x00, 0x50);
 	public static Color		yellowTrans	= new Color(0xFF, 0xFF, 0x00, 0x50);
 
-	public static Color[]	colorField	= { Color.GREEN, Color.GRAY, Color.CYAN, Color.YELLOW, Color.RED, Color.BLUE, Color.PINK, Color.MAGENTA,
-			Color.ORANGE, Color.LIGHT_GRAY };
+	public static Color[]	colorField	=
+										{ Color.GREEN, Color.GRAY, Color.CYAN, Color.YELLOW, Color.RED, Color.BLUE,
+			Color.PINK, Color.MAGENTA, Color.ORANGE, Color.LIGHT_GRAY };
 
-	public static void drawArc(Point2D start, double distance, double startAngle, double arcAngle, boolean fill, Graphics2D g2, Color color)
+	public static void drawArc(Point2D start, double distance, double startAngle, double arcAngle, boolean fill,
+			Graphics2D g2, Color color)
 	{
 		int r2 = (int) (distance * 2);
 		int x = (int) (start.getX() - distance);
 		int y = (int) (start.getY() - distance);
 
 		g2.setColor(color);
-		if (fill) g2.fillArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
-		else g2.drawArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
+		if (fill)
+			g2.fillArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
+		else
+			g2.drawArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
 	}
 
 	public static GeneralPath addPathSegment(GeneralPath path, Point2D point)
@@ -69,8 +73,6 @@ public class PaintHelper
 	public static void drawLine(Point2D start, Point2D ende, Graphics2D g2, Color color)
 	{
 		if (start == null || ende == null) return;
-		if (Double.isInfinite(start.distance(ende))) return;
-
 		g2.setColor(color);
 		g2.drawLine((int) start.getX(), (int) start.getY(), (int) ende.getX(), (int) ende.getY());
 	}
