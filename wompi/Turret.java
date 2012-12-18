@@ -30,7 +30,6 @@ import robocode.WinEvent;
 import wompi.echidna.gun.AGun;
 import wompi.echidna.gun.GunSimpleHeadOn;
 import wompi.echidna.gun.fire.FireMinShot;
-import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.radar.ARadar;
 import wompi.echidna.radar.RadarLock;
 import wompi.echidna.stats.BulletHitBulletStats;
@@ -38,6 +37,7 @@ import wompi.echidna.stats.StatsWallhits;
 import wompi.echidna.stats.StatsWinLoose;
 import wompi.echidna.target.ATarget;
 import wompi.echidna.target.TargetAveraged;
+import wompi.paint.PaintRobotPath;
 import wompi.wallaby.WallabyPainter;
 
 public class Turret extends AdvancedRobot

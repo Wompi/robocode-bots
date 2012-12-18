@@ -22,7 +22,7 @@ import robocode.AdvancedRobot;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import wompi.echidna.misc.painter.PaintMaxAngle;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class PaintGunAngle
 {

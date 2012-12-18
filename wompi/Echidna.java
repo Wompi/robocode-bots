@@ -29,7 +29,6 @@ import robocode.WinEvent;
 import wompi.echidna.gun.AGun;
 import wompi.echidna.gun.GunPMSingleTick;
 import wompi.echidna.gun.fire.FireLogDistance;
-import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.move.AMovement;
 import wompi.echidna.move.MoveLikeWalaby;
 import wompi.echidna.radar.ARadar;
@@ -40,6 +39,7 @@ import wompi.echidna.stats.StatsWinLoose;
 import wompi.echidna.target.ATarget;
 import wompi.echidna.target.targethandler.ATargetHandler;
 import wompi.echidna.target.targethandler.TargetHandlerDistance;
+import wompi.paint.PaintRobotPath;
 
 public class Echidna extends AdvancedRobot
 {

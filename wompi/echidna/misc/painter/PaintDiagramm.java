@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import robocode.RobotDeathEvent;
 import robocode.RobotStatus;
 import wompi.echidna.misc.utils.EchidnaBattleField;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class PaintDiagramm
 {

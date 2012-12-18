@@ -7,23 +7,19 @@ import java.awt.geom.Rectangle2D;
 
 import robocode.AdvancedRobot;
 import robocode.Rules;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 public class DingoBasicPaint
 {
-	private static final double				PI_90	= Math.PI / 2.0;
-	private static final double				PI_180	= Math.PI;
-	private static final double				PI_360	= Math.PI * 2.0;
+	private static final double	PI_90	= Math.PI / 2.0;
+	private static final double	PI_180	= Math.PI;
 
-	private final AdvancedRobot				myBot;
-
-	private final DingoWallDistance_Heading	myWallDistance;
+	private final AdvancedRobot	myBot;
 
 	public DingoBasicPaint(AdvancedRobot bot)
 	{
 		myBot = bot;
-		myWallDistance = new DingoWallDistance_Heading(myBot.getBattleFieldHeight(), myBot.getBattleFieldWidth(), 18.0);
 	}
 
 	public void onPaint(Graphics2D g)
@@ -103,32 +99,4 @@ public class DingoBasicPaint
 		g.setColor(Color.DARK_GRAY);
 		g.draw(r);
 	}
-
-	public void edgeDiagonals(Graphics2D g, double x, double y, double heading, Color color)
-	{
-		myWallDistance.setStartPoint(x, y);
-		double dForward = myWallDistance.getDistance(heading);
-		myWallDistance.onPaint(g, color);
-		double dBackward = myWallDistance.getDistance(heading + PI_180);
-		myWallDistance.onPaint(g, color.darker().darker());
-
-//		System.out.format("dF=%3.4f dB=%3.4f \n", dForward, dBackward);
-
-//		PaintHelper.drawArc(bP, 100, 0, a1, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 90, 0, a2, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 80, 0, a3, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 70, 0, a4, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 50, 0, h1, false, g, Color.RED);
-//
-//		PaintHelper.drawLine(bP, e1, g, Color.DARK_GRAY.darker());
-//		PaintHelper.drawLine(bP, e2, g, Color.DARK_GRAY.darker());
-//		PaintHelper.drawLine(bP, e3, g, Color.DARK_GRAY.darker());
-//		PaintHelper.drawLine(bP, e4, g, Color.DARK_GRAY.darker());
-	}
-
-	public static double limit(double minmax, double value)
-	{
-		return Math.max(-minmax, Math.min(value, minmax));
-	}
-
 }

@@ -9,7 +9,7 @@ import robocode.Bullet;
 import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.StatusEvent;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class DingoBulletPaint
 {

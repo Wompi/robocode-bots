@@ -26,13 +26,13 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.misc.painter.PaintTargetSquare;
 import wompi.numbat.debug.DebugRadarProperties;
 import wompi.numbat.gun.NumbatSTGun;
 import wompi.numbat.gun.misc.INumbatTick;
+import wompi.paint.PaintHelper;
+import wompi.paint.PaintRobotPath;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 public class NumbatTarget extends Point2D.Double
 {

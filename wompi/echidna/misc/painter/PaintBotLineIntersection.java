@@ -16,7 +16,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class PaintBotLineIntersection
 {

@@ -14,7 +14,6 @@ import robocode.Rules;
 import robocode.util.Utils;
 import wompi.robomath.RobotMath;
 import wompi.teststuff.WompiSim;
-import wompi.wallaby.PaintHelper;
 
 public class WompiSimPaint
 {

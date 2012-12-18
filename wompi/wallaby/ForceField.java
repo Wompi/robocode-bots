@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import robocode.util.Utils;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
 
 public class ForceField

@@ -15,7 +15,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 /**
  * Diese klasse soll das relative movement ueber einen bestimmten zeitraum visualisieren.

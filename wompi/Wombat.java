@@ -28,8 +28,8 @@ import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintHelper;
 import wompi.teststuff.NatSim;
-import wompi.wallaby.PaintHelper;
 
 /**
  * Development Notes:

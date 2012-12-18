@@ -22,7 +22,7 @@ import robocode.util.Utils;
 import wompi.Echidna;
 import wompi.echidna.misc.painter.PaintTargetSquare;
 import wompi.echidna.target.ATarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class RadarWeighted extends ARadar
 {

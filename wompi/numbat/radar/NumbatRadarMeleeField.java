@@ -11,7 +11,7 @@ import robocode.RobotStatus;
 import robocode.util.Utils;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class NumbatRadarMeleeField extends ANumbatRadar

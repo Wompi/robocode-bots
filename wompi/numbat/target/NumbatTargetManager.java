@@ -24,7 +24,7 @@ import robocode.RobotStatus;
 import robocode.ScannedRobotEvent;
 import wompi.numbat.debug.DebugMoveProperties;
 import wompi.numbat.debug.DebugTargetProperties;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class NumbatTargetManager implements ITargetManager
 {

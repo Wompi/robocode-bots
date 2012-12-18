@@ -26,7 +26,7 @@ import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.SimpleAverage;
 import wompi.echidna.target.ATarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class RadarFieldAngleDependent extends ARadar

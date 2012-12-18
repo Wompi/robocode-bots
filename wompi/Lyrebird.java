@@ -31,9 +31,9 @@ import wompi.echidna.misc.EnergySlope;
 import wompi.echidna.misc.SegmentationStats;
 import wompi.echidna.misc.SimpleAverage;
 import wompi.echidna.misc.VelocityContainer;
-import wompi.echidna.misc.painter.PaintRobotPath;
 import wompi.echidna.misc.painter.PaintSegmentDiagramm;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
+import wompi.paint.PaintRobotPath;
 import wompi.wallaby.WallabyPainter;
 
 public class Lyrebird extends AdvancedRobot

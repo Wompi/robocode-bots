@@ -5,7 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
 import wompi.numbat.misc.NumbatBattleField;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class PaintCenterSegments
 {

@@ -16,7 +16,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class DebugPointLists
 {

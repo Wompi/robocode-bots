@@ -25,8 +25,8 @@ import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.SimpleAverage;
 import wompi.echidna.target.ATarget;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class RadarPreciseAngle extends ARadar

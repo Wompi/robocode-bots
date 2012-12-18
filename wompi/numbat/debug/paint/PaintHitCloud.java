@@ -17,7 +17,7 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
 import robocode.HitByBulletEvent;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class PaintHitCloud
 {

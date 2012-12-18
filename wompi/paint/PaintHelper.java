@@ -9,14 +9,13 @@
  * Contributors:
  *     Wompi - initial API and implementation
  ******************************************************************************/
-package wompi.wallaby;
+package wompi.paint;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
-import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 
@@ -46,20 +45,6 @@ public class PaintHelper
 			g2.fillArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
 		else
 			g2.drawArc(x, y, r2, r2, (int) Math.toDegrees(startAngle), (int) Math.toDegrees(arcAngle));
-	}
-
-	public static GeneralPath addPathSegment(GeneralPath path, Point2D point)
-	{
-		if (path == null)
-		{
-			path = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 2000);
-			path.moveTo(point.getX(), point.getY());
-		}
-		else
-		{
-			path.lineTo(point.getX(), point.getY());
-		}
-		return path;
 	}
 
 	public static void drawLine(Line2D line, Graphics2D g, Color color)

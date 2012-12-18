@@ -33,11 +33,11 @@ import robocode.StatusEvent;
 import robocode.util.Utils;
 import wompi.numbat.debug.DebugBot;
 import wompi.numbat.debug.DebugGunProperties;
+import wompi.paint.PaintHelper;
 import wompi.paint.WompiSimPaint;
 import wompi.paint.WompiSimPaint.WSimData;
 import wompi.robomath.RobotMath;
 import wompi.teststuff.WompiSim;
-import wompi.wallaby.PaintHelper;
 
 public class Irukandji extends AdvancedRobot
 {

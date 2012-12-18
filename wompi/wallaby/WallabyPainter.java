@@ -28,6 +28,7 @@ import robocode.Rules;
 import robocode.util.Utils;
 import wompi.echidna.gun.fire.AFire;
 import wompi.echidna.target.ATarget;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
 
 public final class WallabyPainter
@@ -45,7 +46,7 @@ public final class WallabyPainter
 
 	public static void drawCenterPos(Graphics2D g, Point2D center, double radius)
 	{
-		PaintHelper.drawArc(center, radius, 0.0, PaintHelper.PI_CIRCLE, false, g, PaintHelper.whiteTrans);  // kreis center->maxradius
+		PaintHelper.drawArc(center, radius, 0.0, PaintHelper.PI_CIRCLE, false, g, PaintHelper.whiteTrans); // kreis center->maxradius
 	}
 
 	public static void drawAngleLine(Graphics2D g, Point2D center, double angle, double distance, Color color)
@@ -78,7 +79,8 @@ public final class WallabyPainter
 				if (enemy != target)
 				{
 					double dist = Point2D.distance(enemy.getX(), enemy.getY(), target.getX(), target.getY());
-					if (minPoint == null || dist < Point2D.distance(enemy.getX(), enemy.getY(), minPoint.getX(), minPoint.getY()))
+					if (minPoint == null
+							|| dist < Point2D.distance(enemy.getX(), enemy.getY(), minPoint.getX(), minPoint.getY()))
 					{
 						minPoint = new Point2D.Double(target.getX(), target.getY());
 					}
@@ -110,7 +112,8 @@ public final class WallabyPainter
 		}
 	}
 
-	public static void drawSegmentCountField(Graphics2D g, SegmentedCountField dangerField, Point2D robotPos, SegmentPoint savePoint)
+	public static void drawSegmentCountField(Graphics2D g, SegmentedCountField dangerField, Point2D robotPos,
+			SegmentPoint savePoint)
 	{
 
 		double max = (savePoint != null) ? savePoint.dangerCount : 0;
@@ -196,7 +199,8 @@ public final class WallabyPainter
 			{
 				Point2D firePoint = entry.getValue();
 				Point2D targetPos = new Point2D.Double(target.x, target.y);
-				PaintHelper.drawArc(firePoint, firePoint.distance(targetPos), 0, PaintHelper.PI_CIRCLE, false, g, PaintHelper.whiteTrans);
+				PaintHelper.drawArc(firePoint, firePoint.distance(targetPos), 0, PaintHelper.PI_CIRCLE, false, g,
+						PaintHelper.whiteTrans);
 				PaintHelper.drawPoint(firePoint, Color.PINK, g, 4);
 			}
 			// System.out.format("flying[] heading %3.2f bullet: %s\n",entry.getKey().getHeading(),entry.getKey().toString());
@@ -219,25 +223,17 @@ public final class WallabyPainter
 
 		g.setColor(Color.GRAY);
 		g.setFont(PaintHelper.myFont);
-		g.drawString(String.format("BP: %3.2f BT: %d max: %d min: %d ", bPower, bTurns, maxBTurns, minBTurns), showX, showY - count++);
-		g.drawString(String.format("D: %3.2f V: %3.2f\n", target.getDistance(), target.getVelocity()), showX,
-				showY - count++ * PaintHelper.myFont.getSize());
+		g.drawString(String.format("BP: %3.2f BT: %d max: %d min: %d ", bPower, bTurns, maxBTurns, minBTurns), showX,
+				showY - count++);
+		g.drawString(String.format("D: %3.2f V: %3.2f\n", target.getDistance(), target.getVelocity()), showX, showY
+				- count++ * PaintHelper.myFont.getSize());
 		g.drawString(String.format("N: %s\n", target.getName()), showX, showY - count++ * PaintHelper.myFont.getSize());
-		g.drawString(String.format("V: %3.2f avg: %3.2f", target.getVelocity(), 0D), showX, showY - count++ * PaintHelper.myFont.getSize());
+		g.drawString(String.format("V: %3.2f avg: %3.2f", target.getVelocity(), 0D), showX, showY - count++
+				* PaintHelper.myFont.getSize());
 		// g.drawString(String.format("LC:%d LD:%d",target.stats.lastChange,target.stats.lastDir),showX,showY-count++*PaintHelper.myFont.getSize());
 		// g.drawString(String.format("D: %d %d %d ",target.stats.dirs[0],target.stats.dirs[1],target.stats.dirs[2]),showX,showY-count++*PaintHelper.myFont.getSize());
 		// g.drawString(String.format("C: %d %d %d ",target.stats.dirCount[0],target.stats.dirCount[1],target.stats.dirCount[2]),showX,showY-count++*PaintHelper.myFont.getSize());
 		// g.drawString(String.format("A: %d %d %d ",target.stats.dirs[0]/target.stats.dirCount[0],target.stats.dirs[1]/target.stats.dirCount[1],target.stats.dirs[2]/target.stats.dirCount[2]),showX,showY-count++*PaintHelper.myFont.getSize());
-	}
-
-	public static void drawTargetPath(Graphics2D g, Point2D targetPos, AdvancedRobot myRobot)
-	{
-		g.setColor(Color.YELLOW);
-		if (myRobot.getTime() % 5 == 0)
-		{
-			targetPath = PaintHelper.addPathSegment(targetPath, targetPos);
-		}
-		if (targetPath != null) g.draw(targetPath);
 	}
 
 	public static void drawWallStick(Graphics2D g, double heading, double stickLength, double rX, double rY)
@@ -347,16 +343,6 @@ public final class WallabyPainter
 
 	}
 
-	public static void drawRobotPath(Graphics2D g, Point2D robotPos, AdvancedRobot myRobot)
-	{
-		g.setColor(Color.GREEN);
-		if (myRobot.getTime() % 5 == 0)
-		{
-			robotPath = PaintHelper.addPathSegment(robotPath, robotPos);
-		}
-		if (robotPath != null) g.draw(robotPath);						// robot path line
-	}
-
 	public static void drawSimpleShapes(Graphics2D g)
 	{
 		g.setColor(PaintHelper.whiteTrans);
@@ -370,17 +356,20 @@ public final class WallabyPainter
 
 		g.setColor(Color.RED);
 		double percent = bulletPower / 3.0;
-		g.fill(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 4 * y, x * percent, y));
+		g.fill(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 4 * y, x
+				* percent, y));
 		g.setColor(Color.WHITE);
-		g.draw(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 4 * y, x, y));
-		PaintHelper.drawString(g, String.format("%1.2f", bulletPower), (robot.getBattleFieldWidth() / 2.0 + x / 2.0 + 4.0),
-				robot.getBattleFieldHeight() - 4 * y, Color.WHITE);
+		g.draw(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 4 * y, x,
+				y));
+		PaintHelper.drawString(g, String.format("%1.2f", bulletPower),
+				(robot.getBattleFieldWidth() / 2.0 + x / 2.0 + 4.0), robot.getBattleFieldHeight() - 4 * y, Color.WHITE);
 	}
 
 	public static void drawVelocity(Graphics2D g, double velocity)
 	{
 		double percent = velocity / Rules.MAX_VELOCITY;
-		if (percent > 0) g.setColor(Color.RED);
+		if (percent > 0)
+			g.setColor(Color.RED);
 		else
 		{
 			percent = -percent;
@@ -398,11 +387,15 @@ public final class WallabyPainter
 		double x = robot.getBattleFieldWidth() * 0.1;
 		double y = robot.getBattleFieldHeight() * 0.025;
 
-		if (gunHeat >= 0.5) g.setColor(Color.RED);
-		else g.setColor(Color.YELLOW);
-		g.fill(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 2 * y, x * percent, y));
+		if (gunHeat >= 0.5)
+			g.setColor(Color.RED);
+		else
+			g.setColor(Color.YELLOW);
+		g.fill(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 2 * y, x
+				* percent, y));
 		g.setColor(Color.WHITE);
-		g.draw(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 2 * y, x, y));
+		g.draw(new Rectangle2D.Double((robot.getBattleFieldWidth() - x) / 2.0, robot.getBattleFieldHeight() - 2 * y, x,
+				y));
 
 	}
 
@@ -437,21 +430,23 @@ public final class WallabyPainter
 		// drawLine(robotPos, forwardPoint, g, whiteTrans); // linie robot->forwardPoint
 	}
 
-	public static void drawSavePoint(Graphics2D g, ArrayList<Point2D> savePoints, Point2D targetPos, Point2D robotPos, double maxRadius)
+	public static void drawSavePoint(Graphics2D g, ArrayList<Point2D> savePoints, Point2D targetPos, Point2D robotPos,
+			double maxRadius)
 	{
 		PaintHelper.drawPoint(targetPos, Color.WHITE, g, 2);
 
 		for (Point2D savePos : savePoints)
 		{
-			PaintHelper.drawLine(targetPos, savePos, g, PaintHelper.whiteTrans);			// linie center->savepoint
-			double aCS = Math.atan2(savePos.getX() - targetPos.getX(), savePos.getY() - targetPos.getY());   // polarwinkle cenetr->savepoint
-			double aCR = Math.atan2(robotPos.getX() - targetPos.getX(), robotPos.getY() - targetPos.getY());  // polarwinkel center->robot
+			PaintHelper.drawLine(targetPos, savePos, g, PaintHelper.whiteTrans); // linie center->savepoint
+			double aCS = Math.atan2(savePos.getX() - targetPos.getX(), savePos.getY() - targetPos.getY()); // polarwinkle cenetr->savepoint
+			double aCR = Math.atan2(robotPos.getX() - targetPos.getX(), robotPos.getY() - targetPos.getY()); // polarwinkel center->robot
 			PaintHelper.drawPoint(savePos, Color.RED, g, 10);
-			PaintHelper.drawArc(targetPos, maxRadius, 0, aCS, true, g, new Color(0x50, 0x50, 0x50, 0x50));	 // difference winkel robotHead->forward
-			PaintHelper.drawArc(targetPos, maxRadius, 0, aCR, true, g, new Color(0x50, 0x50, 0x50, 0x50));	 // difference winkel robotHead->forward
-			PaintHelper.drawArc(targetPos, maxRadius, aCS, Utils.normalRelativeAngle(aCR - aCS), true, g, new Color(0x00, 0x50, 0x00, 0x50));	 // difference
-																																				// winkel
-																																				// robotHead->forward
+			PaintHelper.drawArc(targetPos, maxRadius, 0, aCS, true, g, new Color(0x50, 0x50, 0x50, 0x50)); // difference winkel robotHead->forward
+			PaintHelper.drawArc(targetPos, maxRadius, 0, aCR, true, g, new Color(0x50, 0x50, 0x50, 0x50)); // difference winkel robotHead->forward
+			PaintHelper.drawArc(targetPos, maxRadius, aCS, Utils.normalRelativeAngle(aCR - aCS), true, g, new Color(
+					0x00, 0x50, 0x00, 0x50)); // difference
+												// winkel
+												// robotHead->forward
 		}
 	}
 

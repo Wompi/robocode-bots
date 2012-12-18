@@ -21,7 +21,7 @@ import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import wompi.echidna.misc.painter.PaintTargetSquare;
 import wompi.echidna.target.ATarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class MoveStopAndGo extends AMovement
 {

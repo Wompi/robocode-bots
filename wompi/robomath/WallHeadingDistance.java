@@ -1,31 +1,28 @@
-package wompi.dingo;
+package wompi.robomath;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
+import robocode.AdvancedRobot;
 import robocode.util.Utils;
-import wompi.wallaby.PaintHelper;
 
-public class DingoWallDistance_Heading
+public class WallHeadingDistance
 {
 	private static final double	PI_90	= Math.PI / 2.0;
 	private static final double	PI_180	= Math.PI;
-	private static final double	PI_360	= Math.PI * 2.0;
 
-	private final double		bFieldH;
-	private final double		bFieldW;
-	private final double		bBorder;
+	private double				bFieldH;
+	private double				bFieldW;
+	private double				bBorder;
 
-	private final double		ex1;
-	private final double		ex2;
-	private final double		ex3;
-	private final double		ex4;
+	private double				ex1;
+	private double				ex2;
+	private double				ex3;
+	private double				ex4;
 
-	private final double		ey1;
-	private final double		ey2;
-	private final double		ey3;
-	private final double		ey4;
+	private double				ey1;
+	private double				ey2;
+	private double				ey3;
+	private double				ey4;
 
 	private double				startX;
 	private double				startY;
@@ -35,15 +32,20 @@ public class DingoWallDistance_Heading
 	private double				dy1;
 	private double				dy2;
 
-	// debug
-	private double				rx;
-	private double				ry;
+	private double				forwardDistance;
+	private double				backwardDistance;
+	private double				eHeading;
 
-	public DingoWallDistance_Heading(double battleFieldH, double battleFieldW, double borderDelta)
+	public WallHeadingDistance()
 	{
-		bFieldH = battleFieldH;
-		bFieldW = battleFieldW;
-		bBorder = borderDelta;
+		eHeading = Double.NaN;
+	}
+
+	public void onInit(AdvancedRobot bot, double fieldBorder)
+	{
+		bFieldH = bot.getBattleFieldHeight();
+		bFieldW = bot.getBattleFieldWidth();
+		bBorder = fieldBorder;
 
 		ex1 = ex2 = bFieldW - bBorder;
 		ex3 = ex4 = bBorder;
@@ -62,7 +64,50 @@ public class DingoWallDistance_Heading
 		dx1 = bFieldW - startX - bBorder;
 	}
 
-	public double getDistance(double heading)
+	public void setHeading(double heading)
+	{
+		eHeading = heading;
+		forwardDistance = getDistance(heading);
+		backwardDistance = getDistance(heading + PI_180);
+	}
+
+	public double getForwardHeading()
+	{
+		if (Double.isNaN(eHeading))
+		{
+			System.out.format("ERROR: no heading set for WallHeadingDistance\n");
+			return 0;
+		}
+		return Utils.normalRelativeAngle(eHeading);
+	}
+
+	public double getBackWardHeading()
+	{
+		if (Double.isNaN(eHeading))
+		{
+			System.out.format("ERROR: no heading set for WallHeadingDistance\n");
+			return 0;
+		}
+		return Utils.normalRelativeAngle(eHeading + PI_180);
+	}
+
+	public double getForwardDistance()
+	{
+		return forwardDistance;
+	}
+
+	public double getBackwardDistance()
+	{
+		return backwardDistance;
+	}
+
+	// mostly for debug and painting so it might be OK with Point2D
+	public Point2D getStartPoint()
+	{
+		return new Point2D.Double(startX, startY);
+	}
+
+	private double getDistance(double heading)
 	{
 		double result = 0;
 		double h = Utils.normalRelativeAngle(heading);
@@ -165,33 +210,9 @@ public class DingoWallDistance_Heading
 		}
 
 		// debug maybe
-		rx = startX + Math.sin(h) * result;
-		ry = startY + Math.cos(h) * result;
+//		rx = startX + Math.sin(h) * result;
+//		ry = startY + Math.cos(h) * result;
 
 		return result;
-	}
-
-	public void onPaint(Graphics2D g, Color color)
-	{
-		Point2D startPos = new Point2D.Double(startX, startY);
-		Point2D borderPos = new Point2D.Double(rx, ry);
-		PaintHelper.drawLine(startPos, borderPos, g, color);
-
-//		PaintHelper.drawArc(bP, 100, 0, a1, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 90, 0, a2, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 80, 0, a3, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 70, 0, a4, false, g, Color.YELLOW);
-//		PaintHelper.drawArc(bP, 50, 0, h1, false, g, Color.RED);
-//
-		Point2D e1Pos = new Point2D.Double(ex1, ey1);
-		Point2D e2Pos = new Point2D.Double(ex2, ey2);
-		Point2D e3Pos = new Point2D.Double(ex3, ey3);
-		Point2D e4Pos = new Point2D.Double(ex4, ey4);
-
-		PaintHelper.drawLine(startPos, e1Pos, g, Color.DARK_GRAY.darker());
-		PaintHelper.drawLine(startPos, e2Pos, g, Color.DARK_GRAY.darker());
-		PaintHelper.drawLine(startPos, e3Pos, g, Color.DARK_GRAY.darker());
-		PaintHelper.drawLine(startPos, e4Pos, g, Color.DARK_GRAY.darker());
-
 	}
 }

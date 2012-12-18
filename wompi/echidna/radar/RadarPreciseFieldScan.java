@@ -22,7 +22,7 @@ import robocode.Rules;
 import robocode.StatusEvent;
 import robocode.util.Utils;
 import wompi.echidna.target.ATarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class RadarPreciseFieldScan extends ARadar

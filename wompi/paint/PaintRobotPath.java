@@ -9,7 +9,7 @@
  * Contributors:
  *     Wompi - initial API and implementation
  ******************************************************************************/
-package wompi.echidna.misc.painter;
+package wompi.paint;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -23,7 +23,7 @@ public class PaintRobotPath
 
 	public static void onPaint(Graphics2D g, String botName, long time, double xRobot, double yRobot, Color pathColor)
 	{
-		if (lastTime > time) pathMap.clear();  // new battle reset
+		if (lastTime > time) pathMap.clear(); // new battle reset
 		lastTime = time;
 
 		PathHelper myPath = pathMap.get(botName);
@@ -37,7 +37,7 @@ public class PaintRobotPath
 			pathMap.put(botName, myPath);
 		}
 
-		if (time - myPath.rTime >= 5)  // thin out the path
+		if (time - myPath.rTime >= 5) // thin out the path
 		{
 			myPath.rPath.lineTo(xRobot, yRobot);
 			myPath.rTime = time;
@@ -45,7 +45,7 @@ public class PaintRobotPath
 
 		for (PathHelper helper : pathMap.values())
 		{
-			if ((time - helper.rTime) >= 30) continue;   // dead robots fade away after 30 turns
+			if ((time - helper.rTime) >= 30) continue; // dead robots fade away after 30 turns
 			g.setColor(helper.rColor);
 			g.draw(helper.rPath);
 		}

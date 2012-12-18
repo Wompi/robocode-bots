@@ -19,7 +19,7 @@ import robocode.Bullet;
 import robocode.Rules;
 import wompi.echidna.misc.painter.PaintBulletLine;
 import wompi.echidna.target.ATarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class FireMaxShot extends AFire

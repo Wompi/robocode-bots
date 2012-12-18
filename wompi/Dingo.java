@@ -19,8 +19,11 @@ import wompi.dingo.DingoInactivity;
 import wompi.dingo.DingoPaint;
 import wompi.dingo.DingoRadar;
 import wompi.dingo.DingoStartSearch;
-import wompi.dingo.DingoWallDistance_Heading;
 import wompi.dingo.paint.DingoBulletPaint;
+import wompi.paint.PaintEscapePath;
+import wompi.paint.PaintMaxEscapeAngle;
+import wompi.paint.PaintWallHeadingDistance;
+import wompi.robomath.WallHeadingDistance;
 
 public class Dingo extends AdvancedRobot
 {
@@ -29,7 +32,7 @@ public class Dingo extends AdvancedRobot
 	public static final double				PI_360			= Math.PI * 2.0;
 	public static final double				PI_90			= Math.PI / 2.0;
 	public static final double				PI				= Math.PI;
-	public final static double				BORDER			= 18.0;
+	public final static double				BORDER			= 17.99;
 	private final static double				INF				= Double.POSITIVE_INFINITY;
 
 	private DingoStartSearch				mySearch;
@@ -38,12 +41,15 @@ public class Dingo extends AdvancedRobot
 	private final DingoFireDetection		myFireDetector;
 	private final DingoInactivity			myInactivity;
 	private final DingoEnergyDrop			myEnergyDrop;
-	private final DingoWallDistance_Heading	myWallDistance;
+	private final WallHeadingDistance		myWallDistance;
 
 	// debug visualization
+	private final PaintWallHeadingDistance	myPaintWallDistance;
 	private DingoPaint						myPaint;
 	private DingoBasicPaint					myBasics;
 	private final DingoBulletPaint			myBulletPaint;
+	private final PaintMaxEscapeAngle		myPaintMaxEscape;
+	private final PaintEscapePath			myPaintEscapePath;
 
 	private long							lastScan;
 
@@ -61,10 +67,14 @@ public class Dingo extends AdvancedRobot
 	public Dingo()
 	{
 		myFireDetector = new DingoFireDetection();
-		myBulletPaint = new DingoBulletPaint();
 		myInactivity = new DingoInactivity();
 		myEnergyDrop = new DingoEnergyDrop();
-		myWallDistance = new DingoWallDistance_Heading(600.0, 800.0, BORDER);
+		myWallDistance = new WallHeadingDistance();
+
+		myBulletPaint = new DingoBulletPaint();
+		myPaintWallDistance = new PaintWallHeadingDistance(myWallDistance);
+		myPaintMaxEscape = new PaintMaxEscapeAngle();
+		myPaintEscapePath = new PaintEscapePath();
 	}
 
 	@Override
@@ -73,21 +83,27 @@ public class Dingo extends AdvancedRobot
 		if (e.getTime() > 0) myPaint.registerStatus(e.getStatus());
 		myEnergyDrop.onStatus(e);
 		myFireDetector.onStatus(e);
+
 		myBulletPaint.onStatus(e);
+		myPaintMaxEscape.onStatus(e);
+		myPaintEscapePath.onStatus(e);
 		if (wallHitIndex >= 0) wallHitIndex++;
 	}
 
 	@Override
 	public void run()
 	{
-		System.out.format("[%d] gunheat=%3.2f\n", getTime(), getGunHeat());
 		myFireDetector.onInit(this);
 		myEnergyDrop.onInit(this);
-
+		myWallDistance.onInit(this, BORDER);
 		mySearch = new DingoStartSearch();
 		myRadar = new DingoRadar();
+
 		myPaint = new DingoPaint(this);
+		myPaintMaxEscape.onInit(this, BORDER);
+		myPaintEscapePath.onInit(this, BORDER);
 		myBasics = new DingoBasicPaint(this);
+
 		setAllColors(Color.ORANGE);
 
 		eEnergy = getEnergy();
@@ -173,6 +189,15 @@ public class Dingo extends AdvancedRobot
 //		if (dScan > 1) System.out.format("[%04d] scan - %d\n", e.getTime(), dScan);
 //		lastScan = e.getTime();
 
+		System.out.format("[%04d] bearing=%3.10f \n", getTime(), e.getBearing());
+
+		double bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
+
+		myPaintMaxEscape.setBulletSpeed(bPower);
+		myPaintMaxEscape.onScannedRobot(e);
+		myPaintEscapePath.setBulletSpeed(bPower);
+		myPaintEscapePath.onScannedRobot(e);
+
 		myFireDetector.onScannedRobot(e);
 		myRadar.onScannedRobot(e.getTime());
 		eAbsBearing = getHeadingRadians() + e.getBearingRadians();
@@ -188,14 +213,24 @@ public class Dingo extends AdvancedRobot
 		setTurnGunRightRadians(Utils.normalRelativeAngle(eAbsBearing - getGunHeadingRadians()));
 	}
 
+	private void onMove0()
+	{
+		if (getTime() < 40)
+			setAhead(Double.MAX_VALUE);
+		else
+			setBack(Double.MAX_VALUE);
+		setTurnRight(90);
+	}
+
 	private void onMove1()
 	{
 		if (Utils.isNear(getDistanceRemaining(), 0.0))
 		{
-			myWallDistance.setStartPoint(getX(), getY());
 			double heading = getHeadingRadians();
-			double dForward = myWallDistance.getDistance(heading);
-			double dBackward = myWallDistance.getDistance(heading + Math.PI);
+			myWallDistance.setStartPoint(getX(), getY());
+			myWallDistance.setHeading(heading);
+			double dForward = myWallDistance.getForwardDistance();
+			double dBackward = myWallDistance.getBackwardDistance();
 
 			double dir = 1;
 			double dDist = dForward;
@@ -249,11 +284,17 @@ public class Dingo extends AdvancedRobot
 	@Override
 	public void onPaint(Graphics2D g)
 	{
-		//myPaint.onPaint(g);
-		myBasics.onPaint(g);
-		myBasics.edgeDiagonals(g, getX(), getY(), getHeadingRadians(), Color.GREEN);
-		myBasics.edgeDiagonals(g, xg, yg, eHeading, Color.BLUE);
+//		PaintRobotPath.onPaint(g, "", getTime(), getX(), getY(), Color.YELLOW);
 
+//		myPaint.onPaint(g);
+//		myBasics.onPaint(g);
+//		myBasics.edgeDiagonals(g, getX(), getY(), getHeadingRadians(), Color.GREEN);
+//		myBasics.edgeDiagonals(g, xg, yg, eHeading, Color.BLUE);
+//
+
+		myPaintWallDistance.onPaint(g);
+		myPaintMaxEscape.onPaint(g);
+		myPaintEscapePath.onPaint(g);
 		myBulletPaint.onPaint(g);
 	}
 }

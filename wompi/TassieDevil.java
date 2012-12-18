@@ -34,9 +34,9 @@ import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.DebugPointLists;
 import wompi.echidna.misc.painter.PaintMinRiskPoints;
-import wompi.echidna.misc.painter.PaintRobotPath;
+import wompi.paint.PaintHelper;
+import wompi.paint.PaintRobotPath;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 /**
  * What the ... is a TassieDevil? (See: http://en.wikipedia.org/wiki/Tasmanian_devil)

@@ -16,7 +16,7 @@ import wompi.numbat.gun.fire.ANumbatFire;
 import wompi.numbat.gun.misc.NumbatRelativePoint;
 import wompi.numbat.target.ITargetManager;
 import wompi.numbat.target.NumbatTarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 
 public class NumbatGunSquare extends ANumbatGun
 {

@@ -24,8 +24,8 @@ import robocode.Rules;
 import robocode.util.Utils;
 import wompi.echidna.target.ATarget;
 import wompi.echidna.target.FunctionsTarget;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 public class MoveAntigravBoye extends AMovement
 {

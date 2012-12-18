@@ -17,8 +17,8 @@ import java.awt.geom.Point2D;
 
 import robocode.Bullet;
 import robocode.Rules;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 public class PaintBulletLine
 {

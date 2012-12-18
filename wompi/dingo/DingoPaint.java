@@ -9,12 +9,12 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.util.Utils;
 import wompi.Dingo;
+import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
-import wompi.wallaby.PaintHelper;
 
 public class DingoPaint
 {
-	private static final double	DELTA_P	= Math.PI / 36.0;	// 36 = 5 degree 
+	private static final double	DELTA_P	= Math.PI / 9.0;	// 36 = 5 degree 
 
 	private final AdvancedRobot	myBot;
 
@@ -32,7 +32,8 @@ public class DingoPaint
 		if (mPoint != null)
 		{
 			PaintHelper.drawArc(getMoveStartPoint(), Dingo.DIST, 0, Dingo.PI_360, false, g, Color.GRAY);
-			currentMoveSim(g);
+			currentMoveSim(g, 1, Color.RED);
+			currentMoveSim(g, -1, Color.GREEN);
 			currentMovePoint(g);
 		}
 	}
@@ -40,6 +41,8 @@ public class DingoPaint
 	public void registerStatus(RobotStatus status)
 	{
 		myStatus = status;
+		moveStartStatus = myStatus;
+		mPoint = new Point2D.Double(status.getX(), status.getY());
 	}
 
 	public void registerMovePoint(double angle, double dist)
@@ -57,7 +60,7 @@ public class DingoPaint
 		}
 	}
 
-	private void currentMoveSim(Graphics2D g)
+	private void currentMoveSim(Graphics2D g, double dir, Color color)
 	{
 		if (mPoint == null) return;
 		double a = 0;
@@ -69,11 +72,10 @@ public class DingoPaint
 			double x = getMoveStartPoint().getX();
 			double y = getMoveStartPoint().getY();
 
-			Point2D pg = RobotMath.calculatePolarPoint(Utils.normalAbsoluteAngle(a + h), Dingo.DIST,
-					getMoveStartPoint());
+			Point2D pg = RobotMath.calculatePolarPoint(Utils.normalAbsoluteAngle(a), 400, getMoveStartPoint());
 
-			double d = 1;
-			int i = 0;
+			//System.out.format("pg=%s a=%3.2f \n", pg.toString(), Math.toDegrees(a));
+			double d = dir;
 			do
 			{
 				if (v * d < 0) d *= 2;
@@ -87,9 +89,9 @@ public class DingoPaint
 				x += Math.sin(h) * v;
 				y += Math.cos(h) * v;
 
-				if (getMoveStartPoint().distance(x, y) > Dingo.DIST) break;
+				if (getMoveStartPoint().distance(x, y) > 500) break;
 
-				PaintHelper.drawPoint(new Point2D.Double(x, y), Color.RED, g, 1);
+				PaintHelper.drawPoint(new Point2D.Double(x, y), color, g, 1);
 			}
 			while (true);
 

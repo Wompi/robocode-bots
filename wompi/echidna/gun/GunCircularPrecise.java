@@ -23,7 +23,7 @@ import wompi.echidna.gun.fire.AFire;
 import wompi.echidna.misc.DebugPointLists;
 import wompi.echidna.target.ATarget;
 import wompi.echidna.target.FunctionsTarget;
-import wompi.wallaby.PaintHelper;
+import wompi.paint.PaintHelper;
 import wompi.wallaby.WallabyPainter;
 
 public class GunCircularPrecise extends AGun
