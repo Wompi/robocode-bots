@@ -87,6 +87,8 @@ public class Dingo extends AdvancedRobot
 		myBulletPaint.onStatus(e);
 		myPaintMaxEscape.onStatus(e);
 		myPaintEscapePath.onStatus(e);
+
+		myPaint.registerStatus(e.getStatus());
 		if (wallHitIndex >= 0) wallHitIndex++;
 	}
 

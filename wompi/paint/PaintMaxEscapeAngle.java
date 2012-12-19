@@ -14,11 +14,11 @@ import wompi.robomath.WallHeadingDistance;
 
 public class PaintMaxEscapeAngle
 {
-	private final WallHeadingDistance	myWallDistance;
-	private RobotStatus					myStatus;
-	private ScannedRobotEvent			myRobotEvent;
-	private RobotStatus					myScanStatus;
-	private double						bSpeed;
+	final WallHeadingDistance	myWallDistance;
+	RobotStatus					myStatus;
+	ScannedRobotEvent			myRobotEvent;
+	RobotStatus					myScanStatus;
+	double						bSpeed;
 
 	public PaintMaxEscapeAngle()
 	{
@@ -58,16 +58,29 @@ public class PaintMaxEscapeAngle
 		double maxEscAngle = RobotMath.getSimpleEscapeAngle(bSpeed);
 
 		double absBearing = myScanStatus.getHeadingRadians() + myRobotEvent.getBearingRadians();
-		Point2D start = new Point2D.Double(myScanStatus.getX(), myScanStatus.getY());
+		Point2D me = myWallDistance.getStartPoint();
+		double x = myStatus.getX() + Math.sin(absBearing) * myRobotEvent.getDistance();
+		double y = myStatus.getY() + Math.cos(absBearing) * myRobotEvent.getDistance();
+		Point2D enemy = new Point2D.Double(x, y);
 
 		myWallDistance.setHeading(absBearing + maxEscAngle);
 		Point2D end0 = RobotMath.calculatePolarPoint(myWallDistance.getForwardHeading(),
-				myWallDistance.getForwardDistance(), start);
+				myWallDistance.getForwardDistance(), me);
 		myWallDistance.setHeading(absBearing - maxEscAngle);
 		Point2D end1 = RobotMath.calculatePolarPoint(myWallDistance.getForwardHeading(),
-				myWallDistance.getForwardDistance(), start);
+				myWallDistance.getForwardDistance(), me);
 
-		PaintHelper.drawLine(start, end0, g, Color.BLUE);
-		PaintHelper.drawLine(start, end1, g, Color.BLUE);
+		double distToPerp = Math.sin(maxEscAngle) * myRobotEvent.getDistance();
+		double angleToPerp = (Math.PI / 2.0) - maxEscAngle;
+		double eAbsBearing = absBearing - Math.PI;
+
+		Point2D perpPointCW = RobotMath.calculatePolarPoint(eAbsBearing + angleToPerp, distToPerp, enemy);
+		Point2D perpPointCCW = RobotMath.calculatePolarPoint(eAbsBearing - angleToPerp, distToPerp, enemy);
+
+		PaintHelper.drawLine(enemy, perpPointCW, g, Color.BLUE);
+		PaintHelper.drawLine(enemy, perpPointCCW, g, Color.BLUE);
+		PaintHelper.drawLine(me, enemy, g, Color.DARK_GRAY);
+		PaintHelper.drawLine(me, end0, g, Color.BLUE);
+		PaintHelper.drawLine(me, end1, g, Color.BLUE);
 	}
 }
