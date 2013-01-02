@@ -26,7 +26,8 @@ public class PaintMinRiskPoints
 	double					minRisk		= Double.MAX_VALUE;
 	long					lastTime;
 
-	public void registerRiskPoint(long time, double riskX, double riskY, double rate, double rx, double ry, double paintDist)
+	public void registerRiskPoint(long time, double riskX, double riskY, double rate, double rx, double ry,
+			double paintDist)
 	{
 		if (time != lastTime)
 		{
@@ -41,12 +42,13 @@ public class PaintMinRiskPoints
 		Point2D botPos = new Point2D.Double(rx, ry);
 		Point2D riskPos = new Point2D.Double(riskX, riskY);
 
-		double angle = Math.atan2(riskPos.getX() - botPos.getX(), riskPos.getY() - botPos.getY());
-
-		double _x = botPos.getX() + Math.sin(angle) * paintDist;
-		double _y = botPos.getY() + Math.cos(angle) * paintDist;
-
-		Point2D paintPoint = new Point2D.Double(_x, _y);
+//		double angle = Math.atan2(riskPos.getX() - botPos.getX(), riskPos.getY() - botPos.getY());
+//
+//		double _x = botPos.getX() + Math.sin(angle) * paintDist;
+//		double _y = botPos.getY() + Math.cos(angle) * paintDist;
+//
+//		Point2D paintPoint = new Point2D.Double(_x, _y);
+		Point2D paintPoint = riskPos;
 
 		RiskPoint rP = new RiskPoint();
 		rP.riskPoint = paintPoint;
@@ -92,7 +94,8 @@ public class PaintMinRiskPoints
 				g2.setColor(color);
 				Font myFont = new Font("Dialog", Font.PLAIN, 10);
 				g2.setFont(myFont);
-				g2.drawString(String.format("%3.2f", riskPoint.risk), (int) riskPoint.riskPoint.getX() - 10, (int) riskPoint.riskPoint.getY() - 5);
+				g2.drawString(String.format("%3.2f", riskPoint.risk), (int) riskPoint.riskPoint.getX() - 10,
+						(int) riskPoint.riskPoint.getY() - 5);
 			}
 		}
 	}

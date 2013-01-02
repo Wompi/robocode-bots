@@ -21,6 +21,7 @@ import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.echidna.misc.DebugPointLists;
 import wompi.numbat.gun.fire.ANumbatFire;
 import wompi.numbat.gun.misc.INumbatTick;
 import wompi.numbat.gun.misc.NumbatMultiHolder;
@@ -32,13 +33,13 @@ import wompi.robomath.RobotMath;
 
 public class NumbatSTGun extends ANumbatGun
 {
-	private final static double	WZ						= 17.9999;
-	public final static int		DEFAULT_PATTERN_LENGTH	= 30;
-	public final static double	DEAULT_HALF_BOTWEIGHT	= 18;
-	private static Rectangle2D	B_FIELD;
+	private final static double		WZ						= 17.9999;
+	public final static int			DEFAULT_PATTERN_LENGTH	= 30;
+	public final static double		DEAULT_HALF_BOTWEIGHT	= 18;
+	private static Rectangle2D		B_FIELD;
 
 	// debug
-	//private final DebugPointLists	debugPointList			= new DebugPointLists();
+	private final DebugPointLists	debugPointList			= new DebugPointLists();
 
 	public NumbatSTGun()
 	{}
@@ -46,7 +47,8 @@ public class NumbatSTGun extends ANumbatGun
 	@Override
 	public void init(RobotStatus status)
 	{
-		B_FIELD = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
+		B_FIELD = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ,
+				NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
 	}
 
 	@Override
@@ -65,7 +67,7 @@ public class NumbatSTGun extends ANumbatGun
 		long deltaScan = target.getCurrentScanDifference(status);
 		//System.out.format("[%d] deltaScan = %d \n", status.getTime(), deltaScan);
 
-		//debugPointList.reset();
+		debugPointList.reset();
 		//StringBuilder sDesire = new StringBuilder();
 		// long count = 0;
 
@@ -76,8 +78,8 @@ public class NumbatSTGun extends ANumbatGun
 		{
 			//System.out.format("[%d] NEW PATTERN %s\n", status.getTime(), "");
 			int count = 0;
-			for (double bDist = 0; (bDist - deltaScan * fire.getBulletSpeed()) < Point2D.distance(status.getX(), status.getY(), xg, yg); bDist += fire
-					.getBulletSpeed())
+			for (double bDist = 0; (bDist - deltaScan * fire.getBulletSpeed()) < Point2D.distance(status.getX(),
+					status.getY(), xg, yg); bDist += fire.getBulletSpeed())
 			{
 				int nextStep = 0;
 				int patternLength = Math.min(target.eMatchKeyLength, ePattern.length());
@@ -131,21 +133,25 @@ public class NumbatSTGun extends ANumbatGun
 
 				if (!B_FIELD.contains(xg, yg))
 				{
-					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W - DEAULT_HALF_BOTWEIGHT);
-					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H - DEAULT_HALF_BOTWEIGHT);
+					xg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, xg, NumbatBattleField.BATTLE_FIELD_W
+							- DEAULT_HALF_BOTWEIGHT);
+					yg = RobotMath.limit(DEAULT_HALF_BOTWEIGHT, yg, NumbatBattleField.BATTLE_FIELD_H
+							- DEAULT_HALF_BOTWEIGHT);
 					nextStep = NumbatSingleHolder.getEncodedID(headingDelta, 0);
-					//debugPointList.badPoints.add(new Point2D.Double(xg, yg));
+					debugPointList.badPoints.add(new Point2D.Double(xg, yg));
 				}
-				//else debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
+				else
+					debugPointList.goodPoints.add(new Point2D.Double(xg, yg));
 				ePattern.insert(0, (char) nextStep);
 				count++;
 				//sDesire.insert(0, (char) nextStep);
 			}
 		}
 		//TestPatternAccuracy.registerDesiredPattern(status.getTime(), sDesire);
-		//debugPointList.targetPoint = new Point2D.Double(xg, yg);
+		debugPointList.targetPoint = new Point2D.Double(xg, yg);
 
-		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY()) - status.getGunHeadingRadians());
+		gTurn = Utils.normalRelativeAngle(Math.atan2(xg - status.getX(), yg - status.getY())
+				- status.getGunHeadingRadians());
 
 	}
 
@@ -206,7 +212,8 @@ public class NumbatSTGun extends ANumbatGun
 		}
 	}
 
-	private void record(double deltaHead, double velocity, StringBuilder history, Map<Integer, INumbatTick> matchMap, int keylen, long time)
+	private void record(double deltaHead, double velocity, StringBuilder history, Map<Integer, INumbatTick> matchMap,
+			int keylen, long time)
 	{
 		int thisStep = NumbatSingleHolder.getEncodedID(deltaHead, velocity);
 
@@ -231,7 +238,8 @@ public class NumbatSTGun extends ANumbatGun
 				{
 					multiTick = new NumbatMultiHolder((NumbatSingleHolder) tick);
 				}
-				else multiTick = tick;
+				else
+					multiTick = tick;
 
 				//System.out.format("[%d] hash=%d ", time, pHash);
 				multiTick.addTick(deltaHead, velocity);
@@ -255,7 +263,7 @@ public class NumbatSTGun extends ANumbatGun
 	@Override
 	public void onPaint(Graphics2D g, RobotStatus status)
 	{
-		//debugPointList.onPaint(g);
+		debugPointList.onPaint(g);
 	}
 
 	@Override

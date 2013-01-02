@@ -27,19 +27,16 @@ import robocode.AdvancedRobot;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintEscapePath;
 import wompi.paint.PaintHelper;
 import wompi.teststuff.NatSim;
 
 /**
- * Development Notes:
- * - try score handling and don't switch targets if the current target has some
- * nice score bonus if finished of. This should gain some extra points
- * once in a while and maybe an overall APS increase.
- * - find something that can handle enemy wall hits
- * - find smooth angle decision to take the right angle from the vector
- * collection. I guess it is not every time the best decision to take the
- * most used angle
+ * Development Notes: - try score handling and don't switch targets if the current target has some nice score bonus if finished of. This should gain
+ * some extra points once in a while and maybe an overall APS increase. - find something that can handle enemy wall hits - find smooth angle decision
+ * to take the right angle from the vector collection. I guess it is not every time the best decision to take the most used angle
  * 
  * @author rschott
  */
@@ -86,6 +83,18 @@ public class Wombat extends AdvancedRobot
 
 	// debug
 	List<NatSim.PredictionStatus>			list;
+	PaintEscapePath							myPaintMaxEsc;
+
+	public Wombat()
+	{
+		myPaintMaxEsc = new PaintEscapePath();
+	}
+
+	@Override
+	public void onStatus(StatusEvent e)
+	{
+		myPaintMaxEsc.onStatus(e);
+	}
 
 	@Override
 	public void run()
@@ -95,6 +104,7 @@ public class Wombat extends AdvancedRobot
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		myPaintMaxEsc.onInit(this, 18);
 
 		for (WombatTarget target : allTargets.values())
 		{
@@ -102,7 +112,8 @@ public class Wombat extends AdvancedRobot
 		}
 
 		eRate = Double.POSITIVE_INFINITY;
-		B_FIELD_GUN = new Rectangle2D.Double(WZ_G, WZ_G, getBattleFieldWidth() - 2 * WZ_G, getBattleFieldHeight() - 2 * WZ_G);
+		B_FIELD_GUN = new Rectangle2D.Double(WZ_G, WZ_G, getBattleFieldWidth() - 2 * WZ_G, getBattleFieldHeight() - 2
+				* WZ_G);
 		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, getBattleFieldWidth() - 2 * WZ, getBattleFieldHeight() - 2 * WZ);
 
 		while (true)
@@ -138,13 +149,14 @@ public class Wombat extends AdvancedRobot
 			if (getGunHeat() < 1.0 || getOthers() == 1)
 			{
 				double x;
-				if (!Utils.isNear(
-						0.0,
-						x = Double.POSITIVE_INFINITY
-								* Utils.normalRelativeAngle(getHeadingRadians() + e.getBearingRadians() - getRadarHeadingRadians()))) setTurnRadarRightRadians(x);
+				if (!Double.isNaN(x = Double.POSITIVE_INFINITY
+						* Utils.normalRelativeAngle(getHeadingRadians() + e.getBearingRadians()
+								- getRadarHeadingRadians()))) setTurnRadarRightRadians(x);
 			}
 
 			doMove(enemy);
+			myPaintMaxEsc.setBulletSpeed(bPower);
+			myPaintMaxEsc.onScannedRobot(e);
 		}
 	}
 
@@ -211,8 +223,8 @@ public class Wombat extends AdvancedRobot
 			setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
 			setAhead(buffyDist * Math.cos(v1));
 
-			list = NatSim.predict(new NatSim.PredictionStatus(getX(), getY(), getHeadingRadians(), getVelocity(), getTime()), getHeadingRadians()
-					+ getTurnRemainingRadians(), 8.0, getDistanceRemaining());
+			list = NatSim.predict(new NatSim.PredictionStatus(getX(), getY(), getHeadingRadians(), getVelocity(),
+					getTime()), getHeadingRadians() + getTurnRemainingRadians(), 8.0, getDistanceRemaining());
 
 		}
 	}
@@ -295,7 +307,8 @@ public class Wombat extends AdvancedRobot
 					int xIndex = (int) (Math.toDegrees(Utils.normalAbsoluteAngle(vHead)) / 720.0);
 					int yIndex = (int) (vDist / 2.0);
 					int count = mostUsed[xIndex][yIndex]++;
-					PaintHelper.drawLine(lastKeyScan, new Point2D.Double(lastKeyScan.x + xg, lastKeyScan.y + yg), g, Color.GRAY);
+					PaintHelper.drawLine(lastKeyScan, new Point2D.Double(lastKeyScan.x + xg, lastKeyScan.y + yg), g,
+							Color.GRAY);
 
 					if (count > maxCount)
 					{
@@ -343,6 +356,7 @@ public class Wombat extends AdvancedRobot
 	@Override
 	public void onPaint(Graphics2D g)
 	{
+		myPaintMaxEsc.onPaint(g);
 		if (list != null)
 		{
 			for (NatSim.PredictionStatus status : list)
@@ -416,7 +430,8 @@ class WombatTarget
 
 		double maxDiff = Rules.getTurnRateRadians(lastVelocity);
 		lastVelocity = e.getVelocity();
-		System.out.format("[%d] v=%3.2f dH=%3.5f ratioH=%3.4f\n", e.getTime(), e.getVelocity(), Math.toDegrees(headDiff), headDiff / maxDiff);
+		System.out.format("[%d] v=%3.2f dH=%3.5f ratioH=%3.4f\n", e.getTime(), e.getVelocity(),
+				Math.toDegrees(headDiff), headDiff / maxDiff);
 		WombatScan scan = new WombatScan();
 		scan.x = x + Math.sin(botHeading + e.getBearingRadians()) * e.getDistance();
 		scan.y = y + Math.cos(botHeading + e.getBearingRadians()) * e.getDistance();
@@ -563,7 +578,8 @@ class WombatNewVectorHolder
 		{
 			for (Entry<Integer, Integer> countEntry : entry.getValue().entrySet())
 			{
-				result = String.format("%s [tick=%d]{key=%d,count=%d} ", result, entry.getKey(), countEntry.getKey(), countEntry.getValue());
+				result = String.format("%s [tick=%d]{key=%d,count=%d} ", result, entry.getKey(), countEntry.getKey(),
+						countEntry.getValue());
 			}
 		}
 		return result;

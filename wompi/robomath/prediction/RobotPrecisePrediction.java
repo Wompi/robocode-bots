@@ -1,4 +1,4 @@
-package wompi.robomath;
+package wompi.robomath.prediction;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import robocode.Rules;
+import wompi.robomath.RobotMath;
+import wompi.robomath.RobotMovement;
 
 public class RobotPrecisePrediction
 {
@@ -54,6 +56,7 @@ public class RobotPrecisePrediction
 		ccwMovePath.add(new Point2D.Double());
 
 		while (i <= myBulletTurns)
+		//while (i <= 60)
 		{
 			bTurn += Rules.getTurnRateRadians(v);
 			bTurn = Math.min(myMoveHeading, bTurn);
@@ -123,15 +126,15 @@ public class RobotPrecisePrediction
 
 			for (Point2D p : pArray)
 			{
-				if (!bField.contains(p))
+				if (!RobotMath.containsOrIsNear(bField, p.getX(), p.getY()))
 				{
 					// TODO: this is wrong but maybe it is close enough
 					// - wrong because it projects the point on the smallest border with the current x|y value
-					double _x = Math.max(bField.getMinX(), Math.min(p.getX(), bField.getMaxX()));
-					double _y = Math.max(bField.getMinY(), Math.min(p.getY(), bField.getMaxY()));
-					p.setLocation(_x, _y);
-					fieldPoints.add(p);
-					break;
+//					double _x = Math.max(bField.getMinX(), Math.min(p.getX(), bField.getMaxX()));
+//					double _y = Math.max(bField.getMinY(), Math.min(p.getY(), bField.getMaxY()));
+//					p.setLocation(_x, _y);
+					//fieldPoints.add(p);
+					continue;
 				}
 
 				fieldPoints.add(p);

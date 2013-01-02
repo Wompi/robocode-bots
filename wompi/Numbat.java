@@ -34,15 +34,12 @@ import wompi.numbat.target.NumbatTargetManager;
 
 /**
  * What the ... is a Numbat? (See: http://en.wikipedia.org/wiki/Numbat)
- *  
- * To keep track of what i have done, i update a little development diary at:
- * 		https://github.com/Wompi/robocode-bots/wiki/Numbat
  * 
- * The official version history can be found at:
- *		http://robowiki.net/wiki/Numbat
+ * To keep track of what i have done, i update a little development diary at: https://github.com/Wompi/robocode-bots/wiki/Numbat
  * 
- * If you want to talk about it - you find me at:
- * 		http://robowiki.net/wiki/User:Wompi
+ * The official version history can be found at: http://robowiki.net/wiki/Numbat
+ * 
+ * If you want to talk about it - you find me at: http://robowiki.net/wiki/User:Wompi
  * 
  * @author Wompi
  * @date 08/08/2012
@@ -154,9 +151,8 @@ public class Numbat extends AdvancedRobot
 	}
 
 	/**
-	 * For more information look at ScannedRobotHandler
-	 * This might be cause some problems with onPaint events because the scan events are now handled in run and
-	 * after onPaint();
+	 * For more information look at ScannedRobotHandler This might be cause some problems with onPaint events because the scan events are now handled
+	 * in run and after onPaint();
 	 */
 	private void handleScannedRobotEvents()
 	{
@@ -217,10 +213,10 @@ public class Numbat extends AdvancedRobot
 
 		//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
 		//		// PaintHitCloud.onPaint(g);
-		//		myTargetMan.onPaint(g);
-		//		myMoveMan.onPaint(g);
-		//		myGunMan.onPaint(g);
-		//		myRadarMan.onPaint(g);
+		myTargetMan.onPaint(g);
+		myMoveMan.onPaint(g);
+		myGunMan.onPaint(g);
+		myRadarMan.onPaint(g);
 	}
 
 	@Override

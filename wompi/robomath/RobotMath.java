@@ -12,8 +12,10 @@
 package wompi.robomath;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import robocode.Rules;
+import robocode.util.Utils;
 
 public class RobotMath
 {
@@ -51,6 +53,39 @@ public class RobotMath
 	public static double limit(double minmax, double value)
 	{
 		return Math.max(-minmax, Math.min(value, minmax));
+	}
+
+	/**
+	 * - Checks if one point is near another point <br>
+	 * - Usefull for movement checks and gun points to decide if they are close together <br>
+	 * - returns null if one of the parameter points is null
+	 * 
+	 * @param referencePoint
+	 * @param testPoint
+	 * @return
+	 */
+	public static boolean isNearPoint(Point2D referencePoint, Point2D testPoint)
+	{
+		if (referencePoint == null || testPoint == null) return false;
+		boolean xfcheck = Utils.isNear(referencePoint.getX(), testPoint.getX());
+		boolean yfcheck = Utils.isNear(referencePoint.getY(), testPoint.getY());
+		return (xfcheck && yfcheck);
+	}
+
+	public static boolean containsOrIsNear(Rectangle2D rectangle, double x, double y)
+	{
+		boolean nearX = Utils.isNear(rectangle.getMinX(), x) || Utils.isNear(rectangle.getMaxX(), x);
+		boolean nearY = Utils.isNear(rectangle.getMinY(), y) || Utils.isNear(rectangle.getMaxY(), y);
+
+		if (nearX && nearY)
+			return true;
+		else if (nearX)
+		{
+			return y > rectangle.getMinY() && y < rectangle.getMaxY();
+		}
+		else if (nearY) { return x > rectangle.getMinX() && x < rectangle.getMaxX(); }
+		return rectangle.contains(x, y);
+
 	}
 
 	public static double getAcceleration(double velocity, double lastVelocity)

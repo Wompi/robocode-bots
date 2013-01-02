@@ -14,13 +14,12 @@ import java.util.Collections;
 import robocode.AdvancedRobot;
 import robocode.RobotStatus;
 import robocode.Rules;
-import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
 import wompi.robomath.RobotMath;
 import wompi.robomath.prediction.RobotPrecisePrediction;
 
-public class PaintEscapePath
+public class PaintMyEscapePath
 {
 	private static final double	PI_360	= Math.PI * 2.0;
 	private static final double	PI_180	= Math.PI;
@@ -29,13 +28,11 @@ public class PaintEscapePath
 	private static final double	DELTA_P	= Math.PI / 90;	// 36 = 5 degree 
 
 	private RobotStatus			myStatus;
-	private RobotStatus			myScanStatus;
-	private ScannedRobotEvent	myRobotEvent;
 	private Rectangle2D			battleField;
 
 	private double				bSpeed;
 
-	public PaintEscapePath()
+	public PaintMyEscapePath()
 	{
 
 	}
@@ -57,26 +54,18 @@ public class PaintEscapePath
 		bSpeed = Rules.getBulletSpeed(bPower);
 	}
 
-	public void onScannedRobot(ScannedRobotEvent e)
-	{
-		myRobotEvent = e;
-		myScanStatus = myStatus;
-	}
-
 	public void onPaint(Graphics2D g)
 	{
-		if (myRobotEvent == null) return;
 		paintForward(g, 1, Color.RED);
 		paintForward(g, -1, Color.GREEN);
 	}
 
 	private void paintForward(Graphics2D g, int direction, Color color)
 	{
-		double absBearing = myScanStatus.getHeadingRadians() + myRobotEvent.getBearingRadians();
-		double head = myRobotEvent.getHeadingRadians();
+		double head = myStatus.getHeadingRadians();
 
-		double bx = myScanStatus.getX() + Math.sin(absBearing) * myRobotEvent.getDistance();
-		double by = myScanStatus.getY() + Math.cos(absBearing) * myRobotEvent.getDistance();
+		double bx = myStatus.getX();
+		double by = myStatus.getY();
 
 		RobotPrecisePrediction predictPath = new RobotPrecisePrediction();
 
@@ -85,10 +74,10 @@ public class PaintEscapePath
 
 		AffineTransform trans = new AffineTransform();
 
-		trans.translate(battleField.getMaxX() / 2.0, battleField.getMaxY() / 2.0);
-		//trans.translate(bx, by);
+		//trans.translate(battleField.getMaxX() / 2.0, battleField.getMaxY() / 2.0);
+		trans.translate(bx, by);
 		trans.rotate(-head);
-		//trans.scale(1.0, 1.0);
+		//trans.scale(10, 10);
 
 		Point2D start = trans.transform(new Point2D.Double(), null);
 		Polygon pForwardCW = new Polygon();
@@ -99,8 +88,8 @@ public class PaintEscapePath
 		double DELTA = 0;
 		while (DELTA <= PI_360)
 		{
-			predictPath.setInitialValues(DELTA, myRobotEvent.getVelocity());
-			predictPath.setBulletTurns((int) (myRobotEvent.getDistance() / bSpeed));
+			predictPath.setInitialValues(DELTA, myStatus.getVelocity());
+			predictPath.setBulletTurns((int) (185 / 8.0));
 
 			Point2D eForward = null;
 			ArrayList<Point2D> lForward = null;
@@ -115,10 +104,10 @@ public class PaintEscapePath
 				fCheck = RobotMath.isNearPoint(eForward, lastForward); // checks internal for null
 				lastForward = eForward;
 
-				for (Point2D p : lForward)
-				{
-					PaintHelper.drawPoint(p, Color.RED, g, 1);
-				}
+//				for (Point2D p : lForward)
+//				{
+//					PaintHelper.drawPoint(p, Color.RED, g, 1);
+//				}
 
 			}
 
@@ -156,10 +145,9 @@ public class PaintEscapePath
 
 		//sForward = RobotMovement.stripOutsidePoints(sForward, battleField);
 
-		double aCW = getPolygonArea(pForwardCW.xpoints, pForwardCW.ypoints);
-		double aCCW = getPolygonArea(pForwardCCW.xpoints, pForwardCCW.ypoints);
-
-		System.out.format("[%04d] acw=%3.5f accw=%3.5f sum=%3.5f \n", myStatus.getTime(), aCW, aCCW, aCW + aCCW);
+//		double aCW = getPolygonArea(pForwardCW.xpoints, pForwardCW.ypoints);
+//		double aCCW = getPolygonArea(pForwardCCW.xpoints, pForwardCCW.ypoints);
+//		/System.out.format("[%04d] acw=%3.5f accw=%3.5f sum=%3.5f \n", myStatus.getTime(), aCW, aCCW, aCW + aCCW);
 
 		Stroke old = g.getStroke();
 		g.setStroke(new BasicStroke(1));

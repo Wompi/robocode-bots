@@ -12,17 +12,16 @@ import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
-import wompi.dingo.DingoBasicPaint;
 import wompi.dingo.DingoEnergyDrop;
 import wompi.dingo.DingoFireDetection;
 import wompi.dingo.DingoInactivity;
-import wompi.dingo.DingoPaint;
-import wompi.dingo.DingoRadar;
-import wompi.dingo.DingoStartSearch;
 import wompi.dingo.paint.DingoBulletPaint;
 import wompi.paint.PaintEscapePath;
 import wompi.paint.PaintMaxEscapeAngle;
 import wompi.paint.PaintWallHeadingDistance;
+import wompi.radar.ARadar;
+import wompi.radar.RadarSingleLock;
+import wompi.radar.RadarStartSearch;
 import wompi.robomath.WallHeadingDistance;
 
 public class Dingo extends AdvancedRobot
@@ -32,11 +31,10 @@ public class Dingo extends AdvancedRobot
 	public static final double				PI_360			= Math.PI * 2.0;
 	public static final double				PI_90			= Math.PI / 2.0;
 	public static final double				PI				= Math.PI;
-	public final static double				BORDER			= 17.99;
+	public final static double				BORDER			= 18.0;
 	private final static double				INF				= Double.POSITIVE_INFINITY;
 
-	private DingoStartSearch				mySearch;
-	private DingoRadar						myRadar;
+	private final ARadar					myRadar;
 
 	private final DingoFireDetection		myFireDetector;
 	private final DingoInactivity			myInactivity;
@@ -45,8 +43,6 @@ public class Dingo extends AdvancedRobot
 
 	// debug visualization
 	private final PaintWallHeadingDistance	myPaintWallDistance;
-	private DingoPaint						myPaint;
-	private DingoBasicPaint					myBasics;
 	private final DingoBulletPaint			myBulletPaint;
 	private final PaintMaxEscapeAngle		myPaintMaxEscape;
 	private final PaintEscapePath			myPaintEscapePath;
@@ -56,6 +52,7 @@ public class Dingo extends AdvancedRobot
 	private double							xg;
 	private double							yg;
 	private double							eAbsBearing;
+	private double							eBearing;
 	private double							eHeading;
 	private double							eEnergy;
 	private double							eDistance;
@@ -66,6 +63,8 @@ public class Dingo extends AdvancedRobot
 
 	public Dingo()
 	{
+		myRadar = new RadarStartSearch(new RadarSingleLock());
+
 		myFireDetector = new DingoFireDetection();
 		myInactivity = new DingoInactivity();
 		myEnergyDrop = new DingoEnergyDrop();
@@ -80,16 +79,14 @@ public class Dingo extends AdvancedRobot
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		if (e.getTime() > 0) myPaint.registerStatus(e.getStatus());
+		myRadar.onStatus(e);
+
 		myEnergyDrop.onStatus(e);
 		myFireDetector.onStatus(e);
 
 		myBulletPaint.onStatus(e);
 		myPaintMaxEscape.onStatus(e);
 		myPaintEscapePath.onStatus(e);
-
-		myPaint.registerStatus(e.getStatus());
-		if (wallHitIndex >= 0) wallHitIndex++;
 	}
 
 	@Override
@@ -98,33 +95,22 @@ public class Dingo extends AdvancedRobot
 		myFireDetector.onInit(this);
 		myEnergyDrop.onInit(this);
 		myWallDistance.onInit(this, BORDER);
-		mySearch = new DingoStartSearch();
-		myRadar = new DingoRadar();
 
-		myPaint = new DingoPaint(this);
 		myPaintMaxEscape.onInit(this, BORDER);
 		myPaintEscapePath.onInit(this, BORDER);
-		myBasics = new DingoBasicPaint(this);
 
 		setAllColors(Color.ORANGE);
 
 		eEnergy = getEnergy();
 		eDistance = 1000;
 
-		mySearch.onInit(this);
-		while (!mySearch.isFound())
-		{
-			myFireDetector.onRun();
-			mySearch.onRun();
-			execute();
-		}
+		myRadar.onInit(this);
 
-		setAdjustRadarForRobotTurn(true);
-		setAdjustRadarForGunTurn(true);
-
-		setTurnRadarRightRadians(INF);
 		while (true)
 		{
+
+			myRadar.onRun();
+
 			myEnergyDrop.onRun();
 			if (myEnergyDrop.isInactive()) myFireDetector.onInactivity();
 			myFireDetector.onRun();
@@ -134,9 +120,8 @@ public class Dingo extends AdvancedRobot
 				myBulletPaint.onScannedRobot(myFireDetector.getFiredBulletPower(), xg, yg); // takes the position of the turn before
 			}
 
-			myRadar.onRun(this, eAbsBearing);
-
-			onMove1();
+			//onMove0();
+			//onMove1();
 
 			double bPower = Math.min(2.99, Math.max(0.1, Math.min(eEnergy / 4.0, 350 / eDistance)));
 			//bPower = 3.0;
@@ -173,6 +158,7 @@ public class Dingo extends AdvancedRobot
 	@Override
 	public void onHitRobot(HitRobotEvent e)
 	{
+		myRadar.onHitRobot(e);
 		myEnergyDrop.onHitRobot(e);
 		myFireDetector.onHitRobot(e);
 	}
@@ -187,11 +173,6 @@ public class Dingo extends AdvancedRobot
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-//		long dScan = e.getTime() - lastScan;
-//		if (dScan > 1) System.out.format("[%04d] scan - %d\n", e.getTime(), dScan);
-//		lastScan = e.getTime();
-
-		System.out.format("[%04d] bearing=%3.10f \n", getTime(), e.getBearing());
 
 		double bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
 
@@ -201,15 +182,15 @@ public class Dingo extends AdvancedRobot
 		myPaintEscapePath.onScannedRobot(e);
 
 		myFireDetector.onScannedRobot(e);
-		myRadar.onScannedRobot(e.getTime());
+		myRadar.onScannedRobot(e);
 		eAbsBearing = getHeadingRadians() + e.getBearingRadians();
 		eHeading = e.getHeadingRadians();
 		xg = getX() + Math.sin(eAbsBearing) * e.getDistance();
 		yg = getY() + Math.cos(eAbsBearing) * e.getDistance();
 
+		eBearing = e.getBearingRadians();
 		eEnergy = e.getEnergy();
 		eDistance = e.getDistance();
-		mySearch.onScannedRobot();
 
 		iFire = Utils.isNear(getGunTurnRemainingRadians(), 0.0);
 		setTurnGunRightRadians(Utils.normalRelativeAngle(eAbsBearing - getGunHeadingRadians()));
@@ -217,11 +198,8 @@ public class Dingo extends AdvancedRobot
 
 	private void onMove0()
 	{
-		if (getTime() < 40)
-			setAhead(Double.MAX_VALUE);
-		else
-			setBack(Double.MAX_VALUE);
-		setTurnRight(90);
+		setTurnRightRadians(Math.sin(eBearing));
+		setAhead(1000);
 	}
 
 	private void onMove1()
@@ -277,8 +255,8 @@ public class Dingo extends AdvancedRobot
 
 			setTurnRightRadians(hDiff);
 
-			System.out.format("F=%3.5f B=%3.5f D=%2.2f hDiff=%3.10f\n", dForward, dBackward, dir,
-					Math.toDegrees(hDiff) % 90);
+//			System.out.format("F=%3.5f B=%3.5f D=%2.2f hDiff=%3.10f\n", dForward, dBackward, dir,
+//					Math.toDegrees(hDiff) % 90);
 		}
 		setMaxVelocity(Math.random() * 4.0 + 5.0);
 	}

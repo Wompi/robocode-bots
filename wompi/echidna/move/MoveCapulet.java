@@ -23,7 +23,6 @@ import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.RobotDeathEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.RoboFunctions;
 import wompi.echidna.target.ATarget;
 import wompi.robomath.RobotMath;
 
@@ -58,9 +57,11 @@ public class MoveCapulet extends AMovement
 		super(robot);
 	}
 
+	@Override
 	public void init()
 	{}
 
+	@Override
 	public void onRobotDeath(RobotDeathEvent e)
 	{
 		for (ATarget target : myEnemys)
@@ -84,9 +85,11 @@ public class MoveCapulet extends AMovement
 	public void onHitWall(HitWallEvent e)
 	{}
 
+	@Override
 	public void onHitRobot(HitRobotEvent e)
 	{}
 
+	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{}
 
@@ -106,11 +109,12 @@ public class MoveCapulet extends AMovement
 		if (Math.abs(myRobot.getDistanceRemaining()) <= DIST_REMAIN)
 		{
 			double dR = myTarget.getDistance() * DIST_ADJUST * Math.random();
-			double R = RoboFunctions.limit(DIST_MIN, dR, DIST_MAX);
+			double R = RobotMath.limit(DIST_MIN, dR, DIST_MAX);
 			double mRate = Double.POSITIVE_INFINITY;
 
-			Point2D mP;   // moving point
-			Rectangle2D B_FIELD = new Rectangle2D.Double(WZ, WZ, myRobot.getBattleFieldWidth() - 2 * WZ, myRobot.getBattleFieldHeight() - 2 * WZ);
+			Point2D mP; // moving point
+			Rectangle2D B_FIELD = new Rectangle2D.Double(WZ, WZ, myRobot.getBattleFieldWidth() - 2 * WZ,
+					myRobot.getBattleFieldHeight() - 2 * WZ);
 
 			double angle = 360;
 			double bestAngle = 0;
