@@ -22,7 +22,7 @@ import java.awt.geom.Point2D;
 public class PaintHelper
 {
 	public static double	PI_CIRCLE	= 2 * Math.PI;
-	public static Font		myFont		= new Font("Dialog", Font.PLAIN, 16);
+	public static Font		myFont		= new Font("Dialog", Font.PLAIN, 8);
 	public static Color		whiteTrans	= new Color(0xFF, 0xFF, 0xFF, 0x50);
 	public static Color		redTrans	= new Color(0x50, 0x00, 0x00, 0x99);
 	public static Color		blueTrans	= new Color(0x00, 0x00, 0xFF, 0x50);

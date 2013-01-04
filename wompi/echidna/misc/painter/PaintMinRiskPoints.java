@@ -94,7 +94,7 @@ public class PaintMinRiskPoints
 				g2.setColor(color);
 				Font myFont = new Font("Dialog", Font.PLAIN, 10);
 				g2.setFont(myFont);
-				g2.drawString(String.format("%3.2f", riskPoint.risk), (int) riskPoint.riskPoint.getX() - 10,
+				g2.drawString(String.format("%3.0f", riskPoint.risk), (int) riskPoint.riskPoint.getX() - 10,
 						(int) riskPoint.riskPoint.getY() - 5);
 			}
 		}
