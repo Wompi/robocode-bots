@@ -37,6 +37,7 @@ public class Dunnart extends AdvancedRobot
 	final static double				PI_90				= Math.PI / 2.0;
 	final static double				PI_45				= Math.PI / 4.0;
 	final static double				PI_135				= PI_90 + PI_45;
+	final static double				PI_160				= Math.PI * 16.0 / 18.0;
 	final static double				PI_80				= Math.PI * 8.0 / 18.0;
 
 	final static double				RAM_DISTANCE		= 150;
@@ -92,7 +93,8 @@ public class Dunnart extends AdvancedRobot
 //			speedUp = (int) (Math.random() * 40);
 //		}
 
-		speedUp--;
+		speedUp = Math.max(0, --speedUp);
+		if (speedUp > 0) setAllColors(Color.RED);
 	}
 
 	@Override
@@ -131,8 +133,12 @@ public class Dunnart extends AdvancedRobot
 		double _x = Math.min(getX(), FIELD_W - getX());
 		double _y = Math.min(getY(), FIELD_H - getY());
 
-		double c = PI_180;
-		if ((_x <= 150 || _y <= 150) && eDistance < 200) c = PI_360;
+		double c = PI_160;
+		//if ((_x <= 150 || _y <= 150) && eDistance < 200) c = PI_360;
+
+		// HawkOnFire dont like this - make it distance to target related maybe (on Pansy i get a better score with it)
+		// find something that detects fleeing bots and stationary bots
+		if (eDistance < 300 && Math.abs(Math.cos(e.getBearingRadians())) > 0.7) checkDirChange(20);
 
 		double v1 = 0;
 		while (v0 <= c)
@@ -144,7 +150,7 @@ public class Dunnart extends AdvancedRobot
 			_x = Math.sin(angle) * 100;
 			_y = Math.cos(angle) * 100;
 
-			r1 += 55000 / Point2D.distanceSq(_x, _y, xe, ye);
+			//r1 += 100000 / Point2D.distanceSq(_x, _y, xe, ye);
 
 			if (new Rectangle2D.Double(WZ, WZ, WZ_W, WZ_H).contains(_x + getX(), _y + getY()))
 			{
@@ -163,13 +169,13 @@ public class Dunnart extends AdvancedRobot
 
 		double vCos = 8.0 * Math.abs(Math.cos(e.getBearingRadians()));
 		double vDist = 900 / eDistance;
-		System.out.format("[%04d] vDist=%3.5f vCos=%3.5f (%3.5f) (%3.5f) \n", getTime(), vDist, vCos, eDistance,
-				e.getBearing());
-		setMaxVelocity(vDist + vCos);
+		System.out.format("[%04d] vDist=%3.5f vCos=%3.5f (%3.5f) (%3.5f (%3.5f)) \n", getTime(), vDist, vCos,
+				eDistance, e.getBearing(), Math.cos(e.getBearingRadians()));
+		setMaxVelocity(vDist + vCos + speedUp);
 
 		setTurnRadarRightRadians(-getRadarTurnRemaining());
 
-		double bPower = Math.min(3.0, Math.min(e.getEnergy() / 3.0, 450 / eDistance));
+		double bPower = Math.min(3.0, Math.min(e.getEnergy() / 3.0, 650 / eDistance));
 
 //		double wRate = eDistance * e.getEnergy() / 100.0;
 		double wRate = eDistance;
@@ -227,8 +233,6 @@ public class Dunnart extends AdvancedRobot
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
-		//setAllColors(Color.RED);
-		//colorChange = 5;
 		eEnergy += Rules.getBulletHitBonus(e.getPower());
 		myShield -= Rules.getBulletHitBonus(e.getPower());
 		if (myShield < 0)
@@ -238,17 +242,7 @@ public class Dunnart extends AdvancedRobot
 			//myShield = MAX_SHIELD;
 		}
 
-		if (!isDodge)
-		{
-			checkDirChange(true);
-			speedUp = 15;
-			myMaxVelocity = 8.0;
-		}
-		else
-		{
-			checkDirChange(true);
-		}
-
+		checkDirChange(20);
 	}
 
 	@Override
@@ -257,9 +251,13 @@ public class Dunnart extends AdvancedRobot
 		eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
 	}
 
-	private void checkDirChange(boolean force)
+	private void checkDirChange(int dirChangeSpeedUp)
 	{
-		myDirection = -myDirection;
+		if (speedUp == 0)
+		{
+			myDirection = -myDirection;
+			speedUp = dirChangeSpeedUp;
+		}
 	}
 
 	public static class DunnartWave extends Point2D.Double
