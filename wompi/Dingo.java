@@ -15,7 +15,7 @@ import robocode.util.Utils;
 import wompi.dingo.DingoEnergyDrop;
 import wompi.dingo.DingoFireDetection;
 import wompi.dingo.DingoInactivity;
-import wompi.dingo.paint.DingoBulletPaint;
+import wompi.paint.PaintEnemyBulletWaves;
 import wompi.paint.PaintEscapePath;
 import wompi.paint.PaintMaxEscapeAngle;
 import wompi.paint.PaintWallHeadingDistance;
@@ -43,7 +43,7 @@ public class Dingo extends AdvancedRobot
 
 	// debug visualization
 	private final PaintWallHeadingDistance	myPaintWallDistance;
-	private final DingoBulletPaint			myBulletPaint;
+	private final PaintEnemyBulletWaves			myBulletPaint;
 	private final PaintMaxEscapeAngle		myPaintMaxEscape;
 	private final PaintEscapePath			myPaintEscapePath;
 
@@ -70,7 +70,7 @@ public class Dingo extends AdvancedRobot
 		myEnergyDrop = new DingoEnergyDrop();
 		myWallDistance = new WallHeadingDistance();
 
-		myBulletPaint = new DingoBulletPaint();
+		myBulletPaint = new PaintEnemyBulletWaves();
 		myPaintWallDistance = new PaintWallHeadingDistance(myWallDistance);
 		myPaintMaxEscape = new PaintMaxEscapeAngle();
 		myPaintEscapePath = new PaintEscapePath();
