@@ -9,11 +9,14 @@ import java.util.ArrayList;
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
+import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.painter.PaintMinRiskPoints;
+import wompi.paint.PaintEnemyBulletWaves;
+import wompi.paint.PaintEnemyMaxEscapeAngle;
 
 /**
  * original: 5 + 742 v1.0: 670
@@ -40,9 +43,17 @@ public class Dunnart extends AdvancedRobot
 	final static double				PI_160				= Math.PI * 16.0 / 18.0;
 	final static double				PI_80				= Math.PI * 8.0 / 18.0;
 
+	final static double				PI_10				= Math.PI * 1.0 / 18.0;
+	final static double				PI_110				= Math.PI * 11.0 / 18.0;
+	final static double				PI_170				= Math.PI * 17.0 / 18.0;
+	final static double				PI_190				= Math.PI * 19.0 / 18.0;
+	final static double				PI_260				= Math.PI * 26.0 / 18.0;
+	final static double				PI_280				= Math.PI * 28.0 / 18.0;
+	final static double				PI_350				= Math.PI * 35.0 / 18.0;
+
 	final static double				RAM_DISTANCE		= 150;
-	final static double				MAX_SHIELD			= 17;
-	final static double				SHIELD_REGENERATON	= 0.05;
+	final static double				MAX_SHIELD			= 3;
+	final static double				SHIELD_REGENERATON	= 0.1;
 	final static double				INF					= Double.POSITIVE_INFINITY;
 	static double					eEnergy;
 	static boolean					isDodge;
@@ -57,14 +68,21 @@ public class Dunnart extends AdvancedRobot
 
 	PaintMinRiskPoints				myPaintRisk;
 	PaintMinRiskPoints				myPaintCoordRisk;
+	PaintEnemyBulletWaves			myPaintEnemyBullets;
+	PaintEnemyMaxEscapeAngle		myPaintEscAngle;
 
 	public Dunnart()
 	{
 		myWaves = new ArrayList<DunnartWave>();
 		myDirection = 1;
+		myShield = MAX_SHIELD;
+
 		myPaintRisk = new PaintMinRiskPoints();
 		myPaintCoordRisk = new PaintMinRiskPoints();
-		myShield = MAX_SHIELD;
+		myPaintEnemyBullets = new PaintEnemyBulletWaves();
+		myPaintEscAngle = new PaintEnemyMaxEscapeAngle();
+		// test
+		//isDodge = true;
 	}
 
 	@Override
@@ -72,6 +90,8 @@ public class Dunnart extends AdvancedRobot
 	{
 		myPaintRisk.onPaint(g, true);
 		myPaintCoordRisk.onPaint(g, true);
+		myPaintEnemyBullets.onPaint(g);
+		myPaintEscAngle.onPaint(g);
 	}
 
 	@Override
@@ -85,7 +105,9 @@ public class Dunnart extends AdvancedRobot
 		else
 			setAllColors(Color.GREEN);
 
-		myShield = Math.max(0, Math.min(myShield + SHIELD_REGENERATON, MAX_SHIELD));
+		myPaintEnemyBullets.onStatus(e);
+		myPaintEscAngle.onStatus(e);
+		//myShield = Math.max(0, Math.min(myShield + SHIELD_REGENERATON, MAX_SHIELD));
 //		System.out.format("[%04d] shield=%3.5f \n", getTime(), myShield);
 //		if (isDodge && speedUp <= 0)
 //		{
@@ -100,6 +122,7 @@ public class Dunnart extends AdvancedRobot
 	@Override
 	public void run()
 	{
+		myPaintEscAngle.onInit(this, 18.0);
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
@@ -120,11 +143,6 @@ public class Dunnart extends AdvancedRobot
 		double maxMatch = INF;
 		double eDelta = eEnergy - (eEnergy = e.getEnergy());
 
-		if (eDelta >= 0.1 && eDelta <= 3)
-		{
-			//checkDirChange(true);
-		}
-
 		double angle = 0;
 		double v0 = 0;
 		double rM = Double.MAX_VALUE;
@@ -133,24 +151,38 @@ public class Dunnart extends AdvancedRobot
 		double _x = Math.min(getX(), FIELD_W - getX());
 		double _y = Math.min(getY(), FIELD_H - getY());
 
-		double c = PI_160;
+		double c = PI_135;
+		//double c = PI_360;
 		//if ((_x <= 150 || _y <= 150) && eDistance < 200) c = PI_360;
 
 		// HawkOnFire dont like this - make it distance to target related maybe (on Pansy i get a better score with it)
 		// find something that detects fleeing bots and stationary bots
-		if (eDistance < 300 && Math.abs(Math.cos(e.getBearingRadians())) > 0.7) checkDirChange(20);
+		if (!isDodge && eDistance < 300 && Math.abs(Math.cos(e.getBearingRadians())) > 0.7) checkDirChange(20);
+		if (eDelta >= 0.08 && eDelta <= 3)
+		{
+			if (isDodge) checkDirChange(11);
+			myPaintEnemyBullets.onScannedRobot(eDelta, xe + getX(), ye + getY());
+			myPaintEscAngle.setBulletSpeed(eDelta);
+		}
+		myPaintEscAngle.onScannedRobot(e);
 
 		double v1 = 0;
 		while (v0 <= c)
 		{
-			// 0 - PI_90? - 180 cause very wired behavior if heading to the enemy at beginning 
-			angle = absBearing - v0 * myDirection;
+			// 0 - PI_90? - 180 cause very wired behavior if heading to the enemy at beginning
+			double eAbs = absBearing;
+			angle = eAbs - v0 * myDirection;
+			//angle = v0 * myDirection;
 
-			r1 = Math.abs(Math.cos(absBearing - angle));
 			_x = Math.sin(angle) * 100;
 			_y = Math.cos(angle) * 100;
-
-			//r1 += 100000 / Point2D.distanceSq(_x, _y, xe, ye);
+			if (isDodge)
+			{
+				eAbs = Math.atan2(xe - _x, ye - _y);
+			}
+			r1 = Math.abs(Math.cos(eAbs - angle));
+			// OmiCron needs high force otherwise it will trick me trough wall collisions (250000) works well
+			if (eDistance < 350 || isDodge) r1 += 250000 / Point2D.distanceSq(_x, _y, xe, ye);
 
 			if (new Rectangle2D.Double(WZ, WZ, WZ_W, WZ_H).contains(_x + getX(), _y + getY()))
 			{
@@ -161,7 +193,19 @@ public class Dunnart extends AdvancedRobot
 				}
 				myPaintRisk.registerRiskPoint(getTime(), _x + getX(), _y + getY(), r1, getX(), getY(), 100);
 			}
+
+//			if ((v0 >= 0 && v0 < PI_10) || (v0 >= PI_80 && v0 < PI_110) || (v0 >= PI_170 && v0 < PI_190)
+//					|| (v0 >= PI_260 && v0 < PI_280) || v0 >= PI_350)
+//			{
 			v0 += DELTA_RISK_ANGLE;
+//			}
+//			else if (v0 < PI_80)
+//				v0 = PI_80;
+//			else if (v0 < PI_170)
+//				v0 = PI_170;
+//			else if (v0 < PI_260)
+//				v0 = PI_260;
+//			else if (v0 < PI_350) v0 = PI_350;
 		}
 
 		setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
@@ -172,6 +216,7 @@ public class Dunnart extends AdvancedRobot
 		System.out.format("[%04d] vDist=%3.5f vCos=%3.5f (%3.5f) (%3.5f (%3.5f)) \n", getTime(), vDist, vCos,
 				eDistance, e.getBearing(), Math.cos(e.getBearingRadians()));
 		setMaxVelocity(vDist + vCos + speedUp);
+		//setMaxVelocity(8.0);
 
 		setTurnRadarRightRadians(-getRadarTurnRemaining());
 
@@ -234,15 +279,26 @@ public class Dunnart extends AdvancedRobot
 	public void onHitByBullet(HitByBulletEvent e)
 	{
 		eEnergy += Rules.getBulletHitBonus(e.getPower());
-		myShield -= Rules.getBulletHitBonus(e.getPower());
-		if (myShield < 0)
+		//myShield -= Rules.getBulletHitBonus(e.getPower());
+		myShield--;
+		if (myShield <= 0)
 		{
-			//isDodge = !isDodge;
-			isDodge = true;
-			//myShield = MAX_SHIELD;
+			isDodge = !isDodge;
+			myShield = MAX_SHIELD;
+			checkDirChange(20); // if i got hit and the shield is destroyed - change the direction 
 		}
+		if (!isDodge)
+		{
+			// Hot dodging is a little tricky and leads to bad Linear detection
+			// Maybe if i bind the shield status to the direction change variable, it might work better 
+			checkDirChange(20);
+		}
+	}
 
-		checkDirChange(20);
+	@Override
+	public void onHitWall(HitWallEvent event)
+	{
+		myDirection = -myDirection;
 	}
 
 	@Override
