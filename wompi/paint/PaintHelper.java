@@ -15,7 +15,10 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.Stroke;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 
@@ -69,6 +72,21 @@ public class PaintHelper
 		g2.setColor(color);
 		g2.drawLine((int) point.getX(), (int) point.getY(), (int) point.getX(), (int) point.getY());
 		g2.setStroke(old);
+	}
+
+	public static void drawSquare(double centerX, double centerY, double rotationAngle, int dimension, Color color,
+			Graphics2D g)
+	{
+		AffineTransform transform = new AffineTransform();
+		Rectangle rectangle = new Rectangle(0, 0, dimension, dimension);
+
+		transform.rotate(-rotationAngle, centerX, centerY);
+		transform.translate(centerX - dimension / 2.0, centerY - dimension / 2.0);
+
+		Shape s1 = transform.createTransformedShape(rectangle);
+
+		g.setColor(color);
+		g.draw(s1);
 	}
 
 	public static void drawString(Graphics2D g, String string, double x, double y, Color color)
