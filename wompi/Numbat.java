@@ -13,6 +13,7 @@ package wompi;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.event.KeyEvent;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
@@ -24,6 +25,12 @@ import robocode.SkippedTurnEvent;
 import robocode.StatusEvent;
 import robocode.WinEvent;
 import wompi.numbat.debug.DebugBot;
+import wompi.numbat.debug.DebugGunProperties;
+import wompi.numbat.debug.DebugMiscProperties;
+import wompi.numbat.debug.DebugMoveProperties;
+import wompi.numbat.debug.DebugRadarProperties;
+import wompi.numbat.debug.DebugTargetProperties;
+import wompi.numbat.debug.DebugTestProperties;
 import wompi.numbat.gun.NumbatGunManager;
 import wompi.numbat.misc.NumbatBattleField;
 import wompi.numbat.misc.ScannedRobotHandler;
@@ -105,14 +112,14 @@ public class Numbat extends AdvancedRobot
 			myGunMan.excecute(this);
 			// if (isTimeDebug) TimeProfile.GUN_EXECUTE.stop();
 
-			//			DebugGunProperties.debugPatternClasses();
-			//			DebugGunProperties.execute();
-			//			DebugRadarProperties.execute();
-			//			DebugGunProperties.execute();
-			//			DebugMiscProperties.execute();
-			//			DebugMoveProperties.execute();
-			//			DebugTargetProperties.execute();
-			//			DebugTestProperties.execute();
+			DebugGunProperties.debugPatternClasses();
+			DebugGunProperties.execute();
+			DebugRadarProperties.execute();
+			DebugGunProperties.execute();
+			DebugMiscProperties.execute();
+			DebugMoveProperties.execute();
+			DebugTargetProperties.execute();
+			DebugTestProperties.execute();
 			//
 			// if (isTimeDebug)
 			// {
@@ -222,24 +229,25 @@ public class Numbat extends AdvancedRobot
 	@Override
 	public void onDeath(DeathEvent event)
 	{
-		//		DebugMiscProperties.debugWinStats(getOthers());
+		DebugMiscProperties.debugWinStats(getOthers());
+		System.out.format("[%04d] DEAD\n", getTime());
 	}
 
 	@Override
 	public void onWin(WinEvent event)
 	{
-		//		DebugMiscProperties.debugWinStats(getOthers());
+		DebugMiscProperties.debugWinStats(getOthers());
 	}
 
-	//	@Override
-	//	public void onKeyPressed(KeyEvent e)
-	//	{
-	//		char c = e.getKeyChar();
-	//		DebugGunProperties.onKeyPressed(c);
-	//		DebugMiscProperties.onKeyPressed(c);
-	//		DebugRadarProperties.onKeyPressed(c);
-	//		DebugMoveProperties.onKeyPressed(c);
-	//		DebugTargetProperties.onKeyPressed(c);
-	//		DebugTestProperties.onKeyPressed(c);
-	//	}
+	@Override
+	public void onKeyPressed(KeyEvent e)
+	{
+		char c = e.getKeyChar();
+		DebugGunProperties.onKeyPressed(c);
+		DebugMiscProperties.onKeyPressed(c);
+		DebugRadarProperties.onKeyPressed(c);
+		DebugMoveProperties.onKeyPressed(c);
+		DebugTargetProperties.onKeyPressed(c);
+		DebugTestProperties.onKeyPressed(c);
+	}
 }

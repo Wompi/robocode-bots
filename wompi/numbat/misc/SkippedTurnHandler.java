@@ -40,10 +40,10 @@ public class SkippedTurnHandler
 
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		// if (turnBlindSkipped > 0)
-		// {
-		// System.out.format("[%d] hmm not skipped at all!\n",e.getTime());
-		// }
+		if (turnBlindSkipped > 0)
+		{
+			System.out.format("[%d] hmm not skipped at all!\n", e.getTime());
+		}
 	}
 
 }

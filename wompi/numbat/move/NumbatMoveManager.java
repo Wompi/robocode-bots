@@ -34,7 +34,7 @@ public class NumbatMoveManager
 	{
 		allMoves = new ArrayList<ANumbatMove>();
 		allMoves.add(new NumbatMovePatterChallenge());
-		allMoves.add(new NumbatMoveChase());
+		//allMoves.add(new NumbatMoveChase());
 		allMoves.add(new NumbatMinRiskMove());
 		allMoves.add(new NumbatMoveNone());
 	}

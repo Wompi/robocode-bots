@@ -50,7 +50,7 @@ public class DebugMiscProperties
 	{
 		if (time - lastTime > 1)
 		{
-			blindSkippedTurn++;
+			blindSkippedTurn += time - lastTime - 1;
 			System.out.format("[%d] blind skip %d - %d\n", time, lastTime, time);
 		}
 		lastTime = time;
@@ -66,8 +66,10 @@ public class DebugMiscProperties
 		if (isActive)
 		{
 			DebugBot.getBot().setDebugProperty("Win", Arrays.toString(winStats));
-			DebugBot.getBot().setDebugProperty("Skipped Turns",
-					String.format("%d Blind: %d ScanTime: %d Multiple: %d", skippedTurns, blindSkippedTurn, wrongScanTime, multipleScanEvents));
+			DebugBot.getBot().setDebugProperty(
+					"Skipped Turns",
+					String.format("%d Blind: %d ScanTime: %d Multiple: %d", skippedTurns, blindSkippedTurn,
+							wrongScanTime, multipleScanEvents));
 		}
 		else
 		{
