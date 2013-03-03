@@ -57,7 +57,7 @@ public class Wombat extends AdvancedRobot
 
 	private final static double				TARGET_FORCE			= 405000;								// 100000
 																											// low dmg high surv - 10000 high dmg low surv
-	private final static double				TARGET_DISTANCE			= 400.0;
+	private final static double				TARGET_DISTANCE			= 1000.0;
 
 	private final static double				PI_360					= Math.PI * 2.0;
 	private final static double				DELTA_RISK_ANGLE		= Math.PI / 32.0;
