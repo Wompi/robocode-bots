@@ -94,10 +94,10 @@ public class PaintBotwidthGeometry
 //		double speed = Math.max(s0, Math.max(s1, Math.max(s2, s3)));
 //		myBot.setMaxVelocity(speed);
 
-//		System.out.format("[%04d] E0: %d %3.0f %10.5f (%d)\n", t, d0, c0, s0, tick);
-//		System.out.format("[%04d] E1: %d %3.0f %10.5f (%d)\n", t, d1, c1, s1, tick);
-//		System.out.format("[%04d] E2: %d %3.0f %10.5f (%d)\n", t, d2, c2, s2, tick);
-//		System.out.format("[%04d] E3: %d %3.0f %10.5f (%d)\n", t, d3, c3, s3, tick);
-//		System.out.format("\n");
+		System.out.format("[%04d] E0: d=%d p=%3.0f s=%10.5f tic(%d)\n", t, d0, c0, s0, tick);
+		System.out.format("[%04d] E1: d=%d p=%3.0f s=%10.5f tic(%d)\n", t, d1, c1, s1, tick);
+		System.out.format("[%04d] E2: d=%d p=%3.0f s=%10.5f tic(%d)\n", t, d2, c2, s2, tick);
+		System.out.format("[%04d] E3: d=%d p=%3.0f s=%10.5f tic(%d)\n", t, d3, c3, s3, tick);
+		System.out.format("\n");
 	}
 }
