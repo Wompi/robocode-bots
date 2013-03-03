@@ -28,6 +28,7 @@ public class Nabarlek extends AdvancedRobot
 	private static double		eEnergy;
 	private static double		bSpeed;
 	private static double		speedUp;
+	private static double		lastDelta;
 
 	private static final int	BW				= 36;
 	private static final int	BW_HALF			= 18;
@@ -50,11 +51,12 @@ public class Nabarlek extends AdvancedRobot
 		eEnergy = getEnergy();
 		bSpeed = 19.7;
 		speedUp = 0;
+		DIR = 1;
 
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
 		setAdjustRadarForRobotTurn(true);
-		setTurnRadarRightRadians(DIR = Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	@Override
@@ -97,10 +99,10 @@ public class Nabarlek extends AdvancedRobot
 		ArrayList<BotEdge> edges = new ArrayList<BotEdge>();
 
 		double angle;
-		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b0), angle - bAngle, xe, ye));
-		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b1), angle - bAngle, xe, ye));
-		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b2), angle - bAngle, xe, ye));
-		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b3), angle - bAngle, xe, ye));
+		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b0), angle - bAngle, xe, ye, dist));
+		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b1), angle - bAngle, xe, ye, dist));
+		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b2), angle - bAngle, xe, ye, dist));
+		edges.add(new BotEdge(angle = RobotMath.calculateAngle(ePos, b3), angle - bAngle, xe, ye, dist));
 
 		Collections.sort(edges);
 
@@ -127,6 +129,7 @@ public class Nabarlek extends AdvancedRobot
 //				Math.toDegrees(a1), Math.toDegrees(a2), Math.toDegrees(a3));
 
 		double eDelta = eEnergy - (eEnergy = e.getEnergy());
+		double bDist;
 		if (eDelta > 0 && eDelta <= 3)
 		{
 			bSpeed = Rules.getBulletSpeed(eDelta);
@@ -135,35 +138,62 @@ public class Nabarlek extends AdvancedRobot
 			myEscapeSquares.clear();
 			myEscapeSquares.add(e0);
 			myEscapeSquares.add(e1);
-
+			DIR = -DIR;
+			lastDelta = eDelta;
 		}
+		bDist = bSpeed * Math.ceil(Rules.getGunHeat(lastDelta) / getGunCoolingRate());
 
-		for (BotEdge edge : myEscapeSquares)
-		{
-			Point2D pos = new Point2D.Double(edge.bX, edge.bY);
-			Point2D _a0 = RobotMath.calculatePolarPoint(edge.edgeAngle + edge.edgeDelta, dist, pos);
-			PaintHelper.drawSquare(_a0.getX(), _a0.getY(), 0, 36, Color.RED, getGraphics());
-		}
+		Point2D pos = new Point2D.Double(e0.bX, e0.bY);
+		Point2D _a0 = RobotMath.calculatePolarPoint(e0.edgeAngle + e0.edgeDelta, e0.eDist, pos);
+//		double a;
+//		setTurnRightRadians(Utils.normalRelativeAngle(Math.tan(a = Math.atan2(_a0.getX() - getX(), _a0.getY() - getY())
+//				- getHeadingRadians())));
+
+		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - bDist) * (getVelocity() / 2500)));
+		setAhead(Math.hypot(_a0.getX() - getX(), _a0.getY() - getY()) * DIR);
 
 		int tick = (int) Math.ceil(dist / bSpeed);
+
+		System.out.format("[%04d] distance=%3.5f bDist=%3.5f\n", getTime(), e.getDistance(), bDist);
 
 		double s0 = d0 * 2.0 / tick;
 		double s1 = d1 * 2.0 / tick;
 		double s2 = d2 * 2.0 / tick;
 		double s3 = d3 * 2.0 / tick;
 
-		setTurnRightRadians(Math.cos(e.getBearingRadians()));
 		double speed = Math.max(s0, Math.max(s1, Math.max(s2, s3)));
 		setMaxVelocity(speed = Math.max(0, speedUp--) + speed + Math.abs(getTurnRemaining() / 10));
 
+		for (BotEdge edge : myEscapeSquares)
+		{
+			Point2D p0 = new Point2D.Double(edge.bX, edge.bY);
+			Point2D x0 = RobotMath.calculatePolarPoint(edge.edgeAngle + edge.edgeDelta, edge.eDist, p0);
+			PaintHelper.drawSquare(x0.getX(), x0.getY(), 0, 36, Color.RED, getGraphics());
+		}
+
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing - getGunHeadingRadians()));
+
+		//if (e.getEnergy() < 1 && e.getVelocity() == 0) setFire(3.0);
+
+//		int tick = (int) Math.ceil(dist / bSpeed);
+//
+//		double s0 = d0 * 2.0 / tick;
+//		double s1 = d1 * 2.0 / tick;
+//		double s2 = d2 * 2.0 / tick;
+//		double s3 = d3 * 2.0 / tick;
+//
+//		//setTurnRightRadians(Math.cos(e.getBearingRadians()));
+//		double speed = Math.max(s0, Math.max(s1, Math.max(s2, s3)));
+//		setMaxVelocity(speed = Math.max(0, speedUp--) + speed + Math.abs(getTurnRemaining() / 10));
+
 		//System.out.format("[%04d] Speed: %3.2f (%3.4f) angle=%3.4f\n", getTime(), speed, bSpeed, getTurnRemaining());
 
+		double scan;
 		if (!Double
-				.isNaN(speed = (Utils.normalRelativeAngle(absBearing - getRadarHeadingRadians()) * Double.POSITIVE_INFINITY)))
+				.isNaN(scan = (Utils.normalRelativeAngle(absBearing - getRadarHeadingRadians()) * Double.POSITIVE_INFINITY)))
 		{
-			setTurnRadarRightRadians(speed);
+			setTurnRadarRightRadians(scan);
 		}
-		setAhead(DIR);
 	}
 
 	@Override
@@ -203,13 +233,15 @@ class BotEdge implements Comparable<BotEdge>
 	double	edgeDelta;
 	double	bX;
 	double	bY;
+	double	eDist;
 
-	public BotEdge(double angle, double delta, double x, double y)
+	public BotEdge(double angle, double delta, double x, double y, double dist)
 	{
 		edgeAngle = angle;
 		edgeDelta = delta;
 		bX = x;
 		bY = y;
+		eDist = dist;
 	}
 
 	@Override
