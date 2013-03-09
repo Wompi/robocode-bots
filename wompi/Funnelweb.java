@@ -1,120 +1,108 @@
 package wompi;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import robocode.AdvancedRobot;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.StatusEvent;
-import wompi.echidna.misc.painter.PaintMinRiskPoints;
-import wompi.paint.PaintHelper;
-import wompi.paint.PaintWallHeadingDistance;
-import wompi.paint.PaintWallSmooth;
-import wompi.robomath.RobotMath;
-import wompi.robomath.WallHeadingDistance;
+import robocode.util.Utils;
 
 public class Funnelweb extends AdvancedRobot
 {
-	private static final double	WZ					= 18.0;
-	private static final double	WZ_W				= 800 - 2 * WZ;
-	private static final double	WZ_H				= 600 - 2 * WZ;
-	private final static double	DIST				= 160;
-	private final static double	DELTA_RISK_ANGLE	= Math.PI / 128.0;
-	private final static double	PI_360				= Math.PI * 2.0;
-	private final static double	PI_180				= Math.PI;
-	private final static double	PI_90				= Math.PI / 2.0;
-	private final static double	PI_30				= Math.PI / 6.0;
-	private final static double	TARGET_FORCE		= 1000;					// 100000 low dmg high surv - 10000 high dmg low surv
-
-	private static double		CENTER_X;
-	private static double		CENTER_Y;
-
-	PaintMinRiskPoints			myPaintMinRiskAll	= new PaintMinRiskPoints();
-	WallHeadingDistance			myWallDist;
-	PaintWallHeadingDistance	myPaintWall;
-	PaintWallSmooth				myWallSmooth		= new PaintWallSmooth();
+//	private static final double	WZ		= 18.0;
+//	private static final double	WZ_W	= 800 - 2 * WZ;
+//	private static final double	WZ_H	= 600 - 2 * WZ;
+//	private final static double	DIST	= 160;
+//	private final static double	PI_360	= Math.PI * 2.0;
+//	private final static double	PI_180	= Math.PI;
+//	private final static double	PI_90	= Math.PI / 2.0;
+//	private final static double	PI_30	= Math.PI / 6.0;
+//
+//	private static double		kx;
+//	private static double		ky;
+//
+	private static double	eHeading;
 
 	public Funnelweb()
-	{
-		myWallDist = new WallHeadingDistance();
-		myPaintWall = new PaintWallHeadingDistance(myWallDist);
-	}
+	{}
 
 	@Override
 	public void run()
 	{
-		setAllColors(Color.CYAN);
+		//setAllColors(Color.CYAN);
 
-		myWallDist.onInit(this, 18);
-		myWallSmooth.onInit(this, 18.0);
-		CENTER_X = getBattleFieldWidth() / 2.0;
-		CENTER_Y = getBattleFieldHeight() / 2.0;
-
-		setAdjustGunForRobotTurn(true);
-		setAdjustRadarForRobotTurn(true);
-		setAdjustRadarForGunTurn(true);
+//		setAdjustGunForRobotTurn(true);
+//		setAdjustRadarForRobotTurn(true);
+//		setAdjustRadarForGunTurn(true);
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
-	@Override
-	public void onStatus(StatusEvent e)
-	{
-		myWallDist.setStartPoint(getX(), getY());
-		myWallSmooth.onStatus(e);
-		myWallDist.setHeading(getHeadingRadians());
+//	@Override
+//	public void onStatus(StatusEvent e)
+//	{
+	// 0 = cos(18.0 * pi/800 + k);
+	// acos(0) = 18.0 * pi/800 + k; acos(0) = pi/2
+	// pi/2 - 18.0 * pi/800 = k;
+	// pi*(0.5 - 0.0225) = k
+	// pi * 0.4775 = k;
+	// k = 1.500110492089126;
+//		double d = 19;
 
-		// debug
-		double dx0 = getX() - 18 - CENTER_X;
-		double dy0 = getY() - 18 - CENTER_Y;
+//		double kx = PI_180 * (0.5 - d / 800);
+//		double ky = PI_180 * (0.5 - d / 600);
 
-		double dy = Math.min(getBattleFieldHeight() - getY() - 18.0, getY() - 18.0);
-		double dx = Math.min(getBattleFieldWidth() - getX() - 18, getX() - 18.0);
+//		double dx = Math.cos(getX() * PI_180 / 800 + kx);
+//		double dy = Math.cos(getY() * PI_180 / 600 + ky);
+//
+//		//System.out.format("[%04d] dx=%3.5f dy=%3.5f \n", getTime(), dx, dy);
+//
+//		double angle;
+//		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
+//		setAhead(100 * Math.cos(angle));
 
-		System.out.format("[%04d] dx0=%3.5f dy0=%3.5f dx=%3.5f dy=%3.5f\n", getTime(), dx0, dy0, dx, dy);
-
-		double alpha = Math.acos(dy / 120);
-		double betha = Math.acos(dx / 120);
-		System.out.format("[%04d] apha=%3.5f betha=%3.5f head=%3.5f\n", getTime(), Math.toDegrees(alpha),
-				Math.toDegrees(betha), getHeading());
-
-	}
+//	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
+		double absBearing;
+		double bPower;
 
-		double absBearing = e.getBearingRadians() + getHeadingRadians();
+		double xe = Math.sin(absBearing = e.getBearingRadians() + getHeadingRadians()) * e.getDistance();
+		double ye = Math.cos(absBearing) * e.getDistance();
 
-		double eDist = e.getDistance();
-		double xF = -Math.sin(absBearing) / (eDist * eDist);
-		double yF = -Math.cos(absBearing) / (eDist * eDist);
+		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+		setFire(bPower = Math.min(2 + (int) (100 / e.getDistance()), e.getEnergy() / 4));
 
-		double v0 = Math.cos(e.getBearingRadians());
-		double v1 = Math.atan2(xF, yF);
+		absBearing = e.getVelocity();
+		double dHead = eHeading - (eHeading = e.getHeadingRadians());
+		double head = e.getHeadingRadians();
+		double i = 0;
+		while (++i * Rules.getBulletSpeed(bPower) < Math.hypot(xe, ye))
+		{
+			head = head + dHead;
+			if (!new Rectangle2D.Double(18.0, 18.0, 768, 568).contains((xe += Math.sin(e.getHeadingRadians())
+					* absBearing)
+					+ getX(), (ye += Math.cos(e.getHeadingRadians()) * absBearing) + getY()))
+			{
+				absBearing = -absBearing;
+			}
+		}
+//		double dx = Math.cos(getX() * PI_180 / 800 + PI_180 * (0.5 - (xe + getX()) / 800));
+//		double dy = Math.cos(getY() * PI_180 / 600 + PI_180 * (0.5 - (ye + getY()) / 600));
 
-		Point2D start = new Point2D.Double(getX(), getY());
-		Point2D end = RobotMath.calculatePolarPoint(v1, 100, start);
-		PaintHelper.drawLine(start, end, getGraphics(), Color.MAGENTA);
-
-		System.out.format("[%04d] perp=%3.5f force=%3.5f \n", getTime(), v0, v1);
-
-		//v1 += v0;
-
-		setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-		setAhead(120 * Math.cos(v1));
-
-		//setAhead(DIST - Math.abs(getTurnRemaining()));
-
-		setTurnRadarRightRadians(-getRadarTurnRemainingRadians());
+		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing = Math.atan2(xe, ye)) - getGunHeadingRadians()));
+		setTurnRightRadians(Utils.normalRelativeAngle(absBearing = Math.atan2(xe, ye) - getHeadingRadians()));
+		setAhead(100 * Math.cos(absBearing));
 	}
+//	@Override
+//	public void onHitWall(HitWallEvent e)
+//	{
+//		System.out.format("[%04d] Boiiiing! (%3.5f) \n", getTime(), e.getBearing());
+//	}
 
-	@Override
-	public void onPaint(Graphics2D g)
-	{
-		myPaintWall.onPaint(g);
-		myWallSmooth.onPaint(g);
-		//myPaintMinRiskAll.onPaint(g, false);
-	}
+//	@Override
+//	public void onPaint(Graphics2D g)
+//	{}
 
 }
