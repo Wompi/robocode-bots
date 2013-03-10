@@ -73,7 +73,7 @@ public class Kowari extends AdvancedRobot
 //		double turn = Math.cos(e.getBearingRadians());
 
 		setTurnRightRadians(Math.cos(e.getBearingRadians()
-				- (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/176)
+				- (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/250)
 				* getVelocity() * ADVANCE_FACTOR));
 
 		// TODO: change the direction dependent on the fire frequency 
@@ -83,7 +83,7 @@ public class Kowari extends AdvancedRobot
 		// maybe it is possible to use the getTime() and modulo for this kind of stuff
 		// i guess this will bring a nice touch to the movement and can avoid a couple of scenarios 
 
-		if ((absBearing = (eEnergy - (eEnergy = e.getEnergy()))) > 0)
+		if ((eEnergy - (eEnergy = e.getEnergy())) > 0)
 		{
 			SPEEDUP_FACTOR = 20;
 			if (toggle)
@@ -113,7 +113,7 @@ public class Kowari extends AdvancedRobot
 //			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 //			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 //			myWaves.onScannedRobot(absBearing, xe, ye);
-			ePower = absBearing;
+			//ePower = absBearing;
 		}
 
 		// TODO: the bounce angle for wall hits is significant for HoT hits... if you drive perenticular to the bot
@@ -143,7 +143,7 @@ public class Kowari extends AdvancedRobot
 	public void onHitByBullet(HitByBulletEvent e)
 	{
 		//eEnergy += Rules.getBulletHitBonus(e.getPower());
-
+		//eEnergy += 10;
 		// debug
 //		myHits.onHitByBullet(e);
 
