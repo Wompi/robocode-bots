@@ -1,8 +1,6 @@
 package wompi;
 
 import robocode.AdvancedRobot;
-import robocode.BulletHitEvent;
-import robocode.DeathEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
@@ -12,21 +10,25 @@ import robocode.util.Utils;
 public class Kowari extends AdvancedRobot
 {
 	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0; // 2500 = 16deg 2000 = 20deg
-	private static final double	SPEEDUP_FACTOR	= 20;
-	private static final double	DISTANCE_FACTOR	= 160;
-
+	private static final double	DISTANCE_FACTOR	= 176;			// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static double		eEnergy;
 	private static double		ePower;
 	private static double		dir;
-	private static int			deathCount;
 	private static int			speedUp;
+
+	private static int			SPEEDUP_FACTOR;
+	private static long			lastHitTime;
+	private static double		hitFrequence;
+	private static boolean		toggle;
 
 	// debug 
 //	PaintBulletHits				myHits			= new PaintBulletHits();
 //	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
 
 	public Kowari()
-	{}
+	{
+		//hitFrequence = Double.POSITIVE_INFINITY;
+	}
 
 	@Override
 	public void run()
@@ -37,6 +39,7 @@ public class Kowari extends AdvancedRobot
 		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
+	// debug
 //	@Override
 //	public void onStatus(StatusEvent e)
 //	{
@@ -69,8 +72,9 @@ public class Kowari extends AdvancedRobot
 		//setTurnRightRadians(Math.cos(e.getBearingRadians() - e.getDistance() * getVelocity() / 2500));
 //		double turn = Math.cos(e.getBearingRadians());
 
-		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - DISTANCE_FACTOR) * getVelocity()
-				* ADVANCE_FACTOR));
+		setTurnRightRadians(Math.cos(e.getBearingRadians()
+				- (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/176)
+				* getVelocity() * ADVANCE_FACTOR));
 
 		// TODO: change the direction dependent on the fire frequency 
 		// that means he shoots 3.0 = 16 ticks so head(sin(time * pi/(16-2))) would do the trick
@@ -79,13 +83,15 @@ public class Kowari extends AdvancedRobot
 		// maybe it is possible to use the getTime() and modulo for this kind of stuff
 		// i guess this will bring a nice touch to the movement and can avoid a couple of scenarios 
 
-		if (!Utils.isNear((absBearing = (eEnergy - (eEnergy = e.getEnergy()))), 0))
+		if ((absBearing = (eEnergy - (eEnergy = e.getEnergy()))) > 0)
 		{
-			if (deathCount > 0)
+			SPEEDUP_FACTOR = 20;
+			if (toggle)
 			{
 				// TODO: this concept should go to a micro bot - periodic direction change dependent on enemy gun heat  
 				//eHeat = Math.ceil((Rules.getGunHeat(absBearing) / getGunCoolingRate())) - 1 - 4;
 				onHitWall(null); // saves 2 byte compared to dir = - dir
+				SPEEDUP_FACTOR = 100;
 				//eFireTime = 0;
 
 //				System.out.format("[%04d] ePower=%3.4f eEnergy=%3.15f\n", getTime(), absBearing, eEnergy);
@@ -112,8 +118,10 @@ public class Kowari extends AdvancedRobot
 
 		// TODO: the bounce angle for wall hits is significant for HoT hits... if you drive perenticular to the bot
 		// you got least hits but can stuck in corners
-		setFire(e.getEnergy() * 25 / e.getDistance());
-		setMaxVelocity((1080 - 162 * ePower) / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
+		setFire(e.getEnergy() * 15 / e.getDistance());
+		//setMaxVelocity((1080 - 162 * ePower) / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
+		setMaxVelocity(1080 / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
+		//setMaxVelocity(54 * e.getDistance() / Rules.getBulletSpeed(ePower) + SPEEDUP_FACTOR / ++speedUp); // grr 1 byte shorter
 
 		//double t = Math.sin(eFireTime++ * dir * Math.PI / eHeat);
 		//setAhead(Double.POSITIVE_INFINITY * t);
@@ -134,14 +142,14 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
-		eEnergy += Rules.getBulletHitBonus(e.getPower());
+		//eEnergy += Rules.getBulletHitBonus(e.getPower());
 
 		// debug
 //		myHits.onHitByBullet(e);
 
-//		double bHeat = Rules.getGunHeat(e.getPower()) / getGunCoolingRate();
-//		System.out.format("[%04d] HIT - %d cool=%3.5f\n", getTime(), getTime() - lastHitTime, bHeat);
-//		lastHitTime = getTime();
+		if ((lastHitTime - (lastHitTime = getTime()) / (Rules.getGunHeat(e.getPower()) * 10)) < 2) toggle = !toggle;
+//			System.out.format("[%04d] HIT - %d cool=%3.5f hitFreq=%3.5f (%3.5f)\n", getTime(), getTime() - lastHitTime,
+//					bHeat, hitFrequence, dTime / bHeat);
 
 		// TODO: the hit time can be used in some kind of standard deviation look at the difference between
 		// bullet turns and hits - if it is 1 or 2 of it means the bullet has hit you right after each other
@@ -149,17 +157,16 @@ public class Kowari extends AdvancedRobot
 		// this is very basic tested so far but i have a hunch it could work
 	}
 
-	@Override
-	public void onBulletHit(BulletHitEvent e)
-	{
-		eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
-	}
-
-	@Override
-	public void onDeath(DeathEvent e)
-	{
-		deathCount++;
-	}
+//	@Override
+//	public void onBulletHit(BulletHitEvent e)
+//	{
+//		//eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
+//		// Note: this is a very nice trick to get rid of the above byte hungry call
+//		// 6 byte less
+//		// be careful the hitevent is also removed but this should be ok
+//		eEnergy = e.getEnergy();
+//		clearAllEvents();
+//	}
 
 	// debug
 //	@Override
