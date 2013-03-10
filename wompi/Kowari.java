@@ -1,7 +1,5 @@
 package wompi;
 
-import java.awt.Color;
-
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.DeathEvent;
@@ -13,11 +11,19 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
-	private static double	eEnergy;
-	private static double	dir;
-	private static int		deathCount;
-	private static double	eHeat;
-	private static long		eFireTime;
+	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0; // 2500 = 16deg 2000 = 20deg
+	private static final double	SPEEDUP_FACTOR	= 20;
+	private static final double	DISTANCE_FACTOR	= 160;
+
+	private static double		eEnergy;
+	private static double		ePower;
+	private static double		dir;
+	private static int			deathCount;
+	private static int			speedUp;
+
+	// debug 
+//	PaintBulletHits				myHits			= new PaintBulletHits();
+//	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
 
 	public Kowari()
 	{}
@@ -25,18 +31,32 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		setAllColors(Color.RED);
-		dir = 1;
-		eEnergy = 100;
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		// debug
+//		myHits.onInit(this, 18);
+
+		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
+
+//	@Override
+//	public void onStatus(StatusEvent e)
+//	{
+//		myHits.onStatus(e);
+//		myWaves.onStatus(e);
+//	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
+		/// debug
+//		myHits.onScannedRobot(e);
+
 		double absBearing;
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
+		// TODO: have a closer look at the gun - sounds promising to alternate between HoT and linear
+		// maybe adjust the factor in onHit and onMiss
+		// otherwise adjust the overall factor like the speed variable dependent where he stays and what the 
+		// hit bounds is
 		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing = (getHeadingRadians() + e.getBearingRadians()))
 				+ ((e.getVelocity() / 14) * Math.sin(e.getHeadingRadians() - absBearing)) - getGunHeadingRadians()));
 
@@ -47,7 +67,10 @@ public class Kowari extends AdvancedRobot
 		// bullet ticks is a min and you can oscillate between these parameters - this need a lot more research
 		//setTurnRightRadians(Math.cos(e.getBearingRadians() - ((e.getDistance() - 160) * dir * 0.0024)));
 		//setTurnRightRadians(Math.cos(e.getBearingRadians() - e.getDistance() * getVelocity() / 2500));
-		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * dir * 0.0004));
+//		double turn = Math.cos(e.getBearingRadians());
+
+		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - DISTANCE_FACTOR) * getVelocity()
+				* ADVANCE_FACTOR));
 
 		// TODO: change the direction dependent on the fire frequency 
 		// that means he shoots 3.0 = 16 ticks so head(sin(time * pi/(16-2))) would do the trick
@@ -58,40 +81,54 @@ public class Kowari extends AdvancedRobot
 
 		if (!Utils.isNear((absBearing = (eEnergy - (eEnergy = e.getEnergy()))), 0))
 		{
-			//if (deathCount > 0)
+			if (deathCount > 0)
 			{
-				eHeat = Math.ceil((Rules.getGunHeat(absBearing) / getGunCoolingRate())) - 1 - 4;
-				dir = -dir;
-				eFireTime = 0;
-				//System.out.format("[%04d] eHeat=%3.4f eFireTime=%d ePower=%3.4f\n", getTime(), eHeat, eFireTime,
-				//		absBearing);
+				// TODO: this concept should go to a micro bot - periodic direction change dependent on enemy gun heat  
+				//eHeat = Math.ceil((Rules.getGunHeat(absBearing) / getGunCoolingRate())) - 1 - 4;
+				onHitWall(null); // saves 2 byte compared to dir = - dir
+				//eFireTime = 0;
+
+//				System.out.format("[%04d] ePower=%3.4f eEnergy=%3.15f\n", getTime(), absBearing, eEnergy);
 			}
-			//else
+//			else
 			{
 				// Note: before i forget this stuff
 				// this is the simplified math from Narbalek and means 
 				// speed = 2*d0 / tick
+				// tick = eDist / (20-3*bPower)
 				// with d0 = 25 to 27 (this is the distance to the line that hits the far corner of our bot)
 				// tick - is the time the enemy bullet needs to hit the bot at its current position
 				// if you transform the formula you get the cryptic monster below
 				// the whole idea is to move the bot with the calculated speed just enough to dodge any
-				// HoT shooting. He moves barely out of the former position 
-				//setMaxVelocity((1080 - 162 * absBearing) / e.getDistance());
+				// HoT shooting. He moves barely out of the former position where the speed is LOW if far away 
+				// and HIGH if near
 			}
+			/// debug
+//			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+//			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+//			myWaves.onScannedRobot(absBearing, xe, ye);
+			ePower = absBearing;
 		}
 
-		double t = Math.sin(eFireTime++ * dir * Math.PI / eHeat);
+		// TODO: the bounce angle for wall hits is significant for HoT hits... if you drive perenticular to the bot
+		// you got least hits but can stuck in corners
+		setFire(e.getEnergy() * 25 / e.getDistance());
+		setMaxVelocity((1080 - 162 * ePower) / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
 
-		setAhead(Double.POSITIVE_INFINITY * t);
-		//System.out.format("[%04d] move=%3.4f v=%3.4f\n", getTime(), t, getVelocity());
+		//double t = Math.sin(eFireTime++ * dir * Math.PI / eHeat);
+		//setAhead(Double.POSITIVE_INFINITY * t);
+		setAhead(dir);
 
-		setFire(Math.min(600 / e.getDistance(), eEnergy / 4));
+//		System.out.format("[%04d] v=%3.4f dist=%3.5f turn=%3.5f perpturn=%3.5f\n", getTime(), getVelocity(),
+//				e.getDistance(), getTurnRemaining(), Math.toDegrees(turn));
+
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
 		dir = -dir;
+		speedUp = 0;
 	}
 
 	@Override
@@ -100,6 +137,8 @@ public class Kowari extends AdvancedRobot
 		eEnergy += Rules.getBulletHitBonus(e.getPower());
 
 		// debug
+//		myHits.onHitByBullet(e);
+
 //		double bHeat = Rules.getGunHeat(e.getPower()) / getGunCoolingRate();
 //		System.out.format("[%04d] HIT - %d cool=%3.5f\n", getTime(), getTime() - lastHitTime, bHeat);
 //		lastHitTime = getTime();
@@ -121,4 +160,14 @@ public class Kowari extends AdvancedRobot
 	{
 		deathCount++;
 	}
+
+	// debug
+//	@Override
+//	public void onPaint(Graphics2D g)
+//	{
+//		setAllColors(Color.RED);
+//		myHits.onPaint(g);
+//		myWaves.onPaint(g);
+//	}
+
 }
