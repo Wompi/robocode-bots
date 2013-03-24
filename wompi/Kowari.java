@@ -1,16 +1,22 @@
 package wompi;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+
 import robocode.AdvancedRobot;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintBulletHits;
+import wompi.paint.PaintEnemyBulletWaves;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0; // 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 176;			// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
+	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;				// 2500 = 16deg 2000 = 20deg
+	private static final double	DISTANCE_FACTOR	= 176;							// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static double		eEnergy;
 	private static double		ePower;
 	private static double		dir;
@@ -22,8 +28,16 @@ public class Kowari extends AdvancedRobot
 	private static boolean		toggle;
 
 	// debug 
-//	PaintBulletHits				myHits			= new PaintBulletHits();
-//	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
+	PaintBulletHits				myHits			= new PaintBulletHits();
+	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
+
+	// TODO: use the DIR variable as lastHitTime and make it changed for a needs
+	// initialize the variable with 30 - just a thought to prevent the first hit issu  
+
+	// TODO: rethink about the new movement
+	// the movement should work with facing to the enemy and if he shoots move to him and turn perpendicuar i
+	// if he shoots again move back to the facing position with some luck it can dodge 
+	// linear and headon in one catch a well thought sin period should do the trick
 
 	public Kowari()
 	{
@@ -34,24 +48,24 @@ public class Kowari extends AdvancedRobot
 	public void run()
 	{
 		// debug
-//		myHits.onInit(this, 18);
+		myHits.onInit(this, 18);
 
 		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	// debug
-//	@Override
-//	public void onStatus(StatusEvent e)
-//	{
-//		myHits.onStatus(e);
-//		myWaves.onStatus(e);
-//	}
+	@Override
+	public void onStatus(StatusEvent e)
+	{
+		myHits.onStatus(e);
+		myWaves.onStatus(e);
+	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		/// debug
-//		myHits.onScannedRobot(e);
+		myHits.onScannedRobot(e);
 
 		double absBearing;
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
@@ -72,9 +86,14 @@ public class Kowari extends AdvancedRobot
 		//setTurnRightRadians(Math.cos(e.getBearingRadians() - e.getDistance() * getVelocity() / 2500));
 //		double turn = Math.cos(e.getBearingRadians());
 
-		setTurnRightRadians(Math.cos(e.getBearingRadians()
-				- (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/250)
-				* getVelocity() * ADVANCE_FACTOR));
+//		double offset = - (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/250)
+//				* getVelocity() * ADVANCE_FACTOR
+		double offset = (e.getDistance() - 250) * getVelocity() * ADVANCE_FACTOR;
+		double turn = Math.cos(e.getBearingRadians() - offset);
+		setTurnRightRadians(turn);
+
+		System.out.format("[%4d] offset=%3.5f dir=[%3.0f , %3.4f] dist=%3.5f \n", getTime(), offset, Math.signum(dir),
+				getVelocity(), e.getDistance());
 
 		// TODO: change the direction dependent on the fire frequency 
 		// that means he shoots 3.0 = 16 ticks so head(sin(time * pi/(16-2))) would do the trick
@@ -83,14 +102,16 @@ public class Kowari extends AdvancedRobot
 		// maybe it is possible to use the getTime() and modulo for this kind of stuff
 		// i guess this will bring a nice touch to the movement and can avoid a couple of scenarios 
 
-		if ((eEnergy - (eEnergy = e.getEnergy())) > 0)
+		double eDelta;
+		if ((eDelta = (eEnergy - (eEnergy = e.getEnergy()))) > 0)
 		{
 			SPEEDUP_FACTOR = 20;
-			if (toggle)
+			//if (toggle)
 			{
 				// TODO: this concept should go to a micro bot - periodic direction change dependent on enemy gun heat  
 				//eHeat = Math.ceil((Rules.getGunHeat(absBearing) / getGunCoolingRate())) - 1 - 4;
-				onHitWall(null); // saves 2 byte compared to dir = - dir
+
+				if (e.getDistance() > 160) onHitWall(null); // saves 2 byte compared to dir = - dir
 				SPEEDUP_FACTOR = 100;
 				//eFireTime = 0;
 
@@ -110,11 +131,12 @@ public class Kowari extends AdvancedRobot
 				// and HIGH if near
 			}
 			/// debug
-//			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-//			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-//			myWaves.onScannedRobot(absBearing, xe, ye);
+			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+			myWaves.onScannedRobot(absBearing, xe, ye);
 			//ePower = absBearing;
 		}
+		setAhead(dir);
 
 		// TODO: the bounce angle for wall hits is significant for HoT hits... if you drive perenticular to the bot
 		// you got least hits but can stuck in corners
@@ -125,7 +147,8 @@ public class Kowari extends AdvancedRobot
 
 		//double t = Math.sin(eFireTime++ * dir * Math.PI / eHeat);
 		//setAhead(Double.POSITIVE_INFINITY * t);
-		setAhead(dir);
+		//setAhead(dir);
+//		setAhead(Double.POSITIVE_INFINITY * Math.cos(Math.atan(getTurnRemainingRadians())));
 
 //		System.out.format("[%04d] v=%3.4f dist=%3.5f turn=%3.5f perpturn=%3.5f\n", getTime(), getVelocity(),
 //				e.getDistance(), getTurnRemaining(), Math.toDegrees(turn));
@@ -145,7 +168,7 @@ public class Kowari extends AdvancedRobot
 		//eEnergy += Rules.getBulletHitBonus(e.getPower());
 		//eEnergy += 10;
 		// debug
-//		myHits.onHitByBullet(e);
+		myHits.onHitByBullet(e);
 
 		if ((lastHitTime - (lastHitTime = getTime()) / (Rules.getGunHeat(e.getPower()) * 10)) < 2) toggle = !toggle;
 //			System.out.format("[%04d] HIT - %d cool=%3.5f hitFreq=%3.5f (%3.5f)\n", getTime(), getTime() - lastHitTime,
@@ -169,12 +192,12 @@ public class Kowari extends AdvancedRobot
 //	}
 
 	// debug
-//	@Override
-//	public void onPaint(Graphics2D g)
-//	{
-//		setAllColors(Color.RED);
-//		myHits.onPaint(g);
-//		myWaves.onPaint(g);
-//	}
+	@Override
+	public void onPaint(Graphics2D g)
+	{
+		setAllColors(Color.RED);
+		myHits.onPaint(g);
+		myWaves.onPaint(g);
+	}
 
 }
