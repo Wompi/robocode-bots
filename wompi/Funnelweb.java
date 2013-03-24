@@ -1,14 +1,13 @@
 package wompi;
 
 import java.awt.Color;
-import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
 import robocode.HitWallEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
-import wompi.paint.PaintHelper;
 
 public class Funnelweb extends AdvancedRobot
 {
@@ -23,6 +22,9 @@ public class Funnelweb extends AdvancedRobot
 
 	private static double		dxx;
 	private static double		kx;
+
+	private static double		eBearing;
+	private static int			DIR		= 100;
 
 	public Funnelweb()
 	{}
@@ -51,21 +53,21 @@ public class Funnelweb extends AdvancedRobot
 		// k = 1.500110492089126;
 
 		//kx = PI_180 * (0.5 - 200.0 / 800.0);
-		double ky = PI_180 * (0.5 - 200.0 / 600.0);
-
-		// kx {-pi/2.0 ... +pi/2.0} it would be wise to take 90% because the range is calculated on 0 and not an 18  
-		kx = Utils.normalRelativeAngle(kx += 0.031415926535898 - PI_90);
-
-		double dx = Math.cos(getX() * PI_180 / 800 + kx);
-		double dy = Math.cos(getY() * PI_180 / 600 + ky);
-
-		PaintHelper.drawPoint(new Point2D.Double((0.5 - (kx / PI_180)) * 800, 200.0), Color.red, getGraphics(), 4);
-
-		System.out.format("[%04d] dx=%3.5f dy=%3.5f \n", getTime(), dx, dy);
-
-		double angle;
-		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
-		setAhead(100 * Math.cos(angle));
+//		double ky = PI_180 * (0.5 - 200.0 / 600.0);
+//
+//		// kx {-pi/2.0 ... +pi/2.0} it would be wise to take 90% because the range is calculated on 0 and not an 18  
+//		kx = Utils.normalRelativeAngle(kx += 0.031415926535898 - PI_90);
+//
+//		double dx = Math.cos(getX() * PI_180 / 800 + kx);
+//		double dy = Math.cos(getY() * PI_180 / 600 + ky);
+//
+//		PaintHelper.drawPoint(new Point2D.Double((0.5 - (kx / PI_180)) * 800, 200.0), Color.red, getGraphics(), 4);
+//
+//		System.out.format("[%04d] dx=%3.5f dy=%3.5f \n", getTime(), dx, dy);
+//
+//		double angle;
+//		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
+//		setAhead(100 * Math.cos(angle));
 
 	}
 
@@ -73,11 +75,28 @@ public class Funnelweb extends AdvancedRobot
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+		setTurnRightRadians(Math.cos(e.getBearingRadians()));
+		setAhead(DIR);
+
+		double absBearing = e.getBearingRadians() + getHeadingRadians();
+		double bDiff = eBearing - (eBearing = e.getBearingRadians());
+
+		double bPower = 600 / e.getDistance();
+
+		double bSpeed = Rules.getBulletSpeed(bPower);
+		double tick = e.getDistance() / bSpeed;
+
+		System.out.format("[%04d] bearDiff=%3.5f (%3.5f) (%3.5f) \n", getTime(), Math.toDegrees(bDiff),
+				Math.toDegrees(bDiff * tick), tick);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + Math.signum(e.getVelocity()) * bDiff * tick
+				- getGunHeadingRadians()));
+		setFire(bPower);
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
+		DIR = -DIR;
 		System.out.format("[%04d] Boiiiing! (%3.5f) \n", getTime(), e.getBearing());
 	}
 
