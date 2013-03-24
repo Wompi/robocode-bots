@@ -1,35 +1,33 @@
 package wompi;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-
 import robocode.AdvancedRobot;
+import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.StatusEvent;
 import robocode.util.Utils;
-import wompi.paint.PaintBulletHits;
-import wompi.paint.PaintEnemyBulletWaves;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;				// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 176;							// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
+	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0; // 2500 = 16deg 2000 = 20deg
+	private static final double	DISTANCE_FACTOR	= 176;			// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static double		eEnergy;
 	private static double		ePower;
 	private static double		dir;
 	private static int			speedUp;
 
-	private static int			SPEEDUP_FACTOR;
+	private static double		SPEEDUP_FACTOR;
 	private static long			lastHitTime;
 	private static double		hitFrequence;
 	private static boolean		toggle;
+	private static double		eFrequency;
+	private static long			eNextShoot;
+
+	private static boolean		isLocked;
 
 	// debug 
-	PaintBulletHits				myHits			= new PaintBulletHits();
-	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
+//	PaintBulletHits				myHits			= new PaintBulletHits();
+//	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
 
 	// TODO: use the DIR variable as lastHitTime and make it changed for a needs
 	// initialize the variable with 30 - just a thought to prevent the first hit issu  
@@ -48,24 +46,24 @@ public class Kowari extends AdvancedRobot
 	public void run()
 	{
 		// debug
-		myHits.onInit(this, 18);
+//		myHits.onInit(this, 18);
 
 		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	// debug
-	@Override
-	public void onStatus(StatusEvent e)
-	{
-		myHits.onStatus(e);
-		myWaves.onStatus(e);
-	}
+//	@Override
+//	public void onStatus(StatusEvent e)
+//	{
+//		myHits.onStatus(e);
+//		myWaves.onStatus(e);
+//	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		/// debug
-		myHits.onScannedRobot(e);
+//		myHits.onScannedRobot(e);
 
 		double absBearing;
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
@@ -74,7 +72,9 @@ public class Kowari extends AdvancedRobot
 		// maybe adjust the factor in onHit and onMiss
 		// otherwise adjust the overall factor like the speed variable dependent where he stays and what the 
 		// hit bounds is
-		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing = (getHeadingRadians() + e.getBearingRadians()))
+		setTurnRightRadians(Math.cos((absBearing = e.getBearingRadians()) - (e.getDistance() - 176) * getVelocity()
+				* ADVANCE_FACTOR));
+		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing += getHeadingRadians())
 				+ ((e.getVelocity() / 14) * Math.sin(e.getHeadingRadians() - absBearing)) - getGunHeadingRadians()));
 
 		// TODO: the distance 160 should be adjusted to the current bullet power of the enemies gun heating
@@ -88,12 +88,12 @@ public class Kowari extends AdvancedRobot
 
 //		double offset = - (e.getDistance() - /*Rules.getBulletSpeed(ePower) * Rules.getGunHeat(ePower) * 10*/250)
 //				* getVelocity() * ADVANCE_FACTOR
-		double offset = (e.getDistance() - 250) * getVelocity() * ADVANCE_FACTOR;
-		double turn = Math.cos(e.getBearingRadians() - offset);
-		setTurnRightRadians(turn);
+//		double offset = (e.getDistance() - 120) * getVelocity() * ADVANCE_FACTOR;
+//		double turn = Math.cos(e.getBearingRadians() - offset);
+//		setTurnRightRadians(turn);
 
-		System.out.format("[%4d] offset=%3.5f dir=[%3.0f , %3.4f] dist=%3.5f \n", getTime(), offset, Math.signum(dir),
-				getVelocity(), e.getDistance());
+//		System.out.format("[%4d] offset=%3.5f dir=[%3.0f , %3.4f] dist=%3.5f \n", getTime(), offset, Math.signum(dir),
+//				getVelocity(), e.getDistance());
 
 		// TODO: change the direction dependent on the fire frequency 
 		// that means he shoots 3.0 = 16 ticks so head(sin(time * pi/(16-2))) would do the trick
@@ -102,20 +102,22 @@ public class Kowari extends AdvancedRobot
 		// maybe it is possible to use the getTime() and modulo for this kind of stuff
 		// i guess this will bring a nice touch to the movement and can avoid a couple of scenarios 
 
-		double eDelta;
-		if ((eDelta = (eEnergy - (eEnergy = e.getEnergy()))) > 0)
+//		double eDelta;
+//		if ((eDelta = (eEnergy - (eEnergy = e.getEnergy()))) > 0 && !isLocked)
+		if (((eEnergy - (eEnergy = e.getEnergy()))) > 0 && !isLocked)
 		{
-			SPEEDUP_FACTOR = 20;
 			//if (toggle)
 			{
 				// TODO: this concept should go to a micro bot - periodic direction change dependent on enemy gun heat  
 				//eHeat = Math.ceil((Rules.getGunHeat(absBearing) / getGunCoolingRate())) - 1 - 4;
 
-				if (e.getDistance() > 160) onHitWall(null); // saves 2 byte compared to dir = - dir
-				SPEEDUP_FACTOR = 100;
-				//eFireTime = 0;
+				if (e.getDistance() > 120) onHitWall(null); // saves 2 byte compared to dir = - dir
+//				eFrequency = Rules.getGunHeat(eDelta) * 10;
+//				eNextShoot = (long) eFrequency;
+					//eFireTime = 0;
 
-//				System.out.format("[%04d] ePower=%3.4f eEnergy=%3.15f\n", getTime(), absBearing, eEnergy);
+//				System.out.format("[%04d] ePower=%3.4f eFrequency=%3.5f eEnergy=%3.15f\n", getTime(), eDelta,
+//						eFrequency, eEnergy);
 			}
 //			else
 			{
@@ -131,24 +133,21 @@ public class Kowari extends AdvancedRobot
 				// and HIGH if near
 			}
 			/// debug
-			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-			myWaves.onScannedRobot(absBearing, xe, ye);
+//			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+//			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+//			myWaves.onScannedRobot(eDelta, xe, ye);
 			//ePower = absBearing;
 		}
-		setAhead(dir);
+		isLocked = false;
 
 		// TODO: the bounce angle for wall hits is significant for HoT hits... if you drive perenticular to the bot
 		// you got least hits but can stuck in corners
 		setFire(e.getEnergy() * 15 / e.getDistance());
 		//setMaxVelocity((1080 - 162 * ePower) / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
-		setMaxVelocity(1080 / e.getDistance() + SPEEDUP_FACTOR / ++speedUp);
+		setMaxVelocity(SPEED_ADJUST / e.getDistance());
 		//setMaxVelocity(54 * e.getDistance() / Rules.getBulletSpeed(ePower) + SPEEDUP_FACTOR / ++speedUp); // grr 1 byte shorter
-
-		//double t = Math.sin(eFireTime++ * dir * Math.PI / eHeat);
-		//setAhead(Double.POSITIVE_INFINITY * t);
-		//setAhead(dir);
-//		setAhead(Double.POSITIVE_INFINITY * Math.cos(Math.atan(getTurnRemainingRadians())));
+		//setAhead(Math.sin(getTime() * Math.PI / 16) * Double.POSITIVE_INFINITY);
+		setAhead(dir);
 
 //		System.out.format("[%04d] v=%3.4f dist=%3.5f turn=%3.5f perpturn=%3.5f\n", getTime(), getVelocity(),
 //				e.getDistance(), getTurnRemaining(), Math.toDegrees(turn));
@@ -165,12 +164,14 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
-		//eEnergy += Rules.getBulletHitBonus(e.getPower());
-		//eEnergy += 10;
-		// debug
-		myHits.onHitByBullet(e);
+		isLocked = true;
 
-		if ((lastHitTime - (lastHitTime = getTime()) / (Rules.getGunHeat(e.getPower()) * 10)) < 2) toggle = !toggle;
+		//		eEnergy += Rules.getBulletHitBonus(e.getPower());
+//		//eEnergy += 10;
+//		// debug
+//		myHits.onHitByBullet(e);
+//
+//		if ((lastHitTime - (lastHitTime = getTime()) / (Rules.getGunHeat(e.getPower()) * 10)) < 2) toggle = !toggle;
 //			System.out.format("[%04d] HIT - %d cool=%3.5f hitFreq=%3.5f (%3.5f)\n", getTime(), getTime() - lastHitTime,
 //					bHeat, hitFrequence, dTime / bHeat);
 
@@ -180,24 +181,25 @@ public class Kowari extends AdvancedRobot
 		// this is very basic tested so far but i have a hunch it could work
 	}
 
-//	@Override
-//	public void onBulletHit(BulletHitEvent e)
-//	{
-//		//eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
-//		// Note: this is a very nice trick to get rid of the above byte hungry call
-//		// 6 byte less
-//		// be careful the hitevent is also removed but this should be ok
-//		eEnergy = e.getEnergy();
-//		clearAllEvents();
-//	}
+	@Override
+	public void onBulletHit(BulletHitEvent e)
+	{
+		isLocked = true;
+		//eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
+		// Note: this is a very nice trick to get rid of the above byte hungry call
+		// 6 byte less
+		// be careful the hitevent is also removed but this should be ok
+		//eEnergy = e.getEnergy();
+		//clearAllEvents();
+	}
 
 	// debug
-	@Override
-	public void onPaint(Graphics2D g)
-	{
-		setAllColors(Color.RED);
-		myHits.onPaint(g);
-		myWaves.onPaint(g);
-	}
+//	@Override
+//	public void onPaint(Graphics2D g)
+//	{
+//		setAllColors(Color.RED);
+//		myHits.onPaint(g);
+//		myWaves.onPaint(g);
+//	}
 
 }
