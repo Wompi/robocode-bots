@@ -4,6 +4,7 @@ import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
@@ -86,18 +87,12 @@ public class Kowari extends AdvancedRobot
 	private static boolean		isLocked;
 	private static double		dirChange;
 	private static long			lastHit;
-//	private static long			test;
 
 	// gun check
-//	static int					shots;
-//	static double				eLastBearing, avgBearingOffset;
-	static double				avgVeloCount;
-	static double				avgVelo;
+//	static double				avgVeloCount;
+//	static double				avgVelo;
+	static double				rollVelo;
 
-//	static int					shots;
-//	static double				avgBearingOffset;
-//	static double				eBearing[]		= new double[10000];
-//
 	// debug 
 //	PaintBulletHits				myHits			= new PaintBulletHits();
 //	PaintEnemyBulletWaves		myWaves			= new PaintEnemyBulletWaves();
@@ -127,61 +122,63 @@ public class Kowari extends AdvancedRobot
 	{
 		/// debug
 //		myHits.onScannedRobot(e);
-		double absBearing;
-		setTurnRightRadians(Math.cos((absBearing = e.getBearingRadians()) - (e.getDistance() - (176)) * getVelocity()
-				* ADVANCE_FACTOR));
+		double v0;
+		double v1;
+		double v2;
 
-		//if (setFireBullet(e.getEnergy() * 15 / e.getDistance()) != null)
-		{
-//			avgBearingOffset /= (++shots) / (shots - 1);
-//			avgBearingOffset += ((absBearing += getHeadingRadians()) - eLastBearing) / shots;
-//
-//			eLastBearing = absBearing;
-			//System.out.format("[%04d] fire\n", getTime());
-		}
-//		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + avgBearingOffset - getGunHeadingRadians()));
-//		double dist = (Math.cos(test++ * Math.PI / 5) * 100 + 176);
-//		dist = 176;
-//		System.out.format("[%04d] dist=%3.4f \n", getTime(), dist);
-//
-
-//		eBearing[(int) getTime()] = (absBearing += getHeadingRadians());
-//
-//		if ((getTime() - e.getDistance() / Rules.getBulletSpeed(bPower)) % 15 == 0)
-//		{
-//			avgBearingOffset /= (++shots) / (shots - 1);
-//			avgBearingOffset += (absBearing - eBearing[(int) (getTime() - e.getDistance()
-//					/ Rules.getBulletSpeed(bPower))])
-//					/ shots;
-//		}
-//		setTurnGunRight(absBearing + avgBearingOffset - getGunHeading());
+		setTurnRightRadians(Math.cos((v0 = e.getBearingRadians()) - ((v2 = e.getDistance()) - (DISTANCE_FACTOR))
+				* getVelocity() * ADVANCE_FACTOR));
 
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
-//		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing += getHeadingRadians())
-//				+ ((v0 / 14) * Math.sin(e.getHeadingRadians() - absBearing)) - getGunHeadingRadians()));
-
-		setTurnGunRightRadians(Utils.normalRelativeAngle((absBearing += getHeadingRadians())
-				- getGunHeadingRadians()
-				+ ((((avgVelo += Math.abs(e.getVelocity())) / ++avgVeloCount) * (e.getVelocity() > -0.001 ? 1 : -1))
-						* Math.signum(e.getEnergy()) * Math.sin(e.getHeadingRadians() - absBearing) / 13.0)));
-
-		//System.out.format("[%04d] v0=%3.4f ve=%3.5f dist=%3.4f \n", getTime(), v0, e.getVelocity(), e.getDistance());
-		if (((eEnergy - (eEnergy = e.getEnergy()))) > 0 && !isLocked && Math.cos(dirChange) < 0)
-		{
+		// dir is a function of locked/delta_energy and dirChange - now i only have to find it 
+		//
+		if (((eEnergy - (eEnergy = (v1 = e.getEnergy())))) > 0 && !isLocked && Math.cos(dirChange) < 0)
+//		{
 			onHitWall(null); // saves 2 byte compared to dir = - dir
-			/// debug
-//			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-//			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
-//			myWaves.onScannedRobot(eDelta, xe, ye);
-		}
+//			/// debug
+////			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+////			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+////			myWaves.onScannedRobot(eDelta, xe, ye);
+//		}
+
+		double bPower = v1 * 15 / v2;
+
+		//@formatter:off
+		setTurnGunRightRadians(
+				Utils.normalRelativeAngle(
+						(v0 += getHeadingRadians())
+						- getGunHeadingRadians()
+						+ (/*(rollVelo = (rollVelo + e.getVelocity()) / 1.5)*/
+								dist/Rules.getBulletSpeed(bPower)
+								/** Math.signum(e.getVelocity() + 0.001)*/
+								/** Math.signum(v1 = e.getEnergy())*/ 
+								* Math.sin(e.getHeadingRadians() - v0) 
+							/ Rules.getBulletSpeed(bPower))));
+		//@formatter:on
+//		System.out.format("[%04d] roll=%3.5f v=%3.5f d=%3.5f (%3.5f)\n", getTime(), rollVelo, e.getVelocity(),
+//				e.getDistance(), dist);
+
+//		setTurnGunRightRadians(Utils.normalRelativeAngle((v0 += getHeadingRadians())
+//				- getGunHeadingRadians()
+//				+ ((((avgVelo += Math.abs(e.getVelocity())) / ++avgVeloCount) * Math.signum(-e.getVelocity() + 0.001))
+//						* Math.signum(v1 = e.getEnergy()) * Math.sin(e.getHeadingRadians() - v0) / 14.0)));
+
 		isLocked = false;
 
-		setMaxVelocity((SPEED_FACTOR / e.getDistance()));
+		setMaxVelocity(SPEED_FACTOR / v2);
 		setAhead(dir);
-		//setAhead(Math.tan(e.getEnergy() * 5) * 500);
-		setFire(e.getEnergy() * 15 / e.getDistance());
+		//setFire(v1 * 15 / v2);
+
+		if (setFireBullet(bPower) != null)
+		{
+			System.out.format("[%04d] fire (%3.5f) speed (%3.5f)!\n", getTime(), bPower, Rules.getBulletSpeed(bPower));
+			dist = 0;
+		}
+		dist += e.getVelocity();
 	}
+
+	static double	dist	= 0;
 
 	@Override
 	public void onHitWall(HitWallEvent e)
