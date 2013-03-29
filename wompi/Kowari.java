@@ -93,6 +93,7 @@ public class Kowari extends AdvancedRobot
 //	static double				avgVelo;
 	static double				rollVelo;
 	static double				dist;
+	static double				lastDist;
 
 	//static long					lastShoot;
 
@@ -106,6 +107,7 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
+		lastDist = 1;
 		// debug
 //		myHits.onInit(this, 18);
 		//lastHit = 30; // TODO: not really necessary
@@ -154,22 +156,27 @@ public class Kowari extends AdvancedRobot
 ////			myWaves.onScannedRobot(eDelta, xe, ye);
 		}
 
-		if (setFireBullet(bPower = (e.getEnergy() * 15 / v2)) != null)
-		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
-		{
-//			System.out.format("[%04d] fire (%3.5f) speed (%3.5f)! dist (%3.5f)\n", getTime(), bPower,
-//					Rules.getBulletSpeed(bPower), dist);
-			dist = 0;
-		}
+		dist += e.getVelocity() * Math.sin((e.getHeadingRadians() - v0) * Math.signum(lastDist));
+		double buffy = (dist) / (Rules.getBulletSpeed(bPower = (e.getEnergy() * 15 / v2)));
 
 		//@formatter:off
 		setTurnGunRightRadians(
 				Utils.normalRelativeAngle(
 						(v0 += getHeadingRadians())
 						- getGunHeadingRadians()
-						+ ((dist += (e.getVelocity() * Math.sin(e.getHeadingRadians() - v0)))
-							/ (Rules.getBulletSpeed(bPower) * Rules.getBulletSpeed(bPower)))));
+						+ (buffy)
+							/ (1.1 * Rules.getBulletSpeed(bPower))));
 		//@formatter:on
+		System.out.format("[%04d] dist=%3.2f ev=%3.5f buffy=%3.5f \n", getTime(), dist, e.getVelocity(), buffy);
+
+		if (setFireBullet(bPower) != null)
+		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
+		{
+			System.out.format("[%04d] fire (%3.5f) evelo (%3.5f) speed (%3.5f)! dist (%3.5f) last (%3.5f)\n",
+					getTime(), bPower, e.getVelocity(), Rules.getBulletSpeed(bPower), dist, lastDist);
+			lastDist = dist;
+			dist = 0;
+		}
 
 		isLocked = false;
 
