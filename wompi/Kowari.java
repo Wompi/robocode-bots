@@ -92,6 +92,9 @@ public class Kowari extends AdvancedRobot
 //	static double				avgVeloCount;
 //	static double				avgVelo;
 	static double				rollVelo;
+	static double				dist;
+
+	//static long					lastShoot;
 
 	// debug 
 //	PaintBulletHits				myHits			= new PaintBulletHits();
@@ -123,62 +126,56 @@ public class Kowari extends AdvancedRobot
 		/// debug
 //		myHits.onScannedRobot(e);
 		double v0;
-		double v1;
+		double bPower;
 		double v2;
 
-		setTurnRightRadians(Math.cos((v0 = e.getBearingRadians()) - ((v2 = e.getDistance()) - (DISTANCE_FACTOR))
-				* getVelocity() * ADVANCE_FACTOR));
+		//@formatter:off
+		setTurnRightRadians(
+				Math.cos(
+						(v0 = e.getBearingRadians()) 
+						- ((v2 = e.getDistance()) - (DISTANCE_FACTOR))
+						* getVelocity() 
+						* ADVANCE_FACTOR
+						/** lastShoot--/5*/) 
+			    );
+		//@formatter:on
 
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
 		// dir is a function of locked/delta_energy and dirChange - now i only have to find it 
 		//
-		if (((eEnergy - (eEnergy = (v1 = e.getEnergy())))) > 0 && !isLocked && Math.cos(dirChange) < 0)
-//		{
+		if (((eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked && Math.cos(dirChange) < 0)
+		{
+			//lastShoot = 10;
 			onHitWall(null); // saves 2 byte compared to dir = - dir
 //			/// debug
 ////			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			myWaves.onScannedRobot(eDelta, xe, ye);
-//		}
+		}
 
-		double bPower = v1 * 15 / v2;
+		if (setFireBullet(bPower = (e.getEnergy() * 15 / v2)) != null)
+		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
+		{
+//			System.out.format("[%04d] fire (%3.5f) speed (%3.5f)! dist (%3.5f)\n", getTime(), bPower,
+//					Rules.getBulletSpeed(bPower), dist);
+			dist = 0;
+		}
 
 		//@formatter:off
 		setTurnGunRightRadians(
 				Utils.normalRelativeAngle(
 						(v0 += getHeadingRadians())
 						- getGunHeadingRadians()
-						+ (/*(rollVelo = (rollVelo + e.getVelocity()) / 1.5)*/
-								dist/Rules.getBulletSpeed(bPower)
-								/** Math.signum(e.getVelocity() + 0.001)*/
-								/** Math.signum(v1 = e.getEnergy())*/ 
-								* Math.sin(e.getHeadingRadians() - v0) 
-							/ Rules.getBulletSpeed(bPower))));
+						+ ((dist += (e.getVelocity() * Math.sin(e.getHeadingRadians() - v0)))
+							/ (Rules.getBulletSpeed(bPower) * Rules.getBulletSpeed(bPower)))));
 		//@formatter:on
-//		System.out.format("[%04d] roll=%3.5f v=%3.5f d=%3.5f (%3.5f)\n", getTime(), rollVelo, e.getVelocity(),
-//				e.getDistance(), dist);
-
-//		setTurnGunRightRadians(Utils.normalRelativeAngle((v0 += getHeadingRadians())
-//				- getGunHeadingRadians()
-//				+ ((((avgVelo += Math.abs(e.getVelocity())) / ++avgVeloCount) * Math.signum(-e.getVelocity() + 0.001))
-//						* Math.signum(v1 = e.getEnergy()) * Math.sin(e.getHeadingRadians() - v0) / 14.0)));
 
 		isLocked = false;
 
 		setMaxVelocity(SPEED_FACTOR / v2);
 		setAhead(dir);
-		//setFire(v1 * 15 / v2);
-
-		if (setFireBullet(bPower) != null)
-		{
-			System.out.format("[%04d] fire (%3.5f) speed (%3.5f)!\n", getTime(), bPower, Rules.getBulletSpeed(bPower));
-			dist = 0;
-		}
-		dist += e.getVelocity();
 	}
-
-	static double	dist	= 0;
 
 	@Override
 	public void onHitWall(HitWallEvent e)
@@ -205,8 +202,16 @@ public class Kowari extends AdvancedRobot
 	public void onBulletHit(BulletHitEvent e)
 	{
 		isLocked = true;
+//		missed = 0;
 	}
 
+//	static int	missed;
+//
+//	@Override
+//	public void onBulletMissed(BulletMissedEvent e)
+//	{
+//		System.out.format("[%04d] missed (%d)\n", getTime(), ++missed);
+//	}
 	// debug
 //	@Override
 //	public void onPaint(Graphics2D g)
