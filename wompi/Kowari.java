@@ -80,7 +80,7 @@ public class Kowari extends AdvancedRobot
 	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;		// 2500 = 16deg 2000 = 20deg
 	private static final double	DISTANCE_FACTOR	= 176;					// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static final double	HIT_FACTOR		= Math.PI * 14.0 / 4.0; // 14 = average bulletheat and pi/4 shift - needs a little tewak i guess 
-	private static final double	SPEED_FACTOR	= 1800;				// TODO: find the best value
+	private static final double	SPEED_FACTOR	= 1080;				// TODO: find the best value
 
 	private static double		eEnergy;
 	private static double		dir;
@@ -108,10 +108,14 @@ public class Kowari extends AdvancedRobot
 	public void run()
 	{
 		lastDist = 1;
+
+//		setAdjustRadarForGunTurn(true);
+//		setAdjustGunForRobotTurn(true);
 		// debug
 //		myHits.onInit(this, 18);
 		//lastHit = 30; // TODO: not really necessary
-		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
+		dir = 1;
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	// debug
@@ -127,15 +131,15 @@ public class Kowari extends AdvancedRobot
 	{
 		/// debug
 //		myHits.onScannedRobot(e);
-		double v0;
-		double bPower;
-		double v2;
+		//double bPower = (e.getEnergy() * 15 / e.getDistance());
+		double bPower = (750 / e.getDistance());
+		double absBearing;
 
 		//@formatter:off
 		setTurnRightRadians(
 				Math.cos(
-						(v0 = e.getBearingRadians()) 
-						- ((v2 = e.getDistance()) - (DISTANCE_FACTOR))
+						(absBearing = e.getBearingRadians()) 
+						- ((e.getDistance()) - (DISTANCE_FACTOR))
 						* getVelocity() 
 						* ADVANCE_FACTOR
 						/** lastShoot--/5*/) 
@@ -146,7 +150,8 @@ public class Kowari extends AdvancedRobot
 
 		// dir is a function of locked/delta_energy and dirChange - now i only have to find it 
 		//
-		if (((eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked && Math.cos(dirChange) < 0)
+		double eDelta;
+		if ((eDelta = (eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked /*&& Math.cos(dirChange) < 0*/)
 		{
 			//lastShoot = 10;
 			onHitWall(null); // saves 2 byte compared to dir = - dir
@@ -154,34 +159,40 @@ public class Kowari extends AdvancedRobot
 ////			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			myWaves.onScannedRobot(eDelta, xe, ye);
+			//setMaxVelocity();
+			double d = (SPEED_FACTOR / Rules.getBulletSpeed(eDelta)) * dir;
+			setAhead(d);
+			System.out.format("[%04d] d=%3.5f e=%3.15f\n", getTime(), d, eDelta);
 		}
 
-		dist += e.getVelocity() * Math.sin((e.getHeadingRadians() - v0) * Math.signum(lastDist));
-		double buffy = (dist) / (Rules.getBulletSpeed(bPower = (e.getEnergy() * 15 / v2)));
+		double latv = e.getVelocity() * Math.sin(e.getHeadingRadians() - (absBearing += getHeadingRadians()));
+		dist += latv;
+		double buffy = dist / Rules.getBulletSpeed(bPower);
 
 		//@formatter:off
 		setTurnGunRightRadians(
 				Utils.normalRelativeAngle(
-						(v0 += getHeadingRadians())
+						absBearing
 						- getGunHeadingRadians()
 						+ (buffy)
 							/ (1.1 * Rules.getBulletSpeed(bPower))));
 		//@formatter:on
-		System.out.format("[%04d] dist=%3.2f ev=%3.5f buffy=%3.5f \n", getTime(), dist, e.getVelocity(), buffy);
+//		System.out.format("[%04d] dist=%3.2f ev=%3.5f avgv=%3.5f latv=%3.5f \n", getTime(), dist, e.getVelocity(),
+//				buffy, latv);
 
 		if (setFireBullet(bPower) != null)
 		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
 		{
-			System.out.format("[%04d] fire (%3.5f) evelo (%3.5f) speed (%3.5f)! dist (%3.5f) last (%3.5f)\n",
-					getTime(), bPower, e.getVelocity(), Rules.getBulletSpeed(bPower), dist, lastDist);
+//			System.out.format("[%04d] fire (%3.5f) evelo (%3.5f) speed (%3.5f)! dist (%3.5f) last (%3.5f)\n",
+//					getTime(), bPower, e.getVelocity(), Rules.getBulletSpeed(bPower), dist, lastDist);
 			lastDist = dist;
 			dist = 0;
 		}
 
 		isLocked = false;
 
-		setMaxVelocity(SPEED_FACTOR / v2);
-		setAhead(dir);
+//		setMaxVelocity(SPEED_FACTOR / e.getDistance());
+//		setAhead(dir);
 	}
 
 	@Override
