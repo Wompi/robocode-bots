@@ -151,18 +151,19 @@ public class Kowari extends AdvancedRobot
 		// dir is a function of locked/delta_energy and dirChange - now i only have to find it 
 		//
 		double eDelta;
-		if ((eDelta = (eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked /*&& Math.cos(dirChange) < 0*/)
+		if ((eDelta = (eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked)
 		{
 			//lastShoot = 10;
-			onHitWall(null); // saves 2 byte compared to dir = - dir
+			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
 //			/// debug
 ////			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			myWaves.onScannedRobot(eDelta, xe, ye);
-			//setMaxVelocity();
-			double d = (SPEED_FACTOR / Rules.getBulletSpeed(eDelta)) * dir;
+			setMaxVelocity(50 * e.getDistance() / Rules.getBulletSpeed(eDelta));
+			double d = 50 * dir;
 			setAhead(d);
-			System.out.format("[%04d] d=%3.5f e=%3.15f\n", getTime(), d, eDelta);
+			System.out.format("[%04d] d=%3.5f e=%3.15f v=%3.5f dist=%3.5f\n", getTime(), d, eDelta, getVelocity(),
+					e.getDistance());
 		}
 
 		double latv = e.getVelocity() * Math.sin(e.getHeadingRadians() - (absBearing += getHeadingRadians()));
