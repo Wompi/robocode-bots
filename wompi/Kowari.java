@@ -128,38 +128,18 @@ public class Kowari extends AdvancedRobot
 			    );
 		//@formatter:on
 
-		double bPower;
-		if (setFireBullet(bPower = (e.getEnergy() * 15 / eDistance)) != null)
+		if (setFireBullet(v0 = (e.getEnergy() * 15 / eDistance)) != null)
 		{
-			if (count > 22)
-			{
-				dist = 0;
-				count = 0;
-			}
-			//System.out.format(".......... fire ..........\n");
+			dist = 0;
 		}
 
-		v0 = Rules.getBulletSpeed(bPower);
-		//@formatter:off
-		
-		double latval = e.getVelocity() * Math.sin(e.getHeadingRadians() - (v2+=getHeadingRadians()));
-		double offset;
-		dist += latval;
-		count++;
-		
-		offset = dist/(count * v0);
-		if ( Math.abs(dist * 1.75/count) < Math.abs(latval)) 
-		{
-			offset = -latval * (Math.min(3.0,bPower) * 0.4/3.0)/v0; 
-		}
-		
-		//System.out.format("[%04d] offset=%3.5f dist(%d)(%3.5f) = %3.5f  \n", getTime(), latval,count,dist,dist/count);
-		
+		v0 = Rules.getBulletSpeed(v0);
+		//@formatter:off				
 		setTurnGunRightRadians(
 				Utils.normalRelativeAngle(
-						(v2 )
+						(v2+=getHeadingRadians())
 						- getGunHeadingRadians()
-						+ offset
+						+ ((dist += e.getVelocity() * Math.sin(e.getHeadingRadians() - v2))/(15 * v0))
 						));
 		//@formatter:on
 	}
