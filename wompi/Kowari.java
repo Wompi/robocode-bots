@@ -6,6 +6,7 @@ import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
@@ -77,25 +78,20 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;		// 2500 = 16deg 2000 = 20deg
+	private static final double	ADVANCE_FACTOR	= 1.0 / 6000.0;		// 2500 = 16deg 2000 = 20deg
 	private static final double	DISTANCE_FACTOR	= 176;					// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static final double	HIT_FACTOR		= Math.PI * 14.0 / 4.0; // 14 = average bulletheat and pi/4 shift - needs a little tewak i guess 
-	private static final double	SPEED_FACTOR	= 1080;				// TODO: find the best value
+	private static final double	SPEED_FACTOR	= 1800;				// TODO: find the best value
 
 	private static double		eEnergy;
-	private static double		dir;
-	private static boolean		isLocked;
+	private static int			dir;
 	private static double		dirChange;
 	private static long			lastHit;
 
-	// gun check
-//	static double				avgVeloCount;
-//	static double				avgVelo;
-	static double				rollVelo;
-	static double				dist;
-	static double				lastDist;
+	private static int			isBounced;
 
-	//static long					lastShoot;
+	// gun check
+	static double				dist;
 
 	// debug 
 //	PaintBulletHits				myHits			= new PaintBulletHits();
@@ -107,11 +103,7 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		lastDist = 1;
 
-//		setAdjustRadarForGunTurn(true);
-//		setAdjustGunForRobotTurn(true);
-		// debug
 //		myHits.onInit(this, 18);
 		//lastHit = 30; // TODO: not really necessary
 		dir = 1;
@@ -119,98 +111,104 @@ public class Kowari extends AdvancedRobot
 	}
 
 	// debug
-//	@Override
-//	public void onStatus(StatusEvent e)
-//	{
-//		myHits.onStatus(e);
+	@Override
+	public void onStatus(StatusEvent e)
+	{
+		//		myHits.onStatus(e);
 //		myWaves.onStatus(e);
-//	}
+	}
+
+	static double	lastBearing;
+	static double	sumBearing;
+	static double	cDist;
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		/// debug
 //		myHits.onScannedRobot(e);
-		//double bPower = (e.getEnergy() * 15 / e.getDistance());
-		double bPower = (750 / e.getDistance());
-		double absBearing;
-
-		//@formatter:off
-		setTurnRightRadians(
-				Math.cos(
-						(absBearing = e.getBearingRadians()) 
-						- ((e.getDistance()) - (DISTANCE_FACTOR))
-						* getVelocity() 
-						* ADVANCE_FACTOR
-						/** lastShoot--/5*/) 
-			    );
-		//@formatter:on
+		double v0;
+		double bPower;
+		double v2;
 
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
 		// dir is a function of locked/delta_energy and dirChange - now i only have to find it 
 		//
 		double eDelta;
-		if ((eDelta = (eEnergy - (eEnergy = (e.getEnergy())))) > 0 && !isLocked)
+		if ((eDelta = (eEnergy - (eEnergy = (e.getEnergy())))) > 0 || getTime() < 30)
+		//if ((eEnergy - (eEnergy = (e.getEnergy()))) > 0)
 		{
 			//lastShoot = 10;
-			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
+			if ((Math.cos(dirChange) < 0) || isBounced == 1)
+			{
+				dir = -dir;
+			}
 //			/// debug
 ////			double xe = getX() + Math.sin(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			double ye = getY() + Math.cos(getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
 ////			myWaves.onScannedRobot(eDelta, xe, ye);
-			setMaxVelocity(50 * e.getDistance() / Rules.getBulletSpeed(eDelta));
-			double d = 50 * dir;
-			setAhead(d);
-			System.out.format("[%04d] d=%3.5f e=%3.15f v=%3.5f dist=%3.5f\n", getTime(), d, eDelta, getVelocity(),
-					e.getDistance());
+			//setMaxVelocity(SPEED_FACTOR / v2);
+
+			double d = (56 + 56 * 56 / e.getDistance());
+			setAhead(d * dir);
+
+			//cDist = Rules.getGunHeat(eDelta) * 10 * Rules.getBulletSpeed(eDelta);
+
+			System.out.format("[%04d] eDelta=%3.15f cDist=%3.5f d=%3.5f\n", getTime(), eDelta, cDist, d);
+			isBounced = 0;
+			//@formatter:off
+			setTurnRightRadians(
+					(176 - e.getDistance()) * getVelocity() * ADVANCE_FACTOR
+					+ Math.cos(v0 = e.getBearingRadians()) 
+							/** lastShoot--/5*/
+				    );
+			//@formatter:on
+
 		}
 
-		double latv = e.getVelocity() * Math.sin(e.getHeadingRadians() - (absBearing += getHeadingRadians()));
-		dist += latv;
-		double buffy = dist / Rules.getBulletSpeed(bPower);
+		double bDelta = lastBearing - (lastBearing = e.getBearingRadians());
+		sumBearing += bDelta;
+
+		if (setFireBullet(bPower = (e.getEnergy() * 15 / e.getDistance())) != null)
+		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
+		{
+//			System.out.format("[%04d] fire (%3.5f) speed (%3.5f)! dist (%3.5f)\n", getTime(), bPower,
+//					Rules.getBulletSpeed(bPower), dist);
+			dist = 0;
+			sumBearing = 0;
+		}
 
 		//@formatter:off
 		setTurnGunRightRadians(
 				Utils.normalRelativeAngle(
-						absBearing
+						(v0 = (e.getBearingRadians() +  getHeadingRadians()))
 						- getGunHeadingRadians()
-						+ (buffy)
-							/ (1.1 * Rules.getBulletSpeed(bPower))));
+						+ ((dist += (e.getVelocity() * Math.sin(e.getHeadingRadians() - v0)))
+							/ (1.1 * Rules.getBulletSpeed(bPower) * Rules.getBulletSpeed(bPower)))
+						));
 		//@formatter:on
-//		System.out.format("[%04d] dist=%3.2f ev=%3.5f avgv=%3.5f latv=%3.5f \n", getTime(), dist, e.getVelocity(),
-//				buffy, latv);
 
-		if (setFireBullet(bPower) != null)
-		//if (setFireBullet(bPower = (750 / e.getDistance())) != null) // TODO: check this out in the rumble
-		{
-//			System.out.format("[%04d] fire (%3.5f) evelo (%3.5f) speed (%3.5f)! dist (%3.5f) last (%3.5f)\n",
-//					getTime(), bPower, e.getVelocity(), Rules.getBulletSpeed(bPower), dist, lastDist);
-			lastDist = dist;
-			dist = 0;
-		}
+//		System.out.format("[%04d] bDelta=%3.4f sum=%3.4f dist=%3.4f \n", getTime(), Math.toDegrees(bDelta),
+//				Math.toDegrees(sumBearing), e.getDistance() - cDist);
+		System.out.format("[%04d] v=%3.5f \n", getTime(), getVelocity());
 
-		isLocked = false;
-
-//		setMaxVelocity(SPEED_FACTOR / e.getDistance());
-//		setAhead(dir);
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
-		dir = -dir;
+		//dir = -dir;
+		isBounced = 1;
 	}
 
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
-		isLocked = true;
+		//isLocked = 1;
 
 		// (PI/4) / hDelta/14 
 		dirChange += HIT_FACTOR / (lastHit - (lastHit = getTime()));
-//		System.out.format("[%04d] lastHit=%3.4f 14(%3.4f) dirchange=%3.4f (%3.4f) \n", getTime(), delta, delta / 14,
-//				dirChange, off);
 
 //		// debug
 //		myHits.onHitByBullet(e);
@@ -220,7 +218,8 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
-		isLocked = true;
+		//isLocked = 1;
+		eEnergy = e.getEnergy();
 //		missed = 0;
 	}
 
