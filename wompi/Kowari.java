@@ -5,6 +5,8 @@ import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
+import robocode.util.Utils;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
 // initialize the variable with 30 - just a thought to prevent the first hit issu  
@@ -85,36 +87,42 @@ public class Kowari extends AdvancedRobot
 	private static long			lastHit;
 
 	public Kowari()
-	{}
+	{
+		dir = Double.POSITIVE_INFINITY;
+	}
 
 	@Override
-	public void run()
+	public void onStatus(StatusEvent e)
 	{
-		setTurnGunRightRadians(dir = Double.POSITIVE_INFINITY);
+		setTurnGunRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
+		double v0;
+		double v1;
+
 		//@formatter:off
 		setTurnRightRadians(
-				(DISTANCE_FACTOR - e.getDistance())
+				(DISTANCE_FACTOR - (v0=e.getDistance()))
 				* getVelocity() 
 				* ADVANCE_FACTOR
-				+ Math.cos(e.getBearingRadians()) 
+				+ Math.cos(v1=e.getBearingRadians()) 
 				);
 		//@formatter:on
-
-		setTurnGunLeftRadians(getGunTurnRemaining());
 
 		if (((eEnergy - (eEnergy = e.getEnergy()))) > 0)
 		{
 			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
 		}
 
-		setFire(e.getEnergy() * 15 / e.getDistance());
-		setMaxVelocity(1800 / e.getDistance());
+		setFire(e.getEnergy() * 15 / v0);
+		setMaxVelocity(1800 / v0);
 		setAhead(dir);
+		if (!Double
+				.isNaN(v0 = (Utils.normalRelativeAngle((v1 += getHeadingRadians()) - getRadarHeadingRadians()) * Double.POSITIVE_INFINITY)))
+			setTurnGunRightRadians(v0);
 	}
 
 	@Override
