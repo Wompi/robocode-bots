@@ -90,37 +90,22 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		//setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 		setTurnGunRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double absBearing;
-		//setTurnRadarLeftRadians(getRadarTurnRemaining());
-
 		//@formatter:off
 		setTurnRightRadians(
 				(DISTANCE_FACTOR - e.getDistance())
 				* getVelocity() 
 				* ADVANCE_FACTOR
-				+ Math.cos(absBearing = e.getBearingRadians()) 
+				+ Math.cos(e.getBearingRadians()) 
 				);
 		//@formatter:on
 
 		setTurnGunLeftRadians(getGunTurnRemaining());
-
-		//@formatter:off
-//		setTurnGunRightRadians(Utils.normalRelativeAngle(
-//				(absBearing += getHeadingRadians())
-//				- getGunHeadingRadians()
-//				+ (
-//					e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing)
-//					/ 14
-//				) 
-//		));
-		//@formatter:off
 
 		if (((eEnergy - (eEnergy = e.getEnergy()))) > 0)
 		{
