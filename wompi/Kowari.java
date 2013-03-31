@@ -85,7 +85,10 @@ public class Kowari extends AdvancedRobot
 	private static long			lastHit;
 
 	public Kowari()
-	{}
+	{
+		// 158
+
+	}
 
 	@Override
 	public void run()
@@ -99,7 +102,7 @@ public class Kowari extends AdvancedRobot
 		double v0;
 
 		setTurnGunLeftRadians(getGunTurnRemaining());
-		setFire(e.getEnergy() * 10 / (v0 = e.getDistance()));
+		setFire(e.getEnergy() * 6 / (v0 = e.getDistance()));
 		//@formatter:off
 		setTurnRightRadians(
 				((DISTANCE_FACTOR ) - v0)
@@ -110,24 +113,27 @@ public class Kowari extends AdvancedRobot
 		//@formatter:on
 
 		setMaxVelocity(1800 / v0);
-		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy()) * Math.cos(dirChange) * 20))));
+		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * Math.cos(dirChange) * 20)));
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
-		dir = -dir;
+		dir = -dir; // keep in mind that this is not necessary - for the trade of some hits (very bad against samples)
 	}
 
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
+//		System.out.format("[%04d] ---------------hisHit=%3.5f \n", getTime(), e.getPower());
+
 		dirChange += HIT_FACTOR / (lastHit - (lastHit = getTime()));
 	}
 
 	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
+//		System.out.format("[%04d] ---------------myHit=%3.5f \n", getTime(), e.getBullet().getPower());
 		eEnergy = e.getEnergy();
 	}
 }
