@@ -5,6 +5,7 @@ import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
 // initialize the variable with 30 - just a thought to prevent the first hit issu  
@@ -87,13 +88,13 @@ public class Kowari extends AdvancedRobot
 	public Kowari()
 	{
 		// 158
-
+		dir = 1;
 	}
 
 	@Override
-	public void run()
+	public void onStatus(StatusEvent e)
 	{
-		setTurnGunRightRadians(dir = Double.POSITIVE_INFINITY);
+		setTurnGunRightRadians(1);
 	}
 
 	@Override
@@ -113,7 +114,7 @@ public class Kowari extends AdvancedRobot
 		//@formatter:on
 
 		setMaxVelocity(1800 / v0);
-		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * Math.cos(dirChange) * 20)));
+		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * Math.cos(dirChange) * Double.MAX_VALUE)));
 	}
 
 	@Override
