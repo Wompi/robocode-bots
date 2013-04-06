@@ -43,7 +43,7 @@ public class Dingo extends AdvancedRobot
 
 	// debug visualization
 	private final PaintWallHeadingDistance	myPaintWallDistance;
-	private final PaintEnemyBulletWaves			myBulletPaint;
+	private final PaintEnemyBulletWaves		myBulletPaint;
 	private final PaintMaxEscapeAngle		myPaintMaxEscape;
 	private final PaintEscapePath			myPaintEscapePath;
 
@@ -117,7 +117,8 @@ public class Dingo extends AdvancedRobot
 			boolean eHasFired = myFireDetector.hasFired();
 			if (eHasFired)
 			{
-				myBulletPaint.onScannedRobot(myFireDetector.getFiredBulletPower(), xg, yg); // takes the position of the turn before
+				// broken after refactor
+				//myBulletPaint.onScannedRobot(,myFireDetector.getFiredBulletPower()); // takes the position of the turn before
 			}
 
 			//onMove0();

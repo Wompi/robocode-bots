@@ -161,7 +161,7 @@ public class Dunnart extends AdvancedRobot
 		if (eDelta >= 0.08 && eDelta <= 3)
 		{
 			if (isDodge) checkDirChange(11);
-			myPaintEnemyBullets.onScannedRobot(eDelta, xe + getX(), ye + getY());
+			myPaintEnemyBullets.onScannedRobot(e, eDelta);
 			myPaintEscAngle.setBulletSpeed(eDelta);
 		}
 		myPaintEscAngle.onScannedRobot(e);
