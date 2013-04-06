@@ -1,30 +1,25 @@
 package wompi;
 
-import java.awt.Color;
-
 import robocode.AdvancedRobot;
+import robocode.HitByBulletEvent;
+import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
-import robocode.util.Utils;
 
 public class Funnelweb extends AdvancedRobot
 {
-	private static final double	WZ		= 18.0;
-	private static final double	WZ_W	= 800 - 2 * WZ;
-	private static final double	WZ_H	= 600 - 2 * WZ;
-	private final static double	DIST	= 160;
-	private final static double	PI_360	= Math.PI * 2.0;
-	private final static double	PI_180	= Math.PI;
-	private final static double	PI_90	= Math.PI / 2.0;
-	private final static double	PI_30	= Math.PI / 6.0;
+	private final static double	ADVANCE_FACTOR	= 1.0 / 1000;		// be careful with this parameter this breaks the wall movement
+	private final static double	RADIUS			= 300;				// if you adjust this you also have to change BORDER an ADVANCE_FACTOR
+	private final static double	W				= 800;
+	private final static double	H				= 600;
+	private final static double	BORDER			= 25;				// don't change this without tweaking RADIUS and ADVANCE_FACTOR
+	private final static double	BORDER_RADIUS	= RADIUS - BORDER;
 
-	private static double		dxx;
-	private static double		kx;
-
-	private static double		eBearing;
-	private static int			DIR		= 100;
+	static double				dir;
+	boolean						isBoing;
+	static double				speed;
 
 	public Funnelweb()
 	{}
@@ -32,76 +27,81 @@ public class Funnelweb extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		setAllColors(Color.CYAN);
-
-		dxx = 18; //  18 - 782 oscillate between  ;
-
-		setAdjustGunForRobotTurn(true);
-		setAdjustRadarForRobotTurn(true);
-		setAdjustRadarForGunTurn(true);
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		// 0 = cos(18.0 * pi/800 + k);
-		// acos(0) = 18.0 * pi/800 + k; acos(0) = pi/2
-		// pi/2 - 18.0 * pi/800 = k;
-		// pi*(0.5 - 0.0225) = k
-		// pi * 0.4775 = k;
-		// k = 1.500110492089126;
+		double x;
+		double y;
+		if (!isBoing) setAhead(dir);
 
-		//kx = PI_180 * (0.5 - 200.0 / 800.0);
-//		double ky = PI_180 * (0.5 - 200.0 / 600.0);
-//
-//		// kx {-pi/2.0 ... +pi/2.0} it would be wise to take 90% because the range is calculated on 0 and not an 18  
-//		kx = Utils.normalRelativeAngle(kx += 0.031415926535898 - PI_90);
-//
-//		double dx = Math.cos(getX() * PI_180 / 800 + kx);
-//		double dy = Math.cos(getY() * PI_180 / 600 + ky);
-//
-//		PaintHelper.drawPoint(new Point2D.Double((0.5 - (kx / PI_180)) * 800, 200.0), Color.red, getGraphics(), 4);
-//
-//		System.out.format("[%04d] dx=%3.5f dy=%3.5f \n", getTime(), dx, dy);
-//
-//		double angle;
-//		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
-//		setAhead(100 * Math.cos(angle));
-
+		//@formatter:off
+		setTurnRightRadians(
+				(
+						(BORDER_RADIUS 
+							- (Math.hypot(
+								x = (getLimit(RADIUS, getX(), W - RADIUS) - getX()),
+								y = (getLimit(RADIUS, getY(), H - RADIUS) - getY())
+							    )
+							)
+						) 
+						* getVelocity() 
+						* ADVANCE_FACTOR)
+				+  Math.cos(getHeadingRadians() - Math.atan2(x, y))
+				);
+		//@formatter:on
+		isBoing = false;
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
+		double aBear;
+		double bPower;
+		setFire(bPower = (500 / e.getDistance()));
+		//@formatter:off
+		setTurnGunRightRadians(
+			Math.asin(
+				Math.sin(
+					(aBear=(getHeadingRadians() + e.getBearingRadians())) 
+					- getGunHeadingRadians() 
+					+ (1 - e.getDistance() / 500) 
+					* 
+					Math.asin(e.getVelocity() / Rules.getBulletSpeed(bPower)) 
+					* Math.sin(e.getHeadingRadians() - aBear) 
+				)
+			)
+		);
+		if (getVelocity() == 0) setMaxVelocity(8.0);
+		//@formatter:on
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
-		setTurnRightRadians(Math.cos(e.getBearingRadians()));
-		setAhead(DIR);
-
-		double absBearing = e.getBearingRadians() + getHeadingRadians();
-		double bDiff = eBearing - (eBearing = e.getBearingRadians());
-
-		double bPower = 600 / e.getDistance();
-
-		double bSpeed = Rules.getBulletSpeed(bPower);
-		double tick = e.getDistance() / bSpeed;
-
-		System.out.format("[%04d] bearDiff=%3.5f (%3.5f) (%3.5f) \n", getTime(), Math.toDegrees(bDiff),
-				Math.toDegrees(bDiff * tick), tick);
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + Math.signum(e.getVelocity()) * bDiff * tick
-				- getGunHeadingRadians()));
-		setFire(bPower);
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
-		DIR = -DIR;
-		System.out.format("[%04d] Boiiiing! (%3.5f) \n", getTime(), e.getBearing());
+		//System.out.format("[%04d] Boiiiing! (%3.5f) \n", getTime(), e.getBearing());
+		setAhead(dir = -dir);
+		isBoing = true;
 	}
 
-//	@Override
-//	public void onPaint(Graphics2D g)
-//	{}
+	@Override
+	public void onHitByBullet(HitByBulletEvent event)
+	{
+		//setMaxVelocity(0);
+		setAhead(dir = -dir);
+	}
 
+	@Override
+	public void onHitRobot(HitRobotEvent e)
+	{
+		setAhead(dir = -dir);
+	}
+
+	private double getLimit(double min, double value, double max)
+	{
+		return (int) Math.min(max, Math.max(value, min));
+	}
 }
