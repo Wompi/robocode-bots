@@ -1,0 +1,8 @@
+
+String infinity = "\u0000\u0000\u0000\u0000\u0000\u0000\u001e\u000b\n\u0003\u0003\n\u0003\u0006\n\n\u000b\u000b\u000b\u000e\u000b\u000e\u000e\u0012\u000b\u0012\u000e\u000b\u000e\u000e\u000e\n\ufffd\ufffa\n\n\u0012\n\u0003\u0003";
+
+int d=0;
+for (int i=0;i<infinity.length();i++)
+{
+	System.out.format("%d: %d \n",d+=20,(short)infinity.charAt(i));
+}
