@@ -5,12 +5,14 @@ import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
+import robocode.Bullet;
 import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
+import robocode.util.Utils;
 import wompi.paint.PaintEnemyBulletWaves;
 import wompi.paint.PaintEnemyMaxEscapeAngle;
 import wompi.paint.PaintHelper;
@@ -89,14 +91,21 @@ public class Kowari extends AdvancedRobot
 	private static final double	W				= 800;
 	private static final double	H				= 600;
 
-	private static final double	ADVANCE_FACTOR	= 1.0 / 1000.0;					// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 300 - 25;						// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
+	private static final double	ADVANCE_FACTOR	= 1.0 / 3000.0;					// 2500 = 16deg 2000 = 20deg
+	private static final double	DISTANCE_FACTOR	= 350;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
 	private static final double	HIT_FACTOR		= Math.PI * 14.0 / 4.0;
 
 	private static double		eEnergy;
 	private static double		dir;
 	private static double		dirChange;
 	private static long			lastHit;
+
+	// gun
+	static double				eBearing;
+	static double				myx;
+	static double				myy;
+	static double				bDist;
+	static double				bPower;
 
 	// debug
 	PaintEnemyBulletWaves		eWave			= new PaintEnemyBulletWaves();
@@ -112,11 +121,13 @@ public class Kowari extends AdvancedRobot
 	public void run()
 	{
 		// debug
-		//setAdjustGunForRobotTurn(true);
 		bMax.onInit(this, 18);
 		xxd = getX();
 		yyd = getY();
-		setTurnGunRightRadians(Double.POSITIVE_INFINITY);
+
+		setAllColors(Color.red);
+		setTurnRadarRightRadians(bDist = Double.POSITIVE_INFINITY);
+		setAdjustGunForRobotTurn(true);
 	}
 
 	@Override
@@ -124,44 +135,6 @@ public class Kowari extends AdvancedRobot
 	{
 		bMax.onStatus(e);
 		eWave.onStatus(e);
-		//setAhead(0);
-
-		double R = 180;
-		double x = getX();
-		double y = getY();
-		if (getX() < R)
-		{
-			x = R;
-		}
-		if (getX() > 800 - R)
-		{
-			x = 800 - R;
-		}
-		if (getY() < R)
-		{
-			y = R;
-		}
-		if (getY() > 600 - R)
-		{
-			y = 600 - R;
-		}
-
-		double relBear = getHeadingRadians() - Math.atan2(x - getX(), y - getY());
-
-//		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
-//		setAhead(100 * Math.cos(angle));
-
-		double edist = Point2D.distance(x, y, getX(), getY());
-
-		//@formatter:off
-		setTurnRightRadians(
-				(R-22 - edist)
-				* getVelocity()
-				* ADVANCE_FACTOR
-				+ Math.cos(relBear) //* getGunHeat() // keep the random in mind looks very promising 
-				);
-		PaintHelper.drawArc(new Point2D.Double(x, y), R-22, 0, Math.PI * 2, true, getGraphics(), PaintHelper.greenTrans);
-		//setAhead(dir);
 	}
 
 	static double	xxd;
@@ -170,76 +143,54 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double v0;
+		double relBear = e.getBearingRadians();
+		double absBear = relBear + getHeadingRadians();
 
-		double bPower = e.getEnergy() * 6 / (v0 = e.getDistance());
-		setTurnGunLeftRadians(getGunTurnRemaining() * Math.random()); // multiply with Math.random() for better SittingDuck hits = 4 bytes
-		if (setFireBullet(bPower) != null)
-		{}
+		double _x = (getX() + e.getDistance() * Math.sin(absBear)) - myx;
+		double _y = (getY() + e.getDistance() * Math.cos(absBear)) - myy;
 
-//		double x = getX() + Math.sin(e.getBearingRadians() + getHeadingRadians()) * e.getDistance();
-//		double y = getY() + Math.cos(e.getBearingRadians() + getHeadingRadians()) * e.getDistance();
-//		PaintHelper.drawArc(new Point2D.Double(400, 300), 300-18, 0, Math.PI * 2, true, getGraphics(), PaintHelper.greenTrans);
-//
-//		xxd = 50;
-//		yyd = 50;
+		boolean test = false;
+		double bearing = Math.atan2(_x, _y) - (eBearing);
+		bPower = e.getEnergy() * 15 / e.getDistance();
 
-//		int xd = (int) (Math.cos((xxd += (Math.random() * 20)) * Math.PI / 800) * 400 + 400);
-//		int yd = (int) (Math.cos((yyd += (Math.random() * 20)) * Math.PI / 600) * 300 + 300);
-//		xd = Math.min(800 - 36, Math.max(xd, 36));
-//		yd = Math.min(600 - 36, Math.max(yd, 36));
-//
-//		System.out.format("xxd=%3d yyd=%3d \n", xd, yd);
-//
-//		double kx = PI_180 * (0.5 - xd / W);
-//		double ky = PI_180 * (0.5 - yd / H);
-//
-//		double dx = Math.cos(getX() * PI_180 / W + kx);
-//		double dy = Math.cos(getY() * PI_180 / H + ky);
-//		double angle;
-		//double relBear = e.getBearingRadians();
-//		double relBear = getHeadingRadians() - Math.atan2(400 - getX(), 300 - getY());
-//
-////		setTurnRightRadians(Utils.normalRelativeAngle(angle = (Math.atan2(dx, dy) - getHeadingRadians())));
-////		setAhead(100 * Math.cos(angle));
-//
-//		//@formatter:off
-//		setTurnRightRadians(
-//				+ Math.cos(relBear) //* getGunHeat() // keep the random in mind looks very promising 
-////				+ ((v0 - DISTANCE_FACTOR)
-////				* getVelocity()
-////				* ADVANCE_FACTOR)
-//				);
+		if ((bDist += Rules.getBulletSpeed(bPower)) > Math.hypot(_x, _y))
+		{
+			eBearing = absBear;
+			bDist = 0;// Rules.getBulletSpeed(bPower);
+			myx = getX();
+			myy = getY();
+			test = true;
+		}
+
+		System.out.format("[%04d] bearing=%3.4f %s\n", getTime(), Math.toDegrees(bearing),
+				test ? String.format("FIRE: %3.5f (%3.5f)", bPower, Rules.getBulletSpeed(bPower)) : "");
+		Bullet b;
+		if ((b = setFireBullet(bPower)) != null)
+			System.out.format("[%04d] bullet=%3.4f %3.4f [%3.4f %3.4f]\n", getTime(), b.getX(), b.getY(), getX(),
+					getY());
+
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + bearing));
+
+		//@formatter:off
+		setTurnRightRadians(
+				+ Math.cos(relBear) //* getGunHeat() // keep the random in mind looks very promising 
+				+ ((DISTANCE_FACTOR -e.getDistance())
+				* getVelocity()
+				* ADVANCE_FACTOR)
+				);
 		//@formatter:on
 
-		setMaxVelocity(1800 / v0);
-//		double mlatv = -getVelocity() * Math.cos(getTurnRemainingRadians());
-//		System.out.format("[%04d] mlatv=%3.20f\n", getTime(), mlatv);
-
-//		System.out.format("[%04d] turndelta=%3.5f mlatv=%3.5f heading=%3.5f \n", getTime(), getTurnRemaining(), mlatv,
-//				getHeading());
-//		double nlatv = getVelocity() * Math.sin(getTurnRemainingRadians());
-//
-//		double round = Math.round(nlatv) - 0.001 * Math.signum(nlatv);
-//
-//		double adjust = Math.asin(round / getVelocity());
-//		double delta = Utils.normalRelativeAngle(getTurnRemainingRadians() + adjust);
-//
-//		//setTurnRightRadians(delta);
-//
-//		System.out.format("[%04d] natv=%3.5f round=%3.5f adjust=%3.5f delta=%3.5f\n", getTime(), nlatv, round,
-//				Math.toDegrees(adjust), Math.toDegrees(delta));
-//
-//		double latv = getVelocity() * Math.sin(getHeadingRadians());
-//		System.out.format("[%04d] true=%3.5f pattern=%d\n", getTime(), latv, (int) latv);
-
+		setMaxVelocity(1800 / e.getDistance());
 		double eDelta = eEnergy - (eEnergy = e.getEnergy());
 		setAhead(dir *= (1 + ((eDelta) * Math.cos(dirChange) * Double.MAX_VALUE)));
+		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 
+		// debug
 		if (eDelta != 0) System.out.format("[%04d] eDelta=%3.20f\n", getTime(), eDelta);
 		bMax.setBulletSpeed(bPower);
 		bMax.onScannedRobot(e);
 		eWave.onScannedRobot(e, eDelta);
+
 	}
 
 	@Override
@@ -253,7 +204,6 @@ public class Kowari extends AdvancedRobot
 	public void onHitByBullet(HitByBulletEvent e)
 	{
 //		System.out.format("[%04d] ---------------hisHit=%3.5f \n", getTime(), e.getPower());
-
 		dirChange += HIT_FACTOR / (lastHit - (lastHit = getTime()));
 		//eEnergy += Rules.getBulletHitBonus(e.getPower());
 	}
@@ -272,5 +222,10 @@ public class Kowari extends AdvancedRobot
 		setAllColors(Color.red);
 		eWave.onPaint(g);
 		bMax.onPaint(g);
+
+		Point2D start = new Point2D.Double(myx, myy);
+		PaintHelper.drawArc(start, bDist, 0, Math.PI * 2, false, getGraphics(), Color.DARK_GRAY);
+		PaintHelper.drawPoint(start, Color.RED, getGraphics(), 3);
+
 	}
 }
