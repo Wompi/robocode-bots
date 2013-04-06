@@ -13,15 +13,15 @@ package wompi;
 
 import java.awt.Color;
 
-import robocode.Droid;
-import robocode.Robot;
+import robocode.AdvancedRobot;
+import robocode.ScannedRobotEvent;
 
 /**
  * Simple stone like target robot for Wombot
  * 
  * @author rschott
  */
-public class Stone extends Robot implements Droid
+public class Stone extends AdvancedRobot
 {
 
 	@Override
@@ -30,5 +30,18 @@ public class Stone extends Robot implements Droid
 		setBodyColor(Color.DARK_GRAY);
 		setRadarColor(Color.RED);
 		setGunColor(Color.GRAY);
+
+		setTurnRadarRight(Double.POSITIVE_INFINITY);
+	}
+
+	@Override
+	public void onScannedRobot(ScannedRobotEvent e)
+	{
+		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+
+		double absBearing = e.getBearingRadians() + getHeadingRadians();
+		double latv = e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing);
+
+		System.out.format("[%04d] latv=%3.20f round=%d\n", getTime(), latv, (int) latv);
 	}
 }
