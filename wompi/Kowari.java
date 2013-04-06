@@ -1,22 +1,13 @@
 package wompi;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
-import robocode.Bullet;
-import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
-import wompi.paint.PaintEnemyBulletWaves;
-import wompi.paint.PaintEnemyMaxEscapeAngle;
-import wompi.paint.PaintHelper;
-import wompi.paint.PaintMaxEscapeAngle;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
 // initialize the variable with 30 - just a thought to prevent the first hit issu  
@@ -87,145 +78,107 @@ import wompi.paint.PaintMaxEscapeAngle;
 
 public class Kowari extends AdvancedRobot
 {
+
 	private static final double	PI_180			= Math.PI;
 	private static final double	W				= 800;
 	private static final double	H				= 600;
 
-	private static final double	ADVANCE_FACTOR	= 1.0 / 3000.0;					// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 350;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
-	private static final double	HIT_FACTOR		= Math.PI * 14.0 / 4.0;
+	private static final double	ADVANCE_FACTOR	= 1.0 / 3000.0;	// 2500 = 16deg 2000 = 20deg
+	private static final double	DISTANCE_FACTOR	= 176;				// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
+	private static final double	HIT_FACTOR		= Math.PI;
 
 	private static double		eEnergy;
 	private static double		dir;
 	private static double		dirChange;
-	private static long			lastHit;
 
 	// gun
 	static double				eBearing;
 	static double				myx;
 	static double				myy;
 	static double				bDist;
-	static double				bPower;
 
-	// debug
-	PaintEnemyBulletWaves		eWave			= new PaintEnemyBulletWaves();
-	PaintMaxEscapeAngle			bMax			= new PaintEnemyMaxEscapeAngle();
+	static int					index;
+	//@formatter:off
+	static final String			pattern			= "" 
+				+ (char)  9 + (char) 11 + (char) 12 + (char) 13 + (char) 14 + (char) 15 + (char) 16 + (char) 17  // 8 
+				+ (char) 17 + (char) 17 + (char) 17 + (char) 17 + (char) 17 + (char) 17 + (char) 17 + (char) 17	// 16
+				+ (char) 15 + (char) 13 + (char) 11 + (char)  9 + (char)  8 + (char)  7 + (char)  6 + (char)  5 //  8
+				+ (char)  4 + (char)  3 + (char)  2 + (char)  1 + (char)  3 + (char)  5 + (char)  7 + (char)  9 //  0
+				+ (char) 11 + (char) 12 + (char) 13 + (char) 14 + (char) 15 + (char) 16 + (char) 17 + (char)  16 // 8 
+				+ (char) 15 + (char) 14 + (char) 13 + (char) 12 + (char) 11 + (char) 10 + (char)  9 + (char)  9 // 8 
+				;
+	//@formatter:on
+	static final int			LEN				= pattern.length();
 
 	public Kowari()
-	{
-		// 158
-		dir = 1;
-	}
+	{}
 
 	@Override
 	public void run()
 	{
-		// debug
-		bMax.onInit(this, 18);
-		xxd = getX();
-		yyd = getY();
-
-		setAllColors(Color.red);
-		setTurnRadarRightRadians(bDist = Double.POSITIVE_INFINITY);
+		setAllColors(Color.RED);
+		dir = 4;
+		setTurnRadarRightRadians(bDist = Double.MAX_VALUE);
 		setAdjustGunForRobotTurn(true);
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		bMax.onStatus(e);
-		eWave.onStatus(e);
+//		int v = pattern.charAt(index++ % LEN);
+//		setMaxVelocity(v);
+		//System.out.format("[%04d] v=%d index=%d \n", getTime(), v, index - 1);
 	}
-
-	static double	xxd;
-	static double	yyd;
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double relBear = e.getBearingRadians();
-		double absBear = relBear + getHeadingRadians();
-
-		double _x = (getX() + e.getDistance() * Math.sin(absBear)) - myx;
-		double _y = (getY() + e.getDistance() * Math.cos(absBear)) - myy;
-
-		boolean test = false;
-		double bearing = Math.atan2(_x, _y) - (eBearing);
-		bPower = e.getEnergy() * 15 / e.getDistance();
-
-		if ((bDist += Rules.getBulletSpeed(bPower)) > Math.hypot(_x, _y))
-		{
-			eBearing = absBear;
-			bDist = 0;// Rules.getBulletSpeed(bPower);
-			myx = getX();
-			myy = getY();
-			test = true;
-		}
-
-		System.out.format("[%04d] bearing=%3.4f %s\n", getTime(), Math.toDegrees(bearing),
-				test ? String.format("FIRE: %3.5f (%3.5f)", bPower, Rules.getBulletSpeed(bPower)) : "");
-		Bullet b;
-		if ((b = setFireBullet(bPower)) != null)
-			System.out.format("[%04d] bullet=%3.4f %3.4f [%3.4f %3.4f]\n", getTime(), b.getX(), b.getY(), getX(),
-					getY());
-
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + bearing));
+		double relBear;
+		double v0;
+		double _x;
+		double _y;
 
 		//@formatter:off
 		setTurnRightRadians(
-				+ Math.cos(relBear) //* getGunHeat() // keep the random in mind looks very promising 
-				+ ((DISTANCE_FACTOR -e.getDistance())
+				+ Math.cos(relBear = e.getBearingRadians()) //* getGunHeat() // keep the random in mind looks very promising 
+				+ ((DISTANCE_FACTOR - (v0=e.getDistance()))
 				* getVelocity()
 				* ADVANCE_FACTOR)
 				);
 		//@formatter:on
 
-		setMaxVelocity(1800 / e.getDistance());
-		double eDelta = eEnergy - (eEnergy = e.getEnergy());
-		setAhead(dir *= (1 + ((eDelta) * Math.cos(dirChange) * Double.MAX_VALUE)));
+		if ((bDist += 13) > Math.hypot((_x = ((getX() + v0 * Math.sin(relBear += getHeadingRadians())) - myx)),
+				(_y = ((getY() + v0 * Math.cos(relBear)) - myy))))
+		{
+			eBearing = relBear;
+			bDist = 0;// Rules.getBulletSpeed(bPower);
+			myx = getX();
+			myy = getY();
+		}
+
+		setFire(600 / v0);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(relBear - getGunHeadingRadians() + Math.atan2(_x, _y)
+				- (eBearing)));
+
+		if (eEnergy > (eEnergy = e.getEnergy()) && index > 50)
+		{
+			index = 0;
+		}
+
+		setAhead(dir * (pattern.charAt(index++ % LEN) - 8));
+		//setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * Math.cos(dirChange) * Double.MAX_VALUE)));
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
-
-		// debug
-		if (eDelta != 0) System.out.format("[%04d] eDelta=%3.20f\n", getTime(), eDelta);
-		bMax.setBulletSpeed(bPower);
-		bMax.onScannedRobot(e);
-		eWave.onScannedRobot(e, eDelta);
-
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
 		dir = -dir; // keep in mind that this is not necessary - for the trade of some hits (very bad against samples)
-		System.out.format("[%04d] Boooooiiiiing!\n", getTime());
 	}
 
 	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
-//		System.out.format("[%04d] ---------------hisHit=%3.5f \n", getTime(), e.getPower());
-		dirChange += HIT_FACTOR / (lastHit - (lastHit = getTime()));
-		//eEnergy += Rules.getBulletHitBonus(e.getPower());
-	}
-
-	@Override
-	public void onBulletHit(BulletHitEvent e)
-	{
-//		System.out.format("[%04d] ---------------myHit=%3.5f \n", getTime(), e.getBullet().getPower());
-		//eEnergy = e.getEnergy();
-		eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
-	}
-
-	@Override
-	public void onPaint(Graphics2D g)
-	{
-		setAllColors(Color.red);
-		eWave.onPaint(g);
-		bMax.onPaint(g);
-
-		Point2D start = new Point2D.Double(myx, myy);
-		PaintHelper.drawArc(start, bDist, 0, Math.PI * 2, false, getGraphics(), Color.DARK_GRAY);
-		PaintHelper.drawPoint(start, Color.RED, getGraphics(), 3);
-
+		dirChange += HIT_FACTOR;
 	}
 }
