@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import robocode.Bullet;
 import robocode.RobotStatus;
 import robocode.Rules;
+import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
+import robocode.util.Utils;
 
 public class PaintEnemyBulletWaves
 {
@@ -20,8 +22,13 @@ public class PaintEnemyBulletWaves
 		myStatus = e.getStatus();
 	}
 
-	public void onScannedRobot(double power, double x, double y)
+	public void onScannedRobot(ScannedRobotEvent e, double power)
 	{
+		if (Utils.isNear(0.0, power)) return;
+
+		double x = myStatus.getX() + Math.sin(myStatus.getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+		double y = myStatus.getY() + Math.cos(myStatus.getHeadingRadians() + e.getBearingRadians()) * e.getDistance();
+
 		_BulletWave b = new _BulletWave();
 		b.myBullet = new Bullet(0, x, y, power, "", "", true, 1);
 		b.myStartTime = myStatus.getTime();
