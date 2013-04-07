@@ -1,8 +1,10 @@
 package wompi;
 
 import robocode.AdvancedRobot;
+import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
@@ -81,8 +83,15 @@ public class Kowari extends AdvancedRobot
 	static double	bDist;
 	static double	bPower;
 
+	static double	dir;
+	static double	dFactor;
+
+	static double	eEnergy;
+
 	public Kowari()
-	{}
+	{
+		dir = 300;
+	}
 
 	@Override
 	public void run()
@@ -92,28 +101,55 @@ public class Kowari extends AdvancedRobot
 	}
 
 	@Override
+	public void onStatus(StatusEvent e)
+	{
+		bDist += Rules.getBulletSpeed(bPower);
+	}
+
+	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double relBear = e.getBearingRadians();
-		double absBear = relBear + getHeadingRadians();
+		double absBear;
+		double v0;
+		double _x;
+		double _y;
+		//@formatter:off
+        setTurnRightRadians(
+                + Math.cos(absBear = e.getBearingRadians()) //* getGunHeat() // keep the random in mind looks very promising 
+                + ((dFactor -e.getDistance())
+                * getVelocity()
+                * 1/4000)
+                );
+        //@formatter:on
 
-		double _x = (getX() + e.getDistance() * Math.sin(absBear)) - myx;
-		double _y = (getY() + e.getDistance() * Math.cos(absBear)) - myy;
-
-		double bearing = Math.atan2(_x, _y) - (eBearing);
-		bPower = e.getEnergy() * 15 / e.getDistance();
-
-		if ((bDist += Rules.getBulletSpeed(bPower)) > Math.hypot(_x, _y))
+		if (bDist > Math.hypot(
+				_x = ((getX() + (v0 = e.getDistance()) * Math.sin(absBear += getHeadingRadians())) - myx),
+				_y = ((getY() + v0 * Math.cos(absBear)) - myy)))
 		{
 			eBearing = absBear;
 			bDist = 0;// Rules.getBulletSpeed(bPower);
 			myx = getX();
 			myy = getY();
+
+			bPower = 450 / v0;
+			setAhead(dFactor = (150 + (Math.random() * (dir = -dir))));
+
+		}
+		else if (eEnergy > (eEnergy = e.getEnergy()))
+		{
+			//dir *= (Math.random() - 0.1) * 10;
+			//dir = -dir;
+
 		}
 
 		setFire(bPower);
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + bearing));
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + Math.atan2(_x, _y)
+				- eBearing));
 
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
+
+	@Override
+	public void onHitWall(HitWallEvent event)
+	{}
 }
