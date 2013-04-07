@@ -1,12 +1,8 @@
 package wompi;
 
 import robocode.AdvancedRobot;
-import robocode.BulletHitEvent;
-import robocode.HitByBulletEvent;
-import robocode.HitRobotEvent;
-import robocode.HitWallEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.StatusEvent;
 import robocode.util.Utils;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
@@ -78,91 +74,46 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	PI_90			= Math.PI / 2.0;
-
-	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;		// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 200;					// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
-	private static final double	HIT_FACTOR		= Math.PI * 2 / 20.0;
-
-	private static double		eEnergy;
-	private static double		dir;
-	private static double		dirChange;
-	private static long			lastHit;
-
-	private static double		ePower;
+	// gun
+	static double	eBearing;
+	static double	myx;
+	static double	myy;
+	static double	bDist;
+	static double	bPower;
 
 	public Kowari()
-	{
-		// 158
-		dir = -1;
-	}
+	{}
 
 	@Override
 	public void run()
 	{
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
-		//setAllColors(Color.RED);
-		//setTurnLeft(getHeading() % 90);
-	}
-
-	@Override
-	public void onStatus(StatusEvent e)
-	{
-		//if (Utils.isNear(0, getTurnRemainingRadians())) setAhead(100 * dir);
-		setAhead(100 * dir);
+		setTurnRadarRightRadians(bDist = Double.POSITIVE_INFINITY);
+		setAdjustGunForRobotTurn(true);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double absBear = e.getBearingRadians() + getHeadingRadians();
-		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians()));
-		setFire(650 / e.getDistance());
-		//@formatter:off
-		
-		//@formatter:on
-		if (eEnergy > (eEnergy = e.getEnergy()))
+		double relBear = e.getBearingRadians();
+		double absBear = relBear + getHeadingRadians();
+
+		double _x = (getX() + e.getDistance() * Math.sin(absBear)) - myx;
+		double _y = (getY() + e.getDistance() * Math.cos(absBear)) - myy;
+
+		double bearing = Math.atan2(_x, _y) - (eBearing);
+		bPower = e.getEnergy() * 15 / e.getDistance();
+
+		if ((bDist += Rules.getBulletSpeed(bPower)) > Math.hypot(_x, _y))
 		{
-//			System.out.format("[%04d] bearing=%3.5f distance=%3.5f \n", getTime(), e.getBearing(), e.getDistance());
-//			ahead(5 * -dir);
+			eBearing = absBear;
+			bDist = 0;// Rules.getBulletSpeed(bPower);
+			myx = getX();
+			myy = getY();
 		}
 
-		setMaxVelocity(2500 / e.getDistance());
-		//if (Utils.isNear(0, getTurnRemainingRadians()))
+		setFire(bPower);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + bearing));
+
+		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
-
-	@Override
-	public void onHitWall(HitWallEvent e)
-	{
-		double absBear = e.getBearingRadians() + getHeadingRadians();
-		//setTurnLeftRadians(PI_90 - e.getBearingRadians());
-		double angle = Utils.normalRelativeAngle(absBear - getHeadingRadians());
-
-		setTurnRightRadians(angle + PI_90);
-		setAhead(0);
-		//System.out.format("[%04d] absBear=%3.5f angle=%3.5f\n", getTime(), Math.toDegrees(absBear),
-//				Math.toDegrees(angle));
-//		System.out.format("[%04d] Boiiing! bear=%3.5f head=%3.5f dir=%3.0f\n", getTime(), e.getBearing(), getHeading(),
-//				dir);
-		System.out.format("[%04d] Boiiiing!\n", getTime());
-	}
-
-	@Override
-	public void onHitRobot(HitRobotEvent event)
-	{
-		dir = -dir;
-		setAhead(0);
-	}
-
-	@Override
-	public void onHitByBullet(HitByBulletEvent e)
-	{
-		//setTurnRightRadians(PI_90 * dir);
-		//System.out.format("[%04d] HIT bBearing=%3.5f (%3.5f) \n", getTime(), e.getBearing(), e.getBearing() % 90);
-	}
-
-	@Override
-	public void onBulletHit(BulletHitEvent e)
-	{}
 }
