@@ -1,11 +1,17 @@
 package wompi;
 
+import java.awt.Color;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+
 import robocode.AdvancedRobot;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintHelper;
 
 // TODO: use the DIR variable as lastHitTime and make it changed for a needs
 // initialize the variable with 30 - just a thought to prevent the first hit issu  
@@ -76,17 +82,19 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
+	final static double	PI_360	= Math.PI * 2;
+
 	// gun
-	static double	eBearing;
-	static double	myx;
-	static double	myy;
-	static double	bDist;
-	static double	bPower;
+	static double		eBearing;
+	static double		myx;
+	static double		myy;
+	static double		bDist;
+	static double		bPower;
 
-	static double	dir;
-	static double	dFactor;
+	static double		dir;
+	static double		dFactor;
 
-	static double	eEnergy;
+	static double		eEnergy;
 
 	public Kowari()
 	{
@@ -114,17 +122,12 @@ public class Kowari extends AdvancedRobot
 		double _x;
 		double _y;
 		//@formatter:off
-        setTurnRightRadians(
-                + Math.cos(absBear = e.getBearingRadians()) //* getGunHeat() // keep the random in mind looks very promising 
-                + ((dFactor -e.getDistance())
-                * getVelocity()
-                * 1/4000)
-                );
         //@formatter:on
 
 		if (bDist > Math.hypot(
-				_x = ((getX() + (v0 = e.getDistance()) * Math.sin(absBear += getHeadingRadians())) - myx),
-				_y = ((getY() + v0 * Math.cos(absBear)) - myy)))
+				_x = ((getX() + (v0 = e.getDistance())
+						* Math.sin(absBear = (e.getBearingRadians() + getHeadingRadians()))) - myx), _y = ((getY() + v0
+						* Math.cos(absBear)) - myy)))
 		{
 			eBearing = absBear;
 			bDist = 0;// Rules.getBulletSpeed(bPower);
@@ -132,15 +135,35 @@ public class Kowari extends AdvancedRobot
 			myy = getY();
 
 			bPower = 450 / v0;
-			setAhead(dFactor = (150 + (Math.random() * (dir = -dir))));
+			dFactor = (250 + (Math.random() * 100));
 
 		}
-		else if (eEnergy > (eEnergy = e.getEnergy()))
+
+		int angle = 0;
+		double min = Double.MAX_VALUE;
+		double rx = 0;
+		double ry = 0;
+		while (angle++ <= 360)
 		{
-			//dir *= (Math.random() - 0.1) * 10;
-			//dir = -dir;
-
+			double x = _x + myx + Math.sin(Math.toRadians(angle)) * dFactor;
+			double y = _y + myy + Math.cos(Math.toRadians(angle)) * dFactor;
+			if (new Rectangle2D.Double(70, 70, 800 - 2 * 70, 600 - 2 * 70).contains(x, y))
+			{
+				double d = Line2D.ptLineDist(getX(), getY(), x, y, _x + myx, _y + myy);
+				if (d < min)
+				{
+					rx = x;
+					ry = y;
+				}
+			}
 		}
+
+		setTurnRightRadians(Utils.normalRelativeAngle(Math.atan2(rx - getX(), ry - getY()) - getHeadingRadians()));
+		setAhead(100 * Math.cos(getTurnRemainingRadians()));
+
+		PaintHelper.drawArc(new Point2D.Double(_x + myx, _y + myy), dFactor, 0, PI_360, false, getGraphics(),
+				Color.DARK_GRAY);
+		PaintHelper.drawPoint(new Point2D.Double(rx, ry), Color.RED, getGraphics(), 5);
 
 		setFire(bPower);
 		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians() + Math.atan2(_x, _y)
