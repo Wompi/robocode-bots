@@ -6,3 +6,9 @@ for (int i=0;i<infinity.length();i++)
 {
 	System.out.format("%d: %d \n",d+=20,(short)infinity.charAt(i));
 }
+
+int maxdist = 950;
+for (double i = 3.0; i>0;i-=0.1)
+{
+	System.out.format("(char) %3.0f + ",i*10);	
+}
