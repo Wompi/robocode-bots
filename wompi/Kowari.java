@@ -1,11 +1,8 @@
 package wompi;
 
-import java.awt.geom.Point2D;
-
 import robocode.AdvancedRobot;
 import robocode.Bullet;
 import robocode.BulletHitEvent;
-import robocode.Condition;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
@@ -91,9 +88,6 @@ public class Kowari extends AdvancedRobot
 	private static long			lastHit;
 	private static double		dFactor;
 
-	private static double		enemyX;
-	private static double		enemyY;
-
 	private static final String	bulletcode		= "" + (char) 30 + (char) 29 + (char) 28 + (char) 27 + (char) 26
 														+ (char) 25 + (char) 24 + (char) 23 + (char) 22 + (char) 21
 														+ (char) 20 + (char) 19 + (char) 18 + (char) 17 + (char) 16
@@ -123,18 +117,9 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onScannedRobot(final ScannedRobotEvent e)
 	{
-		// 197
-		int index = (int) (e.getDistance() / 29.0);
-		char value = bulletcode.charAt(index);
-		double d = (short) value / 10.0;
-
-		double absBear = e.getBearingRadians() + getHeadingRadians();
-		enemyX = getX() + Math.sin(absBear) * e.getDistance();
-		enemyY = getY() + Math.cos(absBear) * e.getDistance();
-
 		//@formatter:off
 		setTurnRightRadians(
-				((200 * Math.signum(e.getVelocity()))- e.getDistance())
+				(DISTANCE_FACTOR  - e.getDistance())
 				* getVelocity() 
 				* ADVANCE_FACTOR
 				+ Math.cos(e.getBearingRadians()) 
@@ -148,7 +133,7 @@ public class Kowari extends AdvancedRobot
 			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
 		}
 
-		Bullet b = setFireBullet(d);
+		Bullet b = setFireBullet(e.getEnergy() * 15 / e.getDistance());
 		if (b != null)
 		{
 			//myBullets.add(b);
@@ -188,54 +173,5 @@ public class Kowari extends AdvancedRobot
 	public void onBulletHit(BulletHitEvent e)
 	{
 		eEnergy = e.getEnergy();
-	}
-
-	static class KowariWave extends Condition
-	{
-		//Global variables.	
-		double			absoluteBearing;
-		double			gunX;
-		double			gunY;
-		double			power;
-
-		private double	distanceTraveled;
-
-		static double	bearingOffset;
-
-		AdvancedRobot	myBot;
-
-		//Initialize this instance of the Wave class.
-		public KowariWave(double _gunX, double _gunY, double _absoluteBearing, double bPower, AdvancedRobot bot)
-		{
-			gunX = _gunX;
-			gunY = _gunY;
-			absoluteBearing = _absoluteBearing;
-			power = bPower;
-			myBot = bot;
-		}
-
-		@Override
-		public boolean test()
-		{
-			//Local variables.
-			double predictedX;
-			double predictedY;
-
-			//When the wave hits, calculate the bearing offset.
-			if ((distanceTraveled += Rules.getBulletSpeed(power)) > Math.hypot(predictedX = (enemyX - gunX),
-					predictedY = (enemyY - gunY)))
-			{
-				bearingOffset = Math.atan2(predictedX, predictedY) - absoluteBearing;
-				double bCodeDist = (3 - power) * 10 * 29;
-				double bRealDist = Point2D.distance(myBot.getX(), myBot.getY(), enemyX, enemyY);
-				double delta = bRealDist - bCodeDist;
-
-				System.out.format("[%04d] bullet out of range! p=%3.4f d=%3.5f d0=%3.5f delta=%3.5f\n",
-						myBot.getTime(), power, bCodeDist, bRealDist, delta);
-				myBot.removeCustomEvent(this);
-
-			}
-			return false;
-		}
 	}
 }
