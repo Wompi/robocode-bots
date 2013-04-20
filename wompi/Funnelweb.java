@@ -1,107 +1,81 @@
 package wompi;
 
 import robocode.AdvancedRobot;
+import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
+import robocode.util.Utils;
 
 public class Funnelweb extends AdvancedRobot
 {
-	private final static double	ADVANCE_FACTOR	= 1.0 / 1000;		// be careful with this parameter this breaks the wall movement
-	private final static double	RADIUS			= 300;				// if you adjust this you also have to change BORDER an ADVANCE_FACTOR
-	private final static double	W				= 800;
-	private final static double	H				= 600;
-	private final static double	BORDER			= 25;				// don't change this without tweaking RADIUS and ADVANCE_FACTOR
-	private final static double	BORDER_RADIUS	= RADIUS - BORDER;
+	private static final double	PI_90	= Math.PI / 2.0;
 
-	static double				dir;
-	boolean						isBoing;
-	static double				speed;
+	private static double		eEnergy;
+	private static double		dir;
 
 	public Funnelweb()
-	{}
+	{
+		// 158
+		dir = -1;
+	}
 
 	@Override
 	public void run()
 	{
-		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		double x;
-		double y;
-		if (!isBoing) setAhead(dir);
-
-		//@formatter:off
-		setTurnRightRadians(
-				(
-						(BORDER_RADIUS 
-							- (Math.hypot(
-								x = (getLimit(RADIUS, getX(), W - RADIUS) - getX()),
-								y = (getLimit(RADIUS, getY(), H - RADIUS) - getY())
-							    )
-							)
-						) 
-						* getVelocity() 
-						* ADVANCE_FACTOR)
-				+  Math.cos(getHeadingRadians() - Math.atan2(x, y))
-				);
-		//@formatter:on
-		isBoing = false;
+		setAhead(100 * dir);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double aBear;
-		double bPower;
-		setFire(bPower = (500 / e.getDistance()));
-		//@formatter:off
-		setTurnGunRightRadians(
-			Math.asin(
-				Math.sin(
-					(aBear=(getHeadingRadians() + e.getBearingRadians())) 
-					- getGunHeadingRadians() 
-					+ (1 - e.getDistance() / 500) 
-					* 
-					Math.asin(e.getVelocity() / Rules.getBulletSpeed(bPower)) 
-					* Math.sin(e.getHeadingRadians() - aBear) 
-				)
-			)
-		);
-		if (getVelocity() == 0) setMaxVelocity(8.0);
-		//@formatter:on
+		double absBear = e.getBearingRadians() + getHeadingRadians();
+		double bPower = 650 / e.getDistance();
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+
+		// Infinity style gun fits!!!!
+		//@formatter:off
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear
+				- getGunHeadingRadians()
+				+
+//				Math.random() *
+//				Math.max(1 - e.getDistance() / (400), 0) * 
+				(e.getVelocity() / (10 + Math.pow(1.008, e.getDistance())))
+				* Math.sin(e.getHeadingRadians() - absBear)));
+		//@formatter:on
+
+		setFire(bPower);
+		setMaxVelocity(2000 / e.getDistance());
 	}
 
 	@Override
 	public void onHitWall(HitWallEvent e)
 	{
-		//System.out.format("[%04d] Boiiiing! (%3.5f) \n", getTime(), e.getBearing());
-		setAhead(dir = -dir);
-		isBoing = true;
+		setTurnRightRadians(Utils.normalRelativeAngle(e.getBearingRadians() + PI_90));
+		setAhead(0);
+		System.out.format("[%04d] Boiiiing! %3.5f\n", getTime(), getTurnRemaining());
 	}
 
 	@Override
-	public void onHitByBullet(HitByBulletEvent event)
+	public void onHitRobot(HitRobotEvent event)
 	{
-		//setMaxVelocity(0);
-		setAhead(dir = -dir);
+		dir = -dir;
+		setAhead(0);
 	}
 
 	@Override
-	public void onHitRobot(HitRobotEvent e)
-	{
-		setAhead(dir = -dir);
-	}
+	public void onHitByBullet(HitByBulletEvent e)
+	{}
 
-	private double getLimit(double min, double value, double max)
-	{
-		return (int) Math.min(max, Math.max(value, min));
-	}
+	@Override
+	public void onBulletHit(BulletHitEvent e)
+	{}
 }
