@@ -144,8 +144,8 @@ public class Irukandji extends AdvancedRobot
 			}
 		}
 
-		//bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
-		bPower = 0.1;
+		bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
+		//bPower = 0.1;
 		//bPower = 3.0;
 
 		double v2 = e.getVelocity();
