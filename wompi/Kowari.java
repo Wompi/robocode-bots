@@ -1,20 +1,19 @@
 package wompi;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-
 import robocode.AdvancedRobot;
+import robocode.BulletHitBulletEvent;
 import robocode.BulletHitEvent;
 import robocode.BulletMissedEvent;
+import robocode.DeathEvent;
 import robocode.HitByBulletEvent;
+import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
-import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
+import robocode.WinEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.painter.PaintDiagramm;
-import wompi.echidna.misc.painter.PaintSegmentDiagramm;
+import wompi.stats.StatsWriter;
 
 public class Kowari extends AdvancedRobot
 {
@@ -36,12 +35,12 @@ public class Kowari extends AdvancedRobot
 	private static double		eShootVelo;
 	private static double		eMiddleVelo;
 
-	static PaintDiagramm		paintVelo		= new PaintDiagramm();
-	RobotStatus					myStatus;
-	double						enemyVelo;
+	static double				eGunHeat;
 
-	static PaintSegmentDiagramm	segDia			= new PaintSegmentDiagramm();
-	static double				eVeloSeg[]		= new double[17];
+	static double				turnRandom;
+
+	static int					bVelo;
+	static StatsWriter			myStats			= new StatsWriter();
 
 	public Kowari()
 	{}
@@ -49,34 +48,50 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		setAllColors(Color.RED);
+		//setAllColors(Color.RED);
+		myStats.onInit(this, 18);
 		setAdjustGunForRobotTurn(true);
-		//dir = 100;
 		lastHit = dir = 30;
+		eGunHeat = 3.0;
+		bVelo = 9;
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+
+		while (true)
+		{
+			myStats.onRun();
+			execute();
+		}
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		myStatus = e.getStatus();
+		eGunHeat -= 0.1;
+		myStats.onStatus(e);
+
 	}
 
 	@Override
-	public void onScannedRobot(final ScannedRobotEvent e)
+	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		int index = (int) (Math.round(e.getVelocity()) + Rules.MAX_VELOCITY);
-		eVeloSeg[index]++;
-		enemyVelo = e.getVelocity();
+		myStats.onScannedRobot(e);
 		double aBear;
-		//double bPower;
 		//@formatter:off
-		setTurnRightRadians(
-				(dFactor  - e.getDistance())
-				* getVelocity() 
-				* ADVANCE_FACTOR
-				+ Math.cos(aBear = e.getBearingRadians())
-				);
+//		setTurnRightRadians(
+//				(dFactor  - e.getDistance())
+//				* getVelocity() 
+//				* ADVANCE_FACTOR
+//				+ Math.cos(aBear = e.getBearingRadians())
+//				);
+		double perpAngle = Math.cos(aBear = e.getBearingRadians());
+		//setTurnRightRadians(perpAngle - Rules.getTurnRateRadians(getVelocity()) * Math.signum(getVelocity()));
+		double turnOff = Math.toRadians(10);
+		if (eGunHeat <=0.8)
+		{
+			//if (eGunHeat <=0.2) turnOff= 0;
+		  turnOff = -turnOff;
+		}
+		setTurnRightRadians(perpAngle - turnOff  * Math.signum(getVelocity()));
 		
 	
 		double v = ((eVelo +=e.getVelocity())/GUN_TURNS);
@@ -84,12 +99,12 @@ public class Kowari extends AdvancedRobot
 		{
 			if (eShootVelo != 0 && 	 eMiddleVelo != eShootVelo)
 			{
-				setAllColors(Color.YELLOW);
+				//setAllColors(Color.YELLOW);
 				v = -v * 1.2;
 			}
 			else
 			{
-				setAllColors(Color.GREEN);
+				//setAllColors(Color.GREEN);
 			}
 		}		
 		setTurnGunRightRadians(
@@ -109,32 +124,41 @@ public class Kowari extends AdvancedRobot
 		//@formatter:on
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
-		if (((eEnergy - (eEnergy = e.getEnergy()))) > 0)
+		double eDelta = eEnergy - (eEnergy = e.getEnergy());
+
+		//System.out.format("[%04d] gunHeat=%3.4f eDelta=%3.5f \n", getTime(), Rules.getGunHeat(eDelta), eDelta);
+
+		if (eDelta > 0)
 		{
+			bVelo++;
+			turnRandom = Math.random() * 25;
 			onBulletMissed(null);
 			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
+			eGunHeat = Rules.getGunHeat(eDelta); // gunHeat calculates to negative if eDelta is negative
 		}
-
-		System.out.format("[%04d] velo=%3.5f avg=%3.5f gunHeat=%3.5f \n", getTime(), e.getVelocity(),
-				eVelo / GUN_TURNS, getGunHeat());
 
 		if (getGunHeat() < 0.8 && eMiddleVelo == 0)
 		{
 			eMiddleVelo = Math.signum(e.getVelocity());
-			System.out.format("[%04d] set eMiddleVelo=%3.5f\n", getTime(), eMiddleVelo);
 		}
 
 		if (setFireBullet(BPOWER) != null)
 		{
-			System.out.format("[%04d] fire  eShootVeo=%3.0f eMiddleVelo=%3.5f shootv=%3.5f\n", getTime(), eShootVelo,
-					eMiddleVelo, v);
 			onBulletMissed(null);
 			eShootVelo = Math.signum(e.getVelocity());
+			bVelo++;
 			eMiddleVelo = 0;
 			eVelo = 0;
 
 		}
-		setMaxVelocity(1800 / e.getDistance());
+
+		if (eGunHeat <= 0.3)
+		{
+			setMaxVelocity(1500 / e.getDistance());
+			//setMaxVelocity(0);
+		}
+//		else
+		//setMaxVelocity((bVelo % 10.0) + 3);
 		setAhead(dir);
 	}
 
@@ -145,9 +169,16 @@ public class Kowari extends AdvancedRobot
 	}
 
 	@Override
-	public void onBulletMissed(BulletMissedEvent event)
+	public void onBulletMissed(BulletMissedEvent e)
 	{
-		dFactor = Math.random() * 200 + 100;
+		dFactor = 100 + getTime() % 200;
+		if (e != null) myStats.onBulletMissed(e);
+	}
+
+	@Override
+	public void onBulletHitBullet(BulletHitBulletEvent e)
+	{
+		myStats.onBulletHitBullet(e);
 	}
 
 	@Override
@@ -157,18 +188,32 @@ public class Kowari extends AdvancedRobot
 		{
 			dirChange += HIT_FACTOR; // / delta;
 		}
+		myStats.onHitByBullet(e);
 	}
 
 	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
 		eEnergy = e.getEnergy();
+		myStats.onBulletHit(e);
 	}
 
 	@Override
-	public void onPaint(Graphics2D g)
+	public void onHitRobot(HitRobotEvent e)
 	{
-		paintVelo.onPaint(g, myStatus, enemyVelo, Color.yellow, "Enemy");
-		segDia.onPaint(g, this, eVeloSeg, Color.GREEN);
+		myStats.onHitRobot(e);
 	}
+
+	@Override
+	public void onDeath(DeathEvent e)
+	{
+		myStats.onDeath(e);
+	}
+
+	@Override
+	public void onWin(WinEvent e)
+	{
+		myStats.onWin(e);
+	}
+
 }
