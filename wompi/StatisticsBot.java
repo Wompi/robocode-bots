@@ -231,6 +231,7 @@ public class StatisticsBot extends Kowari
 	@Override
 	public void onWin(WinEvent e)
 	{
+		// TODO: win events are send before status events - this is awkward and breaks the clear mechanic
 		if (e != null) myStatsMap.get(EStats.Win).registerValue(1);
 		super.onWin(e);
 	}
