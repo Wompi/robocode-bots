@@ -1,25 +1,22 @@
 package wompi;
 
+import java.awt.Color;
+
 import robocode.AdvancedRobot;
-import robocode.BulletHitBulletEvent;
 import robocode.BulletHitEvent;
 import robocode.BulletMissedEvent;
-import robocode.DeathEvent;
 import robocode.HitByBulletEvent;
-import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
-import robocode.WinEvent;
 import robocode.util.Utils;
-import wompi.stats.StatsWriter;
 
 public class Kowari extends AdvancedRobot
 {
 	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;					// 2500 = 16deg 2000 = 20deg
 	private static final double	DISTANCE_FACTOR	= 176;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
-	private static final double	HIT_FACTOR		= Math.PI / 8.0;
+	private static final double	HIT_FACTOR		= Math.PI / 4.0;
 	private static final double	BPOWER			= 2.3333;
 	private static final double	BSPEED			= Rules.getBulletSpeed(BPOWER);
 	private static final double	GUN_TURNS		= Rules.getGunHeat(BPOWER) * 10;
@@ -39,8 +36,7 @@ public class Kowari extends AdvancedRobot
 
 	static double				turnRandom;
 
-	static int					bVelo;
-	static StatsWriter			myStats			= new StatsWriter();
+	static long					eBulletTicks;
 
 	public Kowari()
 	{}
@@ -48,33 +44,25 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void run()
 	{
-		//setAllColors(Color.RED);
-		myStats.onInit(this, 18);
+		setAllColors(Color.RED);
 		setAdjustGunForRobotTurn(true);
 		lastHit = dir = 30;
 		eGunHeat = 3.0;
-		bVelo = 9;
+		eBulletTicks = 0;
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 
-		while (true)
-		{
-			myStats.onRun();
-			execute();
-		}
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
 		eGunHeat -= 0.1;
-		myStats.onStatus(e);
-
+		eBulletTicks--;
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		myStats.onScannedRobot(e);
 		double aBear;
 		//@formatter:off
 //		setTurnRightRadians(
@@ -86,10 +74,10 @@ public class Kowari extends AdvancedRobot
 		double perpAngle = Math.cos(aBear = e.getBearingRadians());
 		//setTurnRightRadians(perpAngle - Rules.getTurnRateRadians(getVelocity()) * Math.signum(getVelocity()));
 		double turnOff = Math.toRadians(10);
-		if (eGunHeat <=0.8)
+		//if (eGunHeat <=0.8)
 		{
 			//if (eGunHeat <=0.2) turnOff= 0;
-		  turnOff = -turnOff;
+		 // turnOff = -turnOff;
 		}
 		setTurnRightRadians(perpAngle - turnOff  * Math.signum(getVelocity()));
 		
@@ -130,11 +118,19 @@ public class Kowari extends AdvancedRobot
 
 		if (eDelta > 0)
 		{
-			bVelo++;
 			turnRandom = Math.random() * 25;
 			onBulletMissed(null);
 			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
 			eGunHeat = Rules.getGunHeat(eDelta); // gunHeat calculates to negative if eDelta is negative
+//			if (eBulletTicks <= 0)
+			{
+				eBulletTicks = (long) (e.getDistance() / Rules.getBulletSpeed(eDelta)) - 1;
+				System.out.format("[%04d] eBuletTicks=%d \n", getTime(), eBulletTicks);
+			}
+//			else
+//			{
+//				System.out.format("[%04d] REST eBulletTicks=%d \n", getTime(), eBulletTicks);
+//			}
 		}
 
 		if (getGunHeat() < 0.8 && eMiddleVelo == 0)
@@ -146,19 +142,20 @@ public class Kowari extends AdvancedRobot
 		{
 			onBulletMissed(null);
 			eShootVelo = Math.signum(e.getVelocity());
-			bVelo++;
 			eMiddleVelo = 0;
 			eVelo = 0;
 
 		}
 
-		if (eGunHeat <= 0.3)
+		if (eBulletTicks <= 3)
+		{
+			//setMaxVelocity(1500 / e.getDistance());
+			setMaxVelocity(0);
+		}
+		else
 		{
 			setMaxVelocity(1500 / e.getDistance());
-			//setMaxVelocity(0);
 		}
-//		else
-		//setMaxVelocity((bVelo % 10.0) + 3);
 		setAhead(dir);
 	}
 
@@ -172,13 +169,6 @@ public class Kowari extends AdvancedRobot
 	public void onBulletMissed(BulletMissedEvent e)
 	{
 		dFactor = 100 + getTime() % 200;
-		if (e != null) myStats.onBulletMissed(e);
-	}
-
-	@Override
-	public void onBulletHitBullet(BulletHitBulletEvent e)
-	{
-		myStats.onBulletHitBullet(e);
 	}
 
 	@Override
@@ -188,32 +178,11 @@ public class Kowari extends AdvancedRobot
 		{
 			dirChange += HIT_FACTOR; // / delta;
 		}
-		myStats.onHitByBullet(e);
 	}
 
 	@Override
 	public void onBulletHit(BulletHitEvent e)
 	{
 		eEnergy = e.getEnergy();
-		myStats.onBulletHit(e);
 	}
-
-	@Override
-	public void onHitRobot(HitRobotEvent e)
-	{
-		myStats.onHitRobot(e);
-	}
-
-	@Override
-	public void onDeath(DeathEvent e)
-	{
-		myStats.onDeath(e);
-	}
-
-	@Override
-	public void onWin(WinEvent e)
-	{
-		myStats.onWin(e);
-	}
-
 }
