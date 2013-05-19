@@ -12,8 +12,6 @@
 
 package wompi;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
@@ -24,12 +22,7 @@ import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.StatusEvent;
 import robocode.util.Utils;
-import wompi.echidna.misc.painter.PaintMinRiskPoints;
-import wompi.paint.PaintEscapePath;
-import wompi.paint.PaintGunProfile;
-import wompi.paint.PaintMyEscapePath;
 
 /**
  * What the ... is a Wallaby? (See: http://en.wikipedia.org/wiki/Wallaby)
@@ -49,11 +42,11 @@ public class Wallaby extends AdvancedRobot
 	private static final double			FIELD_W				= 1000.0;
 	private static final double			FIELD_H				= 1000.0;
 
-	private static final double			WZ_G				= 18.0;
+	private static final double			WZ_G				= 17.0;
 	private static final double			WZ_G_W				= FIELD_W - 2 * WZ_G;
 	private static final double			WZ_G_H				= FIELD_H - 2 * WZ_G;
 
-	private final static double			DIST				= 155;
+	private final static double			DIST				= 185;
 	private final static double			DIST_REMAIN			= 20;
 
 	private final static double			GUNLOCK				= 1.0;
@@ -61,9 +54,6 @@ public class Wallaby extends AdvancedRobot
 	private final static double			TARGET_DISTANCE		= 450.0;					// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
 	private final static double			PI_360				= Math.PI * 2.0;
-	private final static double			PI_180				= Math.PI;
-	private final static double			PI_90				= Math.PI / 2.0;
-	private final static double			PI_30				= Math.PI / 6.0;
 	private final static double			DELTA_RISK_ANGLE	= Math.PI / 32.0;
 	private final static double			MAX_HEAD_DIFF		= 0.161442955809475;		// 9.25 degree
 	private final static double			ENERGY_ADJUST		= 4.0;
@@ -71,74 +61,31 @@ public class Wallaby extends AdvancedRobot
 	private final static double			BMAX				= Rules.MAX_BULLET_POWER;
 	private final static double			BMIN				= Rules.MIN_BULLET_POWER;
 
-	private final static double			GUN_TURN_OFFSET		= 1.0;
-
-	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter 5: distance 6:avgHeading 7: avgHeadingCount
+	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter 5: distance
 	static HashMap<String, double[]>	allTargets;
 
 	static String						eName;
 	static double						eRate;
 
-	static double						ta;
-	static double						tc;
+	static double						avgHeading;
+	static double						avgHeadCount;
 
 	static double						bPower;
 	static double						rDist;
 
-	PaintGunProfile						myPaintGunProfile;
-	PaintEscapePath						myPaintMaxEsc;
-	PaintMyEscapePath					myPaintEscPath;
-	PaintMinRiskPoints					myPaintMinRiskAll;
-
-	public Wallaby()
-	{
-		myPaintGunProfile = new PaintGunProfile();
-		myPaintMaxEsc = new PaintEscapePath();
-		myPaintMinRiskAll = new PaintMinRiskPoints();
-		myPaintEscPath = new PaintMyEscapePath();
-	}
-
-	@Override
-	public void onStatus(StatusEvent e)
-	{
-		myPaintGunProfile.onStatus(e);
-		myPaintMaxEsc.onStatus(e);
-		myPaintEscPath.onStatus(e);
-	}
-
-	@Override
-	public void onPaint(Graphics2D g)
-	{
-
-		//myPaintGunProfile.onPaint(g);
-		myPaintMaxEsc.onPaint(g);
-		//myPaintEscPath.onPaint(g);
-		myPaintMinRiskAll.onPaint(g, false);
-	}
-
 	@Override
 	public void run()
 	{
-		myPaintMaxEsc.onInit(this, 18.0);
-		myPaintEscPath.onInit(this, 18.0);
 		allTargets = new HashMap<String, double[]>();
-		setAllColors(Color.RED); // 7 byte
+		//setAllColors(Color.RED); // 7 byte
 		setAdjustGunForRobotTurn(true);
 		//setAdjustRadarForGunTurn(true);
-		//rDist = DIST;
 		setTurnRadarRightRadians(eRate = INF);
 	}
-
-	long	lastTime;
-	long	lastScanTime;
-	double	lastX;
-	double	lastY;
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		//myPaintGunProfile.onScannedRobot(e);
-
 		double[] enemy;
 		double v0;
 		double xg;
@@ -163,76 +110,40 @@ public class Wallaby extends AdvancedRobot
 		v2 = ((enemy[3] += (Math.abs(v1 = e.getVelocity()))) * Math.signum(v1)) / ++enemy[4];
 
 		rDist = Math.min(DIST, rDist += 5);
-
-		//PaintHelper.drawPoint(new Point2D.Double(xg + getX(), yg + getY()), Color.BLUE, getGraphics(), 20);
-
 		boolean isClose = false;
+
 		if (eRate > v0 || eName == name)
 		{
-
-			if (getEnergy() > bPower && Math.abs(getGunTurnRemaining()) < GUN_TURN_OFFSET)
-			{
-				boolean isShooting = setFireBullet(bPower) == null;
-				//myPaintGunProfile.setGunTargetPoint(lastX, lastY, bPower, isShooting, getGunHeadingRadians());
-			}
-			myPaintMaxEsc.setBulletSpeed(bPower);
-			myPaintMaxEsc.onScannedRobot(e);
 			eName = name;
+			if (getEnergy() > bPower && getGunTurnRemaining() == 0) setFire(bPower);
 
-			double diff = Math.abs(Utils.normalRelativeAngle(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())));
-			long scanDiff = e.getTime() - lastScanTime;
-			lastScanTime = e.getTime();
-			if (diff > MAX_HEAD_DIFF)
-			//if (scanDiff > 2)
+			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF)
 			{
-//				System.out.format("[%04d] zero diff=%3.5f (%d) (%d) \n", getTime(), Math.toDegrees(diff), e.getTime()
-//						- lastTime, scanDiff);
-				//h0 = Rules.getTurnRateRadians(e.getVelocity());
-				h0 = ta = tc = 0;
-				lastTime = e.getTime();
+				h0 = avgHeading = avgHeadCount = 0;
 			}
-
-//			if (getGunHeat() < GUNLOCK)
-			if (getGunHeat() < GUNLOCK || getOthers() == 1)
+			if (getGunHeat() < GUNLOCK)
 			{
-				h0 = (ta += Math.abs(h0)) / ++tc * Math.signum(h0);
-				if (!Double.isNaN(x = (Utils.normalRelativeAngle(rM - getRadarHeadingRadians()) * INF)))
-				{
+				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
+				if (!Utils.isNear(0.0, x = INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())))
 					setTurnRadarRightRadians(x);
-				}
 			}
+
 			bPower = Math.min(BMAX, TARGET_DISTANCE / (eRate = v0));
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
-
 			Rectangle2D bField;
-
-//			ArrayList<Point2D> riskPoints = new ArrayList<Point2D>();
-//			ArrayList<Double> riskValues = new ArrayList<Double>();
-
-			double mx = 0;
-			double my = 0;
 			while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 			{
-//				x = rDist * Math.sin(v0); // circle coordinates
-//				y = rDist * Math.cos(v0);
-				double a = getHeadingRadians();
-				double angle = v0 - Utils.normalRelativeAngle(getHeadingRadians()) + PI_90;
-				double sin = rDist * Math.sin(angle);
-				double cos = (rDist * 0.9) * Math.cos(angle);
-
-				x = sin * Math.sin(a) - cos * Math.cos(a); // this is the right combination for a ellipse based on heading
-				y = sin * Math.cos(a) + cos * Math.sin(a);
-
-				if ((bField = new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_W, WZ_G_H)).contains(x + getX(), y + getY()))
+				if ((bField = new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_W, WZ_G_H)).contains((x = (rDist * Math.sin(v0)))
+						+ getX(), (y = (rDist * Math.cos(v0))) + getY()))
 				{
 					r1 = Math.abs(Math.cos(Math.atan2(enemy[0] - x, enemy[1] - y) - v0));
 					try
 					{
 						Iterator<double[]> iter = allTargets.values().iterator();
-						double[] coordinate;
 						while (true)
 						{
+							double[] coordinate;
 							r1 += TARGET_FORCE / Point2D.distanceSq((coordinate = iter.next())[0], coordinate[1], x, y);
 							isClose |= coordinate[5] < rDist;
 						}
@@ -240,18 +151,10 @@ public class Wallaby extends AdvancedRobot
 					catch (Exception e1)
 					{}
 
-					// debug
-					myPaintMinRiskAll.registerRiskPoint(getTime(), x + getX(), y + getY(), r1, getX(), getY(), rDist);
-//					riskPoints.add(new Point2D.Double(x + getX(), y + getY()));
-//					riskValues.add(r1);
-
 					if (Math.random() < 0.8 && r1 < rM)
-					//if (r1 < rM)
 					{
 						rM = r1;
 						v1 = v0;
-						mx = x;
-						my = y;
 					}
 				}
 
@@ -264,46 +167,14 @@ public class Wallaby extends AdvancedRobot
 					}
 				}
 			}
-
-			lastX = xg + getX();
-			lastY = yg + getY();
-
 			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xg, yg) - getGunHeadingRadians()));
 			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose)
 			{
-//				int k = 0;
-//				for (Point2D p : riskPoints)
-//				{
-//					myPaintMinRiskAll.registerRiskPoint(getTime(), p.getX(), p.getY(), riskValues.get(k), getX(),
-//							getY(), rDist);
-//					k++;
-//				}
-
-				//System.out.format("[%04d] v1=%3.5f head=%3.5f\n", getTime(), Math.toDegrees(v1), getHeading());
-
-//				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
-//				setAhead(rDist * Math.cos(v1));
-
-				// simonton: goto procedure with coordinates
-				double a;
-				setTurnRightRadians(Utils.normalRelativeAngle(Math.tan(a = Math.atan2(mx, my) - getHeadingRadians())));
-				setAhead(Math.hypot(mx, my) * Math.cos(a));
-
+				//				if (isClose) setAllColors(Color.YELLOW); // 22 byte
+				//				else setAllColors(Color.RED);
+				setTurnRightRadians(Math.tan(v1 -= getHeadingRadians()));
+				setAhead(rDist * Math.cos(v1));
 			}
-
-			double maxV = Math.abs(getTurnRemaining()) > 30 ? Math.random() * 6 : 8;
-//			double maxV = (Math.PI / 18 - Math.min(Math.abs(getTurnRemainingRadians()), Math.PI / 18))
-//					/ (Math.PI / 240);
-			setMaxVelocity(maxV);
-			//System.out.format("[%04d] turn=%3.5f v=%3.4f maxV=%3.4f \n", getTime(), getTurnRemaining(), getVelocity(),
-//					maxV);
-
-			// debug
-			if (isClose)
-				setAllColors(Color.YELLOW); // 22 byte
-			else
-				setAllColors(Color.RED);
-
 		}
 	}
 
@@ -312,7 +183,7 @@ public class Wallaby extends AdvancedRobot
 	{
 		eName = e.getName();
 		eRate = 0;
-		rDist = 50.0;
+		rDist = 50;
 	}
 
 	//	@Override
