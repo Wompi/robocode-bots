@@ -1,51 +1,27 @@
 package wompi;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.util.Arrays;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import robocode.AdvancedRobot;
-import robocode.BulletHitEvent;
-import robocode.BulletMissedEvent;
-import robocode.DeathEvent;
-import robocode.HitByBulletEvent;
-import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
-import robocode.WinEvent;
-import robocode.util.Utils;
-import wompi.echidna.misc.painter.PaintSegmentDiagramm;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	ADVANCE_FACTOR		= 1.0 / 2000.0;					// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR		= 176;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
-	private static final double	HIT_FACTOR			= Math.PI / 4.0;
-	private static final double	BPOWER				= 2.3333;
-	private static final double	BSPEED				= Rules.getBulletSpeed(BPOWER);
-	private static final double	GUN_TURNS			= Rules.getGunHeat(BPOWER) * 10;
+	private static final double	FIELD_W				= 800.0;
+	private static final double	FIELD_H				= 600.0;
 
-	private static double		eEnergy;
-	private static int			dir;
-	private static double		dirChange;
-	private static long			lastHit;
-	private static double		dFactor;
+	private static final double	WZ					= 18.0;
+	private static final double	WZ_W				= FIELD_W - 2 * WZ;
+	private static final double	WZ_H				= FIELD_H - 2 * WZ;
 
-	private static double		eVelo;
-
-	private static double		eShootVelo;
-	private static double		eMiddleVelo;
-
-	static double				eGunHeat;
-
-	static double				turnRandom;
-
-	static long					eBulletTicks;
-
-	static double				eDirectionChange[]	= new double[100];
-	static int					eShootDir;
-	static int					eShootTick;
+	private static final double	PI_360				= Math.PI * 2;
+	private static final double	DIST				= 120;
+	private static final double	DIST_REMAIN			= 16;
+	private static final double	DELTA_RISK_ANGLE	= Math.PI / 32.0;
+	private final static double	TARGET_FORCE		= 200000;
 
 	public Kowari()
 	{}
@@ -54,172 +30,210 @@ public class Kowari extends AdvancedRobot
 	public void run()
 	{
 		setAllColors(Color.RED);
-		setAdjustGunForRobotTurn(true);
-		lastHit = dir = 30;
-		eGunHeat = 3.0;
-		eBulletTicks = 0;
-		eShootTick = 0;
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
-
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
-	{
-		eGunHeat -= 0.1;
-		eBulletTicks--;
-		eShootTick++;
-	}
+	{}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double aBear;
-		//@formatter:off
-//		setTurnRightRadians(
-//				(dFactor  - e.getDistance())
-//				* getVelocity() 
-//				* ADVANCE_FACTOR
-//				+ Math.cos(aBear = e.getBearingRadians())
-//				);
-		double perpAngle = Math.cos(aBear = e.getBearingRadians());
-		//setTurnRightRadians(perpAngle - Rules.getTurnRateRadians(getVelocity()) * Math.signum(getVelocity()));
-		double turnOff = Math.toRadians(10);
-		//if (eGunHeat <=0.8)
+		double aBear = getHeadingRadians() + e.getBearingRadians();
+		double xg = Math.sin(aBear) * e.getDistance();
+		double yg = Math.cos(aBear) * e.getDistance();
+
+		//double angle = 0;
+		double riskAngle = 0;
+		double risk;
+		double maxRisk = Double.MAX_VALUE;
+
+		int i = 0;
+		try
 		{
-			//if (eGunHeat <=0.2) turnOff= 0;
-		 // turnOff = -turnOff;
-		}
-		setTurnRightRadians(perpAngle - turnOff  * Math.signum(getVelocity()));
-		
-	
-		double v = ((eVelo +=e.getVelocity())/GUN_TURNS);
-		if (getGunHeat() < 0.2)
-		{
-			if (eShootVelo != 0 && 	 eMiddleVelo != eShootVelo)
+			while (true)
 			{
-				//setAllColors(Color.YELLOW);
-				v = -v * 1.2;
+//				int xd = (int) (DIST * Math.sin(angle));
+//				int yd = (int) (DIST * Math.cos(angle));
+//				System.out.format("+ (char) %d + (char) %d \n", (int) x, (int) y);
+				char x = RISK_CIRCLE_X.charAt(i++);
+				char y = RISK_CIRCLE_Y.charAt(i);
+				//System.out.format("x=%d y=%d ( %d,%d)\n", (int) x, (int) y, xd, yd);
+
+				if (new Rectangle2D.Double(WZ, WZ, WZ_W, WZ_H).contains(x + getX(), y + getY()))
+				{
+					risk = Math.abs(Math.cos(Math.atan2(xg - x, yg - y) - (i * DELTA_RISK_ANGLE)));
+					risk += TARGET_FORCE / Point2D.distanceSq(xg, yg, x, y);
+
+					if (Math.random() < 0.8 && risk < maxRisk)
+					{
+						maxRisk = risk;
+						riskAngle = i * DELTA_RISK_ANGLE;
+					}
+				}
 			}
-			else
-			{
-				//setAllColors(Color.GREEN);
-			}
-		}		
-		setTurnGunRightRadians(
-				Utils.normalRelativeAngle(
-						(aBear+=getHeadingRadians()) 
-						- getGunHeadingRadians() 
-						+ 
-						(
-						   v 
-						   * Math.sin(
-								e.getHeadingRadians() - aBear
-							) 
-							/ BSPEED
-						)
-				)
-		);
-		//@formatter:on
-		setTurnRadarLeftRadians(getRadarTurnRemaining());
-
-		double eDelta = eEnergy - (eEnergy = e.getEnergy());
-
-		//System.out.format("[%04d] gunHeat=%3.4f eDelta=%3.5f \n", getTime(), Rules.getGunHeat(eDelta), eDelta);
-
-		if (eDelta > 0)
-		{
-			turnRandom = Math.random() * 25;
-			onBulletMissed(null);
-			if (Math.cos(dirChange) < 0) onHitWall(null); // saves 2 byte compared to dir = - dir
-			eGunHeat = Rules.getGunHeat(eDelta); // gunHeat calculates to negative if eDelta is negative
-//			if (eBulletTicks <= 0)
-			{
-				eBulletTicks = (long) (e.getDistance() / Rules.getBulletSpeed(eDelta)) - 1;
-				System.out.format("[%04d] eBuletTicks=%d \n", getTime(), eBulletTicks);
-			}
-//			else
-//			{
-//				System.out.format("[%04d] REST eBulletTicks=%d \n", getTime(), eBulletTicks);
-//			}
 		}
-
-		if (getGunHeat() < 0.8 && eMiddleVelo == 0)
+		catch (Exception e0)
 		{
-			eMiddleVelo = Math.signum(e.getVelocity());
+//			e0.printStackTrace();
+//			System.out.format("[%d] catch \n", i);
 		}
-
-		if (Math.signum(e.getVelocity()) != eShootDir)
+		setTurnRightRadians(Math.tan(riskAngle -= getHeadingRadians()));
+		if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || e.getDistance() < DIST)
 		{
-			eDirectionChange[eShootTick]++;
-			eShootDir = (int) Math.signum(e.getVelocity());
-			eShootTick = 0;
+			setAhead(DIST * Math.cos(riskAngle));
 		}
+		setMaxVelocity(2500 / e.getDistance());
 
-		if (setFireBullet(BPOWER) != null)
-		{
-			onBulletMissed(null);
-			eShootVelo = Math.signum(e.getVelocity());
-			eMiddleVelo = 0;
-			eVelo = 0;
-			//eShootDir = (int) Math.signum(e.getVelocity());
-			//eShootTick = 0;
-		}
+		// RADAR
+		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 
-		if (eBulletTicks <= 3)
-		{
-			//setMaxVelocity(1500 / e.getDistance());
-			setMaxVelocity(0);
-		}
-		else
-		{
-			setMaxVelocity(1500 / e.getDistance());
-		}
-		setAhead(dir);
 	}
 
-	@Override
-	public void onHitWall(HitWallEvent e)
-	{
-		dir = -dir;
-	}
 
-	@Override
-	public void onBulletMissed(BulletMissedEvent e)
-	{
-		dFactor = 100 + getTime() % 200;
-	}
 
-	@Override
-	public void onDeath(DeathEvent event)
-	{
-		System.out.format("[%04d] %s \n", getTime(), Arrays.toString(eDirectionChange));
-	}
 
-	@Override
-	public void onHitByBullet(HitByBulletEvent e)
-	{
-		if ((lastHit - (lastHit = getTime())) > -24)
-		{
-			dirChange += HIT_FACTOR; // / delta;
-		}
-	}
 
-	@Override
-	public void onPaint(Graphics2D g)
-	{
-		PaintSegmentDiagramm.onPaint(g, this, eDirectionChange, Color.GREEN);
-	}
 
-	@Override
-	public void onWin(WinEvent event)
-	{
-		System.out.format("[%04d] %s \n", getTime(), Arrays.toString(eDirectionChange));
-	}
 
-	@Override
-	public void onBulletHit(BulletHitEvent e)
-	{
-		eEnergy = e.getEnergy();
-	}
+
+
+	//@formatter:off
+	private final static String RISK_CIRCLE_X = ""
+			+ (char) 11 
+			+ (char) 23 
+			+ (char) 34 
+			+ (char) 45 
+			+ (char) 56 
+			+ (char) 66 
+			+ (char) 76 
+			+ (char) 84 
+			+ (char) 92 
+			+ (char) 99 
+			+ (char) 105 
+			+ (char) 110 
+			+ (char) 114 
+			+ (char) 117 
+			+ (char) 119 
+			+ (char) 120 
+			+ (char) 119 
+			+ (char) 117 
+			+ (char) 114 
+			+ (char) 110 
+			+ (char) 105 
+			+ (char) 99  
+			+ (char) 92  
+			+ (char) 84  
+			+ (char) 76  
+			+ (char) 66  
+			+ (char) 56  
+			+ (char) 45  
+			+ (char) 34  
+			+ (char) 23  
+			+ (char) 11  
+			+ (char) 0 
+			+ (char) -11 
+			+ (char) -23 
+			+ (char) -34 
+			+ (char) -45 
+			+ (char) -56 
+			+ (char) -66 
+			+ (char) -76 
+			+ (char) -84 
+			+ (char) -92 
+			+ (char) -99 
+			+ (char) -105 
+			+ (char) -110 
+			+ (char) -114 
+			+ (char) -117 
+			+ (char) -119 
+			+ (char) -120 
+			+ (char) -119 
+			+ (char) -117 
+			+ (char) -114 
+			+ (char) -110 
+			+ (char) -105 
+			+ (char) -99  
+			+ (char) -92  
+			+ (char) -84  
+			+ (char) -76  
+			+ (char) -66 
+			+ (char) -56 
+			+ (char) -45 
+			+ (char) -34 
+			+ (char) -23 
+			+ (char) -11 
+			+ (char) 0 
+			;
+	private final static String RISK_CIRCLE_Y = ""
+
+	+ (char) 11 + (char) 119 
+	+ (char) 23 + (char) 117 
+	+ (char) 34 + (char) 114 
+	+ (char) 45 + (char) 110 
+	+ (char) 56 + (char) 105 
+	+ (char) 66 + (char) 99 
+	+ (char) 76 + (char) 92 
+	+ (char) 84 + (char) 84 
+	+ (char) 92 + (char) 76 
+	+ (char) 99 + (char) 66 
+	+ (char) 105 + (char) 56 
+	+ (char) 110 + (char) 45 
+	+ (char) 114 + (char) 34 
+	+ (char) 117 + (char) 23 
+	+ (char) 119 + (char) 11 
+	+ (char) 120 + (char) 0 
+	+ (char) 119 + (char) -11 
+	+ (char) 117 + (char) -23 
+	+ (char) 114 + (char) -34 
+	+ (char) 110 + (char) -45 
+	+ (char) 105 + (char) -56 
+	+ (char) 99 + (char) -66 
+	+ (char) 92 + (char) -76 
+	+ (char) 84 + (char) -84 
+	+ (char) 76 + (char) -92 
+	+ (char) 66 + (char) -99 
+	+ (char) 56 + (char) -105 
+	+ (char) 45 + (char) -110 
+	+ (char) 34 + (char) -114 
+	+ (char) 23 + (char) -117 
+	+ (char) 11 + (char) -119 
+	+ (char) 0 + (char) -120 
+	+ (char) -11 + (char) -119 
+	+ (char) -23 + (char) -117 
+	+ (char) -34 + (char) -114 
+	+ (char) -45 + (char) -110 
+	+ (char) -56 + (char) -105 
+	+ (char) -66 + (char) -99 
+	+ (char) -76 + (char) -92 
+	+ (char) -84 + (char) -84 
+	+ (char) -92 + (char) -76 
+	+ (char) -99 + (char) -66 
+	+ (char) -105 + (char) -56 
+	+ (char) -110 + (char) -45 
+	+ (char) -114 + (char) -34 
+	+ (char) -117 + (char) -23 
+	+ (char) -119 + (char) -11 
+	+ (char) -120 + (char) 0 
+	+ (char) -119 + (char) 11 
+	+ (char) -117 + (char) 23 
+	+ (char) -114 + (char) 34 
+	+ (char) -110 + (char) 45 
+	+ (char) -105 + (char) 56 
+	+ (char) -99 + (char) 66 
+	+ (char) -92 + (char) 76 
+	+ (char) -84 + (char) 84 
+	+ (char) -76 + (char) 92 
+	+ (char) -66 + (char) 99 
+	+ (char) -56 + (char) 105 
+	+ (char) -45 + (char) 110 
+	+ (char) -34 + (char) 114 
+	+ (char) -23 + (char) 117 
+	+ (char) -11 + (char) 119 
+	+ (char) 0 + (char) 120 
+	;
+	private final static int LENGTH_X = RISK_CIRCLE_X.length();
+	//@formatter:on
+
 }
