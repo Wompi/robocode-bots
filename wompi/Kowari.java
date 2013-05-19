@@ -1,25 +1,30 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.util.Arrays;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.BulletMissedEvent;
+import robocode.DeathEvent;
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
+import robocode.WinEvent;
 import robocode.util.Utils;
+import wompi.echidna.misc.painter.PaintSegmentDiagramm;
 
 public class Kowari extends AdvancedRobot
 {
-	private static final double	ADVANCE_FACTOR	= 1.0 / 2000.0;					// 2500 = 16deg 2000 = 20deg
-	private static final double	DISTANCE_FACTOR	= 176;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
-	private static final double	HIT_FACTOR		= Math.PI / 4.0;
-	private static final double	BPOWER			= 2.3333;
-	private static final double	BSPEED			= Rules.getBulletSpeed(BPOWER);
-	private static final double	GUN_TURNS		= Rules.getGunHeat(BPOWER) * 10;
+	private static final double	ADVANCE_FACTOR		= 1.0 / 2000.0;					// 2500 = 16deg 2000 = 20deg
+	private static final double	DISTANCE_FACTOR		= 176;								// 3.0 and 16 tick cooldown = 11*16= 176 = only one bullet in the air
+	private static final double	HIT_FACTOR			= Math.PI / 4.0;
+	private static final double	BPOWER				= 2.3333;
+	private static final double	BSPEED				= Rules.getBulletSpeed(BPOWER);
+	private static final double	GUN_TURNS			= Rules.getGunHeat(BPOWER) * 10;
 
 	private static double		eEnergy;
 	private static int			dir;
@@ -38,6 +43,10 @@ public class Kowari extends AdvancedRobot
 
 	static long					eBulletTicks;
 
+	static double				eDirectionChange[]	= new double[100];
+	static int					eShootDir;
+	static int					eShootTick;
+
 	public Kowari()
 	{}
 
@@ -49,6 +58,7 @@ public class Kowari extends AdvancedRobot
 		lastHit = dir = 30;
 		eGunHeat = 3.0;
 		eBulletTicks = 0;
+		eShootTick = 0;
 		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 
 	}
@@ -58,6 +68,7 @@ public class Kowari extends AdvancedRobot
 	{
 		eGunHeat -= 0.1;
 		eBulletTicks--;
+		eShootTick++;
 	}
 
 	@Override
@@ -138,13 +149,21 @@ public class Kowari extends AdvancedRobot
 			eMiddleVelo = Math.signum(e.getVelocity());
 		}
 
+		if (Math.signum(e.getVelocity()) != eShootDir)
+		{
+			eDirectionChange[eShootTick]++;
+			eShootDir = (int) Math.signum(e.getVelocity());
+			eShootTick = 0;
+		}
+
 		if (setFireBullet(BPOWER) != null)
 		{
 			onBulletMissed(null);
 			eShootVelo = Math.signum(e.getVelocity());
 			eMiddleVelo = 0;
 			eVelo = 0;
-
+			//eShootDir = (int) Math.signum(e.getVelocity());
+			//eShootTick = 0;
 		}
 
 		if (eBulletTicks <= 3)
@@ -172,12 +191,30 @@ public class Kowari extends AdvancedRobot
 	}
 
 	@Override
+	public void onDeath(DeathEvent event)
+	{
+		System.out.format("[%04d] %s \n", getTime(), Arrays.toString(eDirectionChange));
+	}
+
+	@Override
 	public void onHitByBullet(HitByBulletEvent e)
 	{
 		if ((lastHit - (lastHit = getTime())) > -24)
 		{
 			dirChange += HIT_FACTOR; // / delta;
 		}
+	}
+
+	@Override
+	public void onPaint(Graphics2D g)
+	{
+		PaintSegmentDiagramm.onPaint(g, this, eDirectionChange, Color.GREEN);
+	}
+
+	@Override
+	public void onWin(WinEvent event)
+	{
+		System.out.format("[%04d] %s \n", getTime(), Arrays.toString(eDirectionChange));
 	}
 
 	@Override
