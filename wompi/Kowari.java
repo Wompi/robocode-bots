@@ -4,7 +4,6 @@ import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.DeathEvent;
 import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
@@ -33,6 +32,17 @@ import robocode.util.Utils;
  * 
  *      Quiiiik .....
  * 
+ * v1.7: 249
+ * 		This version is a complete steal and I just want to see how it works. So Sheldor, if you read this, I apologize
+ * 		if I offend you with this version. I'm still trying to get a glimpse of 1vs1 dynamics and the enhancement to
+ * 		Sabreur looked very promising. If it by chance is working how it should I probably remove the bot from the 
+ * 		rumble later. 
+ * 		Basically I could shrink the code of Sabreur by 20 bytes and fitted an average to the enemy velocity value
+ * 		This makes the gun capable to hit StopAndGo bots as well. Everything else should work as in Sabreur
+ * 
+ *      Tiny Quiiiiikkk ... beware of the Kowaris - they steal your cheese
+ *      
+ *      Credit: CrazyBassonist for his Caligula and Sheldor for his enhancement to this bot
  * 
  * @author Wompi
  * @date 20/05/2013
@@ -40,48 +50,62 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
-	private static int		myDeath	= 1;
+	private static int		myDeath;
 	private static double	eEnergy;
 	private static double	dir;
-
-	// bearing gun
-	static double			eBearing;
-	static double			myx;
-	static double			myy;
-	static double			bDist;
+	private static double	eVelo;
 
 	@Override
 	public void run()
 	{
 		// NOTE: this would be nice - I guess
 		setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(dir = bDist = Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		double v0;
-		double v1;
-		double v2;
 
-		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * ((myDeath % 2) - 1) * Double.MAX_VALUE)));
-		//setTurnRightRadians(Math.cos((v1 = e.getBearingRadians()) - (e.getDistance() - 160) * getVelocity() * 0.00033));
-		setTurnRightRadians(Math.cos(v1 = e.getBearingRadians()) - Math.toRadians(10) * Math.signum(getVelocity()));
+		// TODO: use this as base for future enhancements - works quite well but could use a little tweaking
+		// the myDeath is not a good rule to deal with make it something different
+		dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * (((myDeath + 1) % 2) - 1) * Double.MAX_VALUE));
 
-		setFire(v2 = Math.min(1 + (int) (190 / e.getDistance()), eEnergy / 3.0));
-		double _x = (getX() + e.getDistance() * Math.sin(v1 += getHeadingRadians())) - myx;
-		double _y = (getY() + e.getDistance() * Math.cos(v1)) - myy;
-
-		if ((bDist += Rules.getBulletSpeed(v2)) > Math.hypot(_x, _y))
+		// TODO: make it 0.999 if you find the byte
+		if (setFireBullet(2 + (int) (100 / e.getDistance())) != null)
 		{
-			eBearing = v1;
-			bDist = 0; //Rules.getBulletSpeed(v2);
-			myx = getX();
-			myy = getY();
+			eVelo = 0;
 		}
-		setTurnGunRightRadians(Utils.normalRelativeAngle(v1 - getGunHeadingRadians() + Math.atan2(_x, _y) - eBearing));
 
+		//@formatter:off
+		setTurnGunRightRadians(Utils.normalRelativeAngle(
+				  (
+				    v0 = (
+				    	   getHeadingRadians() + e.getBearingRadians()
+				    	 )
+				  )
+				+ (
+					(
+					  (eVelo +=e.getVelocity()/13) * Math.sin(e.getHeadingRadians() - v0) 
+				    ) 
+				    / 14.0
+				  )
+				- getGunHeadingRadians()));
+		//@formatter:on
+
+		// TODO: try this some times
+		//absoluteBearing = Math.cos(bearing) - Math.toRadians(10) * Math.signum(getVelocity());
+		v0 = Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004);
+
+		if (myDeath > 3)
+		{
+			// TODO: find out if + or - is the right way - so far both seems to work but which one is the right?
+			dir = Math.cos(v0 = (e.getBearingRadians() - getGunTurnRemainingRadians())) * Double.MAX_VALUE;
+			v0 = Math.tan(v0);
+		}
+		setAhead(dir);
+		setTurnRightRadians(v0);
 		//setMaxVelocity(1800 / e.getDistance());
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
@@ -102,7 +126,7 @@ public class Kowari extends AdvancedRobot
 	@Override
 	public void onDeath(DeathEvent e)
 	{
-		myDeath++;
+		if (getRoundNum() < 12) myDeath++;
 	}
 
 }
