@@ -44,12 +44,18 @@ public class Kowari extends AdvancedRobot
 	private static double	eEnergy;
 	private static double	dir;
 
+	// bearing gun
+	static double			eBearing;
+	static double			myx;
+	static double			myy;
+	static double			bDist;
+
 	@Override
 	public void run()
 	{
 		// NOTE: this would be nice - I guess
-		//setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
+		setAdjustGunForRobotTurn(true);
+		setTurnRadarRightRadians(dir = bDist = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
@@ -59,43 +65,24 @@ public class Kowari extends AdvancedRobot
 		double v1;
 		double v2;
 
-		// TODO: use this as base for future enhancements - works quite well but could use a little tweaking
-		// the myDeath is not a good rule to deal with make it something different
-		dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * ((myDeath % 2) - 1) * Double.MAX_VALUE));
+		setAhead(dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * ((myDeath % 2) - 1) * Double.MAX_VALUE)));
+		//setTurnRightRadians(Math.cos((v1 = e.getBearingRadians()) - (e.getDistance() - 160) * getVelocity() * 0.00033));
+		setTurnRightRadians(Math.cos(v1 = e.getBearingRadians()) - Math.toRadians(10) * Math.signum(getVelocity()));
 
-		// TODO: make it 0.999 if you find the byte
-		setFire(v2 = Math.min(1 + (int) (120 / e.getDistance()), eEnergy / 5.0));
+		setFire(v2 = Math.min(1 + (int) (190 / e.getDistance()), eEnergy / 3.0));
+		double _x = (getX() + e.getDistance() * Math.sin(v1 += getHeadingRadians())) - myx;
+		double _y = (getY() + e.getDistance() * Math.cos(v1)) - myy;
 
-		//@formatter:off
-		setTurnGunRightRadians(Utils.normalRelativeAngle(
-				  (
-				    v0 = (
-				    	   getHeadingRadians() + (v1 = e.getBearingRadians())
-				    	 )
-				  )
-				+ (
-					(
-					  v2 = (
-							 e.getVelocity() * Math.sin(e.getHeadingRadians() - v0) / Rules.getBulletSpeed(v2)
-						   )
-				    ) 
-					
-				  )
-				- getGunHeadingRadians()));
-		//@formatter:on
-
-		// TODO: try this some times
-		//absoluteBearing = Math.cos(bearing) - Math.toRadians(10) * Math.signum(getVelocity());
-		v0 = Math.cos(v1 - (e.getDistance() - 148) * getVelocity() * 0.00033);
-
-		if (myDeath > 4)
+		if ((bDist += Rules.getBulletSpeed(v2)) > Math.hypot(_x, _y))
 		{
-			v0 = Math.tan(v1 += v2);
-			dir = Math.cos(v1) * Double.MAX_VALUE;
+			eBearing = v1;
+			bDist = 0; //Rules.getBulletSpeed(v2);
+			myx = getX();
+			myy = getY();
 		}
-		setAhead(dir);
-		setTurnRightRadians(v0);
-		setMaxVelocity(1800 / e.getDistance());
+		setTurnGunRightRadians(Utils.normalRelativeAngle(v1 - getGunHeadingRadians() + Math.atan2(_x, _y) - eBearing));
+
+		//setMaxVelocity(1800 / e.getDistance());
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
 
