@@ -4,6 +4,7 @@ import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.DeathEvent;
 import robocode.HitWallEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
@@ -55,27 +56,32 @@ public class Kowari extends AdvancedRobot
 	private static double	dir;
 	private static double	eVelo;
 
+	private static int		eCount;
+
 	@Override
 	public void run()
 	{
 		// NOTE: this would be nice - I guess
-		setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
+		//setAdjustGunForRobotTurn(true);
+		dir = 1;
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		double v0;
+		double v1;
 
 		// TODO: use this as base for future enhancements - works quite well but could use a little tweaking
 		// the myDeath is not a good rule to deal with make it something different
-		dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * (((myDeath + 1) % 2) - 1) * Double.MAX_VALUE));
+		//dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * (((myDeath + 1) % 2) - 1) * Double.MAX_VALUE));
 
 		// TODO: make it 0.999 if you find the byte
-		if (setFireBullet(2 + (int) (100 / e.getDistance())) != null)
+		if (setFireBullet(v1 = (350 / e.getDistance())) != null)
 		{
-			eVelo = 0;
+			eVelo = eCount = 0;
+			//eVelo = 0;
 		}
 
 		//@formatter:off
@@ -87,24 +93,36 @@ public class Kowari extends AdvancedRobot
 				  )
 				+ (
 					(
-					  (eVelo +=e.getVelocity()/13) * Math.sin(e.getHeadingRadians() - v0) 
+					//TODO: this will be wrong if I go in RAM-mode - find something other	
+					  (
+					    (eVelo += e.getVelocity())/++eCount
+					    //(eVelo = (eVelo * 14 + e.getVelocity())/(14 + 1))
+					  ) 
+					  * Math.sin(e.getHeadingRadians() - v0) 
 				    ) 
-				    / 14.0
+				    / Rules.getBulletSpeed(v1)
 				  )
 				- getGunHeadingRadians()));
 		//@formatter:on
 
 		// TODO: try this some times
-		//absoluteBearing = Math.cos(bearing) - Math.toRadians(10) * Math.signum(getVelocity());
-		v0 = Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004);
+		//v0 = Math.cos(e.getBearingRadians()) - Math.toRadians(10) * Math.signum(getVelocity());
+		v0 = Math.cos(e.getBearingRadians() - (getEnergy() - e.getEnergy()) * getVelocity() * 0.0004);
+		//v0 = Math.cos(v1 = (e.getBearingRadians() + getGunTurnRemainingRadians()));
+
+		//System.out.format("[%04d] gunremain=%3.5f dist=%3.5f \n", getTime(), getGunTurnRemaining(), e.getDistance());
 
 		if (myDeath > 3)
 		{
 			// TODO: find out if + or - is the right way - so far both seems to work but which one is the right?
-			dir = Math.cos(v0 = (e.getBearingRadians() - getGunTurnRemainingRadians())) * Double.MAX_VALUE;
-			v0 = Math.tan(v0);
+			//dir = Math.cos(v0 = (e.getBearingRadians() + getGunTurnRemainingRadians())) * Double.MAX_VALUE;
+			//dir = v0 * Double.MAX_VALUE;
+			//v0 = Math.tan(v1);
 		}
-		setAhead(dir);
+		//setAhead(dir);
+		//setAhead(Math.cos(getEnergy() * Math.PI / 5) * 160 * dir);
+		setAhead(Math.tan(getEnergy() * Math.PI / (e.getEnergy() - getEnergy())) * 160 * dir * 500 / e.getDistance());
+		//System.out.format("[%04d] ahead=%3.5f energy=%3.5f \n", getTime(), getDistanceRemaining(), e.getEnergy());
 		setTurnRightRadians(v0);
 		//setMaxVelocity(1800 / e.getDistance());
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
