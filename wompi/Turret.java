@@ -29,7 +29,7 @@ import robocode.StatusEvent;
 import robocode.WinEvent;
 import wompi.echidna.gun.AGun;
 import wompi.echidna.gun.GunSimpleHeadOn;
-import wompi.echidna.gun.fire.FireMinShot;
+import wompi.echidna.gun.fire.FireLogDistance;
 import wompi.echidna.radar.ARadar;
 import wompi.echidna.radar.RadarLock;
 import wompi.echidna.stats.BulletHitBulletStats;
@@ -62,10 +62,11 @@ public class Turret extends AdvancedRobot
 		myRadar = new RadarLock(this);
 
 		myGun = new GunSimpleHeadOn(this);
-		// myGun = new GunPreciseHeadOn(this);
+		//myGun = new GunPreciseHeadOn(this);
 		// myGun = new GunHeadOnPreciseAnhanced(this);
 	}
 
+	@Override
 	public void run()
 	{
 		setAllColors(Color.LIGHT_GRAY);
@@ -78,19 +79,20 @@ public class Turret extends AdvancedRobot
 
 		myRadar.init();
 		// myGun.init(new FireDoubleShot(this));
-		// myGun.init(new FireLogDistance(this));
+		myGun.init(new FireLogDistance(this));
 		// myGun.init(new FireMaxShot(this));
-		myGun.init(new FireMinShot(this));
+		//myGun.init(new FireMinShot(this));
 		eRate = 100000;
 		while (true)
 		{
-			myGun.run();  // includes firecontrol ... look there for firepower
+			myGun.run(); // includes firecontrol ... look there for firepower
 			myRadar.run();
 			execute();
 		}
 
 	}
 
+	@Override
 	public void onStatus(StatusEvent e)
 	{
 		myGun.onStatus(e);
@@ -104,13 +106,14 @@ public class Turret extends AdvancedRobot
 		myRadar.onRobotDeath(e);
 		myGun.onRobotDeath(e);
 		ATarget aTarget = allTargets.get(e.getName());
-		if (aTarget != null)							// the nul chekc is not nescacary if you catch every bot on start (360 radar sweep)
+		if (aTarget != null) // the nul chekc is not nescacary if you catch every bot on start (360 radar sweep)
 		{
 			aTarget.onRobotDeath(e);
 		}
 		if (myTarget == aTarget) eRate = 100000;
 	}
 
+	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		if (e.getName().startsWith("wompi.Turret")) return;
@@ -134,7 +137,7 @@ public class Turret extends AdvancedRobot
 
 		target.onScannedRobot(e);
 		myRadar.onScannedRobot(target, isMainTarget);
-		myGun.onScannedRobot(target, isMainTarget);    // includes firecontrol
+		myGun.onScannedRobot(target, isMainTarget); // includes firecontrol
 
 	}
 
@@ -152,6 +155,7 @@ public class Turret extends AdvancedRobot
 		BulletHitBulletStats.onBulletHitBullet(e);
 	}
 
+	@Override
 	public void onBulletMissed(BulletMissedEvent event)
 	{}
 
@@ -187,9 +191,12 @@ public class Turret extends AdvancedRobot
 		}
 	}
 
+	@Override
 	public void onPaint(Graphics2D g)
 	{
-		if (myTarget != null) PaintRobotPath.onPaint(g, myTarget.getName(), getTime(), myTarget.getAbsX(), myTarget.getAbsY(), Color.ORANGE);
+		if (myTarget != null)
+			PaintRobotPath.onPaint(g, myTarget.getName(), getTime(), myTarget.getAbsX(), myTarget.getAbsY(),
+					Color.ORANGE);
 		WallabyPainter.drawEnemyGuessedFiredirection(g, allTargets.values(), new Point2D.Double(getX(), getY()));
 		myGun.onPaint(g);
 		myRadar.onPaint(g);
