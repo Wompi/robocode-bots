@@ -1,12 +1,13 @@
 package wompi;
 
+import java.awt.Color;
+import java.awt.geom.Point2D;
+
 import robocode.AdvancedRobot;
-import robocode.BulletHitEvent;
-import robocode.DeathEvent;
 import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintHelper;
 
 /**
  * What the ... is a Kowari? (See: http://en.wikipedia.org/wiki/Kowari)
@@ -51,20 +52,26 @@ import robocode.util.Utils;
 
 public class Kowari extends AdvancedRobot
 {
-	private static int		myDeath;
-	private static double	eEnergy;
 	private static double	dir;
 	private static double	eVelo;
-
 	private static int		eCount;
+
+	static double			eBearing;
+	static double			eDistance;
+	static double			eY;
+	static double			eX;
+	static double			myX;
+	static double			myY;
+	static double			bDist;
+	static Point2D			eLoc;
 
 	@Override
 	public void run()
 	{
 		// NOTE: this would be nice - I guess
-		//setAdjustGunForRobotTurn(true);
+		setAdjustGunForRobotTurn(true);
 		dir = 1;
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(Double.MAX_VALUE);
 	}
 
 	@Override
@@ -73,58 +80,44 @@ public class Kowari extends AdvancedRobot
 		double v0;
 		double v1;
 
-		// TODO: use this as base for future enhancements - works quite well but could use a little tweaking
-		// the myDeath is not a good rule to deal with make it something different
-		//dir *= (1 + ((eEnergy - (eEnergy = e.getEnergy())) * (((myDeath + 1) % 2) - 1) * Double.MAX_VALUE));
+		double relBear = e.getBearingRadians();
+		double absBear = relBear + getHeadingRadians();
 
-		// TODO: make it 0.999 if you find the byte
-		if (setFireBullet(v1 = (350 / e.getDistance())) != null)
+		double _x = (getX() + e.getDistance() * Math.sin(absBear));
+		double _y = (getY() + e.getDistance() * Math.cos(absBear));
+
+		double hypo = Math.hypot(_x, _y) - 18;
+		if ((bDist += 11) > hypo)
 		{
-			eVelo = eCount = 0;
-			//eVelo = 0;
+//			System.out.format("[%04d] bDist=%3.5f bDistTics=%3.5f hypo=%3.5f\n", getTime(), bDist, hypo / 11, hypo);
+			//@formatter:off
+			double _xx = getX() + (e.getDistance() * Math.sin(absBear));
+			double _yy = getY() +(e.getDistance() * Math.cos(absBear));
+			
+			double dist = Math.hypot(
+					eX - _xx, 
+					eY - _yy
+					);
+			eX = _xx;
+			eY = _yy;
+			//@formatter:on
+			eBearing = absBear;
+			eDistance = e.getDistance();
+			bDist = 0;
+			myX = getX();
+			myY = getY();
+			System.out.format("[%04d] dist=%3.5f \n", getTime(), dist);
+			setFire(3.0);
 		}
+		PaintHelper.drawArc(new Point2D.Double(getX(), getY()), bDist, 0, Math.PI * 2, false, getGraphics(),
+				Color.green);
 
-		//@formatter:off
-		setTurnGunRightRadians(Utils.normalRelativeAngle(
-				  (
-				    v0 = (
-				    	   getHeadingRadians() + e.getBearingRadians()
-				    	 )
-				  )
-				+ (
-					(
-					//TODO: this will be wrong if I go in RAM-mode - find something other	
-					  (
-					    (eVelo += e.getVelocity())/++eCount
-					    //(eVelo = (eVelo * 14 + e.getVelocity())/(14 + 1))
-					  ) 
-					  * Math.sin(e.getHeadingRadians() - v0) 
-				    ) 
-				    / Rules.getBulletSpeed(v1)
-				  )
-				- getGunHeadingRadians()));
-		//@formatter:on
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians()));
 
-		// TODO: try this some times
-		//v0 = Math.cos(e.getBearingRadians()) - Math.toRadians(10) * Math.signum(getVelocity());
-		v0 = Math.cos(e.getBearingRadians() - (getEnergy() - e.getEnergy()) * getVelocity() * 0.0004);
-		//v0 = Math.cos(v1 = (e.getBearingRadians() + getGunTurnRemainingRadians()));
-
-		//System.out.format("[%04d] gunremain=%3.5f dist=%3.5f \n", getTime(), getGunTurnRemaining(), e.getDistance());
-
-		if (myDeath > 3)
-		{
-			// TODO: find out if + or - is the right way - so far both seems to work but which one is the right?
-			//dir = Math.cos(v0 = (e.getBearingRadians() + getGunTurnRemainingRadians())) * Double.MAX_VALUE;
-			//dir = v0 * Double.MAX_VALUE;
-			//v0 = Math.tan(v1);
-		}
-		//setAhead(dir);
-		//setAhead(Math.cos(getEnergy() * Math.PI / 5) * 160 * dir);
-		setAhead(Math.tan(getEnergy() * Math.PI / (e.getEnergy() - getEnergy())) * 160 * dir * 500 / e.getDistance());
-		//System.out.format("[%04d] ahead=%3.5f energy=%3.5f \n", getTime(), getDistanceRemaining(), e.getEnergy());
-		setTurnRightRadians(v0);
-		//setMaxVelocity(1800 / e.getDistance());
+		setAhead(Math.cos(getEnergy() * Math.PI / 5) * 160 * dir);
+		//setTurnRightRadians(Math.cos(e.getBearingRadians() - v1 * getVelocity() * 0.0004));
+		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004));
+		//setMaxVelocity(2000 / e.getDistance());
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
 
@@ -133,18 +126,4 @@ public class Kowari extends AdvancedRobot
 	{
 		dir = -dir;
 	}
-
-	@Override
-	public void onBulletHit(BulletHitEvent e)
-	{
-		// TODO: check out other implementations - right now it sounds good to just drop a turn if I hit the enemy.  
-		eEnergy = e.getEnergy();
-	}
-
-	@Override
-	public void onDeath(DeathEvent e)
-	{
-		if (getRoundNum() < 12) myDeath++;
-	}
-
 }
