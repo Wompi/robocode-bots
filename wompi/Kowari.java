@@ -1,13 +1,9 @@
 package wompi;
 
-import java.awt.Color;
-import java.awt.geom.Point2D;
-
 import robocode.AdvancedRobot;
 import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import wompi.paint.PaintHelper;
 
 /**
  * What the ... is a Kowari? (See: http://en.wikipedia.org/wiki/Kowari)
@@ -53,17 +49,6 @@ import wompi.paint.PaintHelper;
 public class Kowari extends AdvancedRobot
 {
 	private static double	dir;
-	private static double	eVelo;
-	private static int		eCount;
-
-	static double			eBearing;
-	static double			eDistance;
-	static double			eY;
-	static double			eX;
-	static double			myX;
-	static double			myY;
-	static double			bDist;
-	static Point2D			eLoc;
 
 	@Override
 	public void run()
@@ -71,54 +56,49 @@ public class Kowari extends AdvancedRobot
 		// NOTE: this would be nice - I guess
 		setAdjustGunForRobotTurn(true);
 		dir = 1;
-		setTurnRadarRightRadians(Double.MAX_VALUE);
+		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		double v0;
-		double v1;
-
-		double relBear = e.getBearingRadians();
-		double absBear = relBear + getHeadingRadians();
-
-		double _x = (getX() + e.getDistance() * Math.sin(absBear));
-		double _y = (getY() + e.getDistance() * Math.cos(absBear));
-
-		double hypo = Math.hypot(_x, _y) - 18;
-		if ((bDist += 11) > hypo)
+		try
 		{
-//			System.out.format("[%04d] bDist=%3.5f bDistTics=%3.5f hypo=%3.5f\n", getTime(), bDist, hypo / 11, hypo);
-			//@formatter:off
-			double _xx = getX() + (e.getDistance() * Math.sin(absBear));
-			double _yy = getY() +(e.getDistance() * Math.cos(absBear));
-			
-			double dist = Math.hypot(
-					eX - _xx, 
-					eY - _yy
-					);
-			eX = _xx;
-			eY = _yy;
-			//@formatter:on
-			eBearing = absBear;
-			eDistance = e.getDistance();
-			bDist = 0;
-			myX = getX();
-			myY = getY();
-			System.out.format("[%04d] dist=%3.5f \n", getTime(), dist);
-			setFire(3.0);
+			int integer = MAX_MATCH_LENGTH;
+			double absoluteBearing;
+			double v1;
+			int matchPosition;
+
+			char test = (char) (e.getVelocity() * (Math.sin(e.getHeadingRadians()
+					- (absoluteBearing = e.getBearingRadians() + getHeadingRadians()))));
+
+			System.out.format("[%04d] test=%d \n", getTime(), (short) test);
+
+			enemyHistory = String.valueOf(test).concat(enemyHistory);
+
+			while ((matchPosition = enemyHistory.indexOf(enemyHistory.substring(0, (--integer)), 64)) < 0)
+				;
+
+			setFire(BULLET_POWER + (ANTI_RAMBOT_DISTANCE / (integer = (int) (e.getDistance()))));
+
+			do
+			{
+				absoluteBearing += ((short) enemyHistory.charAt(--matchPosition)) / e.getDistance();
+			}
+			while ((integer -= BULLET_VELOCITY) > 0);
+			setTurnGunRightRadians(Utils.normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
+
+			setAhead(Math.cos(getEnergy() * Math.PI / Math.max(5, Math.abs(v1 = (e.getEnergy() - getEnergy())))) * 160
+					* dir);
+			setTurnRightRadians(Math.cos(e.getBearingRadians() - v1 * getVelocity() * 0.0004));
+			//setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004));
+			//setMaxVelocity(2000 / e.getDistance());
+			setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 		}
-		PaintHelper.drawArc(new Point2D.Double(getX(), getY()), bDist, 0, Math.PI * 2, false, getGraphics(),
-				Color.green);
-
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absBear - getGunHeadingRadians()));
-
-		setAhead(Math.cos(getEnergy() * Math.PI / 5) * 160 * dir);
-		//setTurnRightRadians(Math.cos(e.getBearingRadians() - v1 * getVelocity() * 0.0004));
-		setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004));
-		//setMaxVelocity(2000 / e.getDistance());
-		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
+		catch (Exception e1)
+		{
+			e1.printStackTrace();
+		}
 	}
 
 	@Override
@@ -126,4 +106,48 @@ public class Kowari extends AdvancedRobot
 	{
 		dir = -dir;
 	}
+
+	public static final int	ANTI_RAMBOT_DISTANCE	= 127;
+	public static final int	BULLET_POWER			= 2;
+	public static final int	BULLET_VELOCITY			= (20 - 3 * BULLET_POWER);
+	public static final int	MAX_MATCH_LENGTH		= 40;
+
+	static String			enemyHistory			= "" + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 1
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 1 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 1
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 1 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+															+ (char) 0 + (char) 0 + (char) 0 + (char) -1 + (char) -2
+															+ (char) -3 + (char) -4 + (char) -5 + (char) -6 + (char) -7
+															+ (char) -8 + (char) 8 + (char) 7 + (char) 6 + (char) 5
+															+ (char) 4 + (char) 3 + (char) 2 + (char) 1 + (char) 0
+															+ (char) 0;
 }
