@@ -1,7 +1,9 @@
 package wompi;
 
 import robocode.AdvancedRobot;
+import robocode.BulletHitEvent;
 import robocode.HitWallEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
@@ -49,105 +51,114 @@ import robocode.util.Utils;
 public class Kowari extends AdvancedRobot
 {
 	private static double	dir;
+	private static double	eEnergy;
 
 	@Override
 	public void run()
 	{
 		// NOTE: this would be nice - I guess
 		setAdjustGunForRobotTurn(true);
-		dir = 1;
-		setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+		setAdjustRadarForRobotTurn(true);
+
+		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
-		try
+
+		//double aBear = e.getBearingRadians() + getHeadingRadians();
+		double eDelta = eEnergy - (eEnergy = e.getEnergy());
+
+		if (eDelta > 0)
 		{
-			int integer = MAX_MATCH_LENGTH;
-			double absoluteBearing;
-			double v1;
-			int matchPosition;
-
-			char test = (char) (e.getVelocity() * (Math.sin(e.getHeadingRadians()
-					- (absoluteBearing = e.getBearingRadians() + getHeadingRadians()))));
-
-			System.out.format("[%04d] test=%d \n", getTime(), (short) test);
-
-			enemyHistory = String.valueOf(test).concat(enemyHistory);
-
-			while ((matchPosition = enemyHistory.indexOf(enemyHistory.substring(0, (--integer)), 64)) < 0)
-				;
-
-			setFire(BULLET_POWER + (ANTI_RAMBOT_DISTANCE / (integer = (int) (e.getDistance()))));
-
-			do
+			//double move = (Math.random() - 0.5) * 42; // try 42
+			double move = 0; // try 42
+			if (getDistanceRemaining() == 0)
 			{
-				absoluteBearing += ((short) enemyHistory.charAt(--matchPosition)) / e.getDistance();
+				//move = (dir = Math.signum(Math.random() - 0.3) * dir);
+				//move = (dir = -dir);
+				move = dir;
 			}
-			while ((integer -= BULLET_VELOCITY) > 0);
-			setTurnGunRightRadians(Utils.normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
+			//System.out.format("[%04d] move=%3.5f \n", getTime(), move);
+			setAhead(move);
+		}
+		//if (eDelta != 0) System.out.format("[%04d] eDelta=%3.5f \n", getTime(), eDelta);
+		//setFire(350 / e.getDistance());
 
-			setAhead(Math.cos(getEnergy() * Math.PI / Math.max(5, Math.abs(v1 = (e.getEnergy() - getEnergy())))) * 160
-					* dir);
-			setTurnRightRadians(Math.cos(e.getBearingRadians() - v1 * getVelocity() * 0.0004));
-			//setTurnRightRadians(Math.cos(e.getBearingRadians() - (e.getDistance() - 160) * getVelocity() * 0.0004));
-			//setMaxVelocity(2000 / e.getDistance());
-			setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
-		}
-		catch (Exception e1)
+		//@formatter:off
+		setTurnRightRadians(
+				(220 - e.getDistance()) * getVelocity() / 1000
+				+ Math.cos(e.getBearingRadians())
+	    );
+		//@formatter:on
+
+		setTurnLeftRadians(Math.cos(e.getBearingRadians()));
+
+		// --------------------- YATAGAN GUN ------------------------------------------------------
+		// TODO: just to see if the movement can do better - get rid of this gun and make a GF one bullet gun
+		// Note: gun size 138 byte includes enemyHistory. This is hard to beat i guess
+		int integer = 40;
+		double absoluteBearing;
+		int matchPosition;
+		enemyHistory = String.valueOf(
+				(char) (e.getVelocity() * (Math.sin(e.getHeadingRadians()
+						- (absoluteBearing = e.getBearingRadians() + getHeadingRadians()))))).concat(enemyHistory);
+		while ((matchPosition = enemyHistory.indexOf(enemyHistory.substring(0, (--integer)), 64)) < 0)
+			;
+		setFire(2 + (127 / (integer = (int) (e.getDistance()))));
+		do
 		{
-			e1.printStackTrace();
+			absoluteBearing += ((short) enemyHistory.charAt(--matchPosition)) / e.getDistance();
 		}
+		while ((integer -= 11) > 0);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
+		// -------------- GUN ----------------------------------------------------------------------
 	}
 
 	@Override
-	public void onHitWall(HitWallEvent e)
+	public void onBulletHit(BulletHitEvent e)
 	{
-		dir = -dir;
+		//eEnergy = e.getEnergy();
+		eEnergy -= Rules.getBulletDamage(e.getBullet().getPower());
 	}
 
-	public static final int	ANTI_RAMBOT_DISTANCE	= 127;
-	public static final int	BULLET_POWER			= 2;
-	public static final int	BULLET_VELOCITY			= (20 - 3 * BULLET_POWER);
-	public static final int	MAX_MATCH_LENGTH		= 40;
+	@Override
+	public void onHitWall(HitWallEvent event)
+	{
+		setAhead(dir = -dir);
+	}
 
-	static String			enemyHistory			= "" + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 1
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 1 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 1
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 1 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-															+ (char) 0 + (char) 0 + (char) 0 + (char) -1 + (char) -2
-															+ (char) -3 + (char) -4 + (char) -5 + (char) -6 + (char) -7
-															+ (char) -8 + (char) 8 + (char) 7 + (char) 6 + (char) 5
-															+ (char) 4 + (char) 3 + (char) 2 + (char) 1 + (char) 0
-															+ (char) 0;
+	static String	enemyHistory	= "" + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
+											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) -1
+											+ (char) -2 + (char) -3 + (char) -4 + (char) -5 + (char) -6 + (char) -7
+											+ (char) -8 + (char) 8 + (char) 7 + (char) 6 + (char) 5 + (char) 4
+											+ (char) 3 + (char) 2 + (char) 1 + (char) 0 + (char) 0;
+
 }
