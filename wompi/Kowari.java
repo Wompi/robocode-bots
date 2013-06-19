@@ -5,6 +5,7 @@ import robocode.BulletHitEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
+import robocode.StatusEvent;
 import robocode.util.Utils;
 
 /**
@@ -53,6 +54,8 @@ public class Kowari extends AdvancedRobot
 	private static double	dir;
 	private static double	eEnergy;
 
+	private static int		bTurn;
+
 	@Override
 	public void run()
 	{
@@ -64,6 +67,12 @@ public class Kowari extends AdvancedRobot
 	}
 
 	@Override
+	public void onStatus(StatusEvent e)
+	{
+		bTurn--;
+	}
+
+	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 
@@ -72,13 +81,17 @@ public class Kowari extends AdvancedRobot
 
 		if (eDelta > 0)
 		{
-			//double move = (Math.random() - 0.5) * 42; // try 42
-			double move = 0; // try 42
-			if (getDistanceRemaining() == 0)
+			double move = (Math.random() - 0.5) * 42; // try 42
+			//double move = 0; // try 42
+			int depp;
+			if (getDistanceRemaining() == 0
+					&& Math.min(bTurn, depp = (int) (e.getDistance() / Rules.getBulletSpeed(eDelta))) < 14)
 			{
-				//move = (dir = Math.signum(Math.random() - 0.3) * dir);
+				bTurn = depp;
+				System.out.format("[%04d] bTurn=%3d \n", getTime(), bTurn);
+				move = (dir = Math.signum(Math.random() - 0.3) * dir);
 				//move = (dir = -dir);
-				move = dir;
+				//move = dir;
 			}
 			//System.out.format("[%04d] move=%3.5f \n", getTime(), move);
 			setAhead(move);
@@ -88,12 +101,13 @@ public class Kowari extends AdvancedRobot
 
 		//@formatter:off
 		setTurnRightRadians(
-				(220 - e.getDistance()) * getVelocity() / 1000
+				(220 - e.getDistance()) * getVelocity() / 3000
 				+ Math.cos(e.getBearingRadians())
 	    );
 		//@formatter:on
 
 		setTurnLeftRadians(Math.cos(e.getBearingRadians()));
+		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
 		// --------------------- YATAGAN GUN ------------------------------------------------------
 		// TODO: just to see if the movement can do better - get rid of this gun and make a GF one bullet gun
