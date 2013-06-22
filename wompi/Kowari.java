@@ -1,12 +1,19 @@
 package wompi;
 
+import java.awt.Color;
+import java.awt.geom.Point2D;
+
 import robocode.AdvancedRobot;
+import robocode.Bullet;
+import robocode.BulletHitBulletEvent;
 import robocode.BulletHitEvent;
 import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintHelper;
+import wompi.robomath.RobotMath;
 
 /**
  * What the ... is a Kowari? (See: http://en.wikipedia.org/wiki/Kowari)
@@ -54,7 +61,15 @@ public class Kowari extends AdvancedRobot
 	private static double	dir;
 	private static double	eEnergy;
 
-	private static int		bTurn;
+	// -------- BEARING GUN wompi ---------------------------
+	static double			eBearing;
+	static double			myx;
+	static double			myy;
+	static double			bDist;
+
+	static Bullet			myBullet;
+
+	// ---------BEARIING GUN --------------------------------
 
 	@Override
 	public void run()
@@ -63,13 +78,13 @@ public class Kowari extends AdvancedRobot
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForRobotTurn(true);
 
-		setTurnRadarRightRadians(dir = Double.POSITIVE_INFINITY);
+		setTurnRadarRightRadians(bDist = dir = Double.POSITIVE_INFINITY);
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		bTurn--;
+		bDist += 11;
 	}
 
 	@Override
@@ -81,17 +96,15 @@ public class Kowari extends AdvancedRobot
 
 		if (eDelta > 0)
 		{
-			double move = (Math.random() - 0.5) * 42; // try 42
-			//double move = 0; // try 42
-			int depp;
-			if (getDistanceRemaining() == 0
-					&& Math.min(bTurn, depp = (int) (e.getDistance() / Rules.getBulletSpeed(eDelta))) < 14)
+			//double move = (Math.random() - 0.5) * 42; // try 42
+			double move = 0; // try 42
+			setAllColors(Color.yellow);
+			if (getDistanceRemaining() == 0)
 			{
-				bTurn = depp;
-				System.out.format("[%04d] bTurn=%3d \n", getTime(), bTurn);
-				move = (dir = Math.signum(Math.random() - 0.3) * dir);
+				//move = (dir = Math.signum(Math.random() - 0.3) * dir);
 				//move = (dir = -dir);
-				//move = dir;
+				move = dir;
+				setAllColors(Color.red);
 			}
 			//System.out.format("[%04d] move=%3.5f \n", getTime(), move);
 			setAhead(move);
@@ -109,31 +122,75 @@ public class Kowari extends AdvancedRobot
 		setTurnLeftRadians(Math.cos(e.getBearingRadians()));
 		setTurnRadarLeftRadians(getRadarTurnRemaining());
 
-		// --------------------- YATAGAN GUN ------------------------------------------------------
-		// TODO: just to see if the movement can do better - get rid of this gun and make a GF one bullet gun
-		// Note: gun size 138 byte includes enemyHistory. This is hard to beat i guess
-		int integer = 40;
-		double absoluteBearing;
-		int matchPosition;
+		// ---------------------- BEARING GUN wompi---------------------------------------------------------
+		// 244 / 398 -- 385
+		// 154 gunsize no codesize shrinking
+		// 141 first code shrink
+		// 136 better shrink hard bullet speed and fire rule
+		//@formatter:off
+		double absBear;
+		double _x; 
+		double _y; 
 
-		double latv = e.getVelocity()
-				* (Math.sin(e.getHeadingRadians() - (absoluteBearing = e.getBearingRadians() + getHeadingRadians())));
-		char clatv = (char) (latv);
-
-		System.out.format("[%04d] latv=%3.5f slatv=%3d diff=%3.5f \n", getTime(), latv, (short) clatv, latv
-				- (short) latv);
-
-		enemyHistory = String.valueOf(clatv).concat(enemyHistory);
-		while ((matchPosition = enemyHistory.indexOf(enemyHistory.substring(0, (--integer)), 64)) < 0)
-			;
-		setFire(2 + (127 / (integer = (int) (e.getDistance()))));
-		do
+				
+		if ((bDist) > Math.hypot(
+								_x = (getX() + e.getDistance() * Math.sin(absBear = (e.getBearingRadians() + getHeadingRadians()))) - myx
+								, 
+								_y = (getY() + e.getDistance() * Math.cos(absBear)) - myy)
+				&& getGunHeat() == 0				
+				)
 		{
-			absoluteBearing += ((short) enemyHistory.charAt(--matchPosition)) / e.getDistance();
+			eBearing = absBear;
+			bDist = 0;
+			myx = getX();
+			myy = getY();
+			Bullet b;
+			if ((b =setFireBullet(3.0)) != null)
+			{
+				myBullet = b;
+			}
 		}
-		while ((integer -= 11) > 0);
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
-		// -------------- GUN ----------------------------------------------------------------------
+				
+		
+		Point2D myPos = new Point2D.Double(getX(), getY());
+		Point2D firePos = new Point2D.Double(myx, myy);
+		
+		PaintHelper.drawArc(firePos, bDist, 0, Math.PI *2,false, getGraphics(), Color.green);
+		PaintHelper.drawPoint(firePos, Color.green, getGraphics(), 4);
+
+		if (myBullet != null)
+		{
+			Point2D bulletPos = new Point2D.Double(myBullet.getX(), myBullet.getY());
+			PaintHelper.drawLine(firePos, bulletPos, getGraphics(), Color.green);
+			
+			double ex = getX() + e.getDistance() * Math.sin(e.getBearingRadians() + getHeadingRadians());
+			double ey = getY() + e.getDistance() * Math.cos(e.getBearingRadians() + getHeadingRadians());
+			double eDist = firePos.distance(ex,ey);
+			PaintHelper.drawLine(firePos, new Point2D.Double(ex, ey), getGraphics(), Color.DARK_GRAY);
+			PaintHelper.drawLine(firePos, RobotMath.calculatePolarPoint(eBearing, eDist, firePos), getGraphics(), Color.LIGHT_GRAY);
+			PaintHelper.drawArc(firePos,eDist, eBearing, Utils.normalRelativeAngle(Math.atan2(ex - myx, ey - myy) - (eBearing)) , false, getGraphics(), Color.RED);
+
+		}
+
+		
+		
+		setTurnGunRightRadians(
+				Utils.normalRelativeAngle(
+						absBear - getGunHeadingRadians() 
+						+ 
+						Math.atan2(_x, _y) - (eBearing)
+				)
+		);
+		//@formatter:on
+
+		// -----------------------BEARING GUN --------------------------------------------------------------
+
+	}
+
+	@Override
+	public void onBulletHitBullet(BulletHitBulletEvent event)
+	{
+		bDist = Double.POSITIVE_INFINITY;
 	}
 
 	@Override
@@ -148,37 +205,4 @@ public class Kowari extends AdvancedRobot
 	{
 		setAhead(dir = -dir);
 	}
-
-	static String	enemyHistory	= "" + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0
-											+ (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) 0 + (char) -1
-											+ (char) -2 + (char) -3 + (char) -4 + (char) -5 + (char) -6 + (char) -7
-											+ (char) -8 + (char) 8 + (char) 7 + (char) 6 + (char) 5 + (char) 4
-											+ (char) 3 + (char) 2 + (char) 1 + (char) 0 + (char) 0;
-
 }
