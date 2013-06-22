@@ -115,9 +115,15 @@ public class Kowari extends AdvancedRobot
 		int integer = 40;
 		double absoluteBearing;
 		int matchPosition;
-		enemyHistory = String.valueOf(
-				(char) (e.getVelocity() * (Math.sin(e.getHeadingRadians()
-						- (absoluteBearing = e.getBearingRadians() + getHeadingRadians()))))).concat(enemyHistory);
+
+		double latv = e.getVelocity()
+				* (Math.sin(e.getHeadingRadians() - (absoluteBearing = e.getBearingRadians() + getHeadingRadians())));
+		char clatv = (char) (latv);
+
+		System.out.format("[%04d] latv=%3.5f slatv=%3d diff=%3.5f \n", getTime(), latv, (short) clatv, latv
+				- (short) latv);
+
+		enemyHistory = String.valueOf(clatv).concat(enemyHistory);
 		while ((matchPosition = enemyHistory.indexOf(enemyHistory.substring(0, (--integer)), 64)) < 0)
 			;
 		setFire(2 + (127 / (integer = (int) (e.getDistance()))));
