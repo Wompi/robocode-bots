@@ -18,12 +18,13 @@ import java.awt.geom.GeneralPath;
 import java.awt.geom.Rectangle2D;
 
 import robocode.AdvancedRobot;
+import wompi.paint.PaintHelper;
 
 public class PaintSegmentDiagramm
 {
 	static long	lastTime;
 
-	public static void onPaint(Graphics2D g, AdvancedRobot myRobot, double[] segmentField, Color myColor)
+	public static void onPaint(Graphics2D g, AdvancedRobot myRobot, double[] segmentField, Color myColor, int textOffset)
 	{
 		if (lastTime > myRobot.getTime())
 		{}
@@ -44,7 +45,7 @@ public class PaintSegmentDiagramm
 
 		double x = myRobot.getBattleFieldWidth() * 0.1;
 		double y = myRobot.getBattleFieldHeight() * 0.1;
-		Rectangle2D pArea = new Rectangle2D.Double(x, y, x, y);
+		Rectangle2D pArea = new Rectangle2D.Double(x, y, x * 5, y);
 
 		Rectangle2D pathBound = aPath.getBounds2D();
 		AffineTransform transform = new AffineTransform();
@@ -58,6 +59,11 @@ public class PaintSegmentDiagramm
 		g.draw(transform.createTransformedShape(aPath));
 		g.setColor(Color.DARK_GRAY);
 		g.draw(pArea);
-	}
 
+		g.setColor(myColor);
+		g.setFont(PaintHelper.myFont);
+		g.drawString(String.format("%3.10f %s", max, myRobot.getName()), (int) (pArea.getMinX()),
+				(int) (pArea.getMaxY() + textOffset));
+
+	}
 }
