@@ -1,12 +1,13 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
-import robocode.HitWallEvent;
-import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.util.Utils;
+import wompi.paint.PaintHelper;
+import wompi.robomath.RobotMath;
 
 /**
  * Code is open source, released under the RoboWiki Public Code License: http://robowiki.net/cgi-bin/robowiki?RWPCL
@@ -84,81 +85,60 @@ import robocode.util.Utils;
  */
 public class Quokka extends AdvancedRobot
 {
-	private static final double	WZ					= 17.0;
-	private static final double	WZ_SIZE_W			= 1000 - 2 * WZ;
-	private static final double	WZ_SIZE_H			= 1000 - 2 * WZ;
-	private static final double	BULLET_POWER		= 3.0;
-	private static final int	BULLET_SPEED		= 11;
-	private static final double	GUN_TURNS			= Rules.getGunHeat(BULLET_POWER) * 10;
 
-	private static final double	TURN_ADJUST			= Math.toRadians(25);
-	private static final double	MOVE_SWITCH_DELTA	= Math.PI / 15;
-
-	static double				DIST;
-	static double				eVelo;
+	static double	INF		= Double.POSITIVE_INFINITY;
+	static double	PI_360	= Math.PI * 2;
+	static double	PI_180	= Math.PI;
 
 	public Quokka()
-	{
-		DIST = 185;
-	}
+	{}
 
 	@Override
 	public void run()
 	{
+		// debug
 		setAllColors(Color.ORANGE);
-		setAdjustGunForRobotTurn(true);
-		setTurnRadarRightRadians(Double.MAX_VALUE);
+		setTurnRadarRightRadians(INF);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
+		double hisHeading = e.getHeadingRadians();
+		double absBear = e.getBearingRadians() + getHeadingRadians();
+		double hisVelo = e.getVelocity();
 
-		if ((e.getDistance()) < 2250 / getOthers()) // 250*9
-		{
-			double v = ((eVelo += e.getVelocity()) / GUN_TURNS);
-			setTurnRadarLeftRadians(getRadarTurnRemaining());
-			double b = 750 / e.getDistance();
-			if (getGunTurnRemaining() == 0)
-			{
-				if (setFireBullet(b) != null)
-				{
-					eVelo = 0;
-				}
-			}
-			//@formatter:off
-			setTurnGunRightRadians(
-					Utils.normalRelativeAngle(
-							(getHeadingRadians() + e.getBearingRadians()) 
-							- getGunHeadingRadians() 
-							+ 
-							(
-							   v 
-							   * Math.sin(
-									e.getHeadingRadians() - getHeadingRadians() + e.getBearingRadians()
-								) 
-								/ Rules.getBulletSpeed(b)
-							)
-					)
-			);
-			//@formatter:on
-		}
+		if (hisVelo < 0) hisHeading += PI_180;
 
-		double d = TURN_ADJUST;
-		if (getGunHeat() < 0.4)
-		{
-			d = -d;
-		}
+		Point2D start = new Point2D.Double(getX(), getY());
+		Point2D e1 = RobotMath.calculatePolarPoint(hisHeading, 100, start);
+		Point2D e2 = RobotMath.calculatePolarPoint(absBear, 100, start);
 
-		setTurnRightRadians(Math.cos(e.getBearingRadians()) - d * Math.signum(getVelocity()));
+		Point2D a1 = new Point2D.Double((e1.getX() + e2.getX()) / 2, (e1.getY() + e2.getY()) / 2);
 
-		setAhead(185 * Math.cos(DIST += MOVE_SWITCH_DELTA));
-		clearAllEvents();
+		double adjust = 0;
+		if (e.getDistance() < 100) adjust = PI_180;
+
+		double moveAngle = RobotMath.calculateAngle(start, a1) - getHeadingRadians() + adjust;
+		Point2D e3 = RobotMath.calculatePolarPoint(moveAngle, 100, start);
+
+		PaintHelper.drawLine(start, e1, getGraphics(), Color.green);
+		PaintHelper.drawLine(start, e2, getGraphics(), Color.red);
+		PaintHelper.drawLine(start, a1, getGraphics(), Color.yellow);
+
+		setTurnRadarLeftRadians(getRadarTurnRemaining());
+		//setTurnRightRadians(Math.tan(moveAngle));
+		setAhead(200 * Math.cos(moveAngle));
+
+		setTurnRightRadians(Math.tan(moveAngle));
+		setAhead(200 * Math.cos(moveAngle));
+
+		//setAhead(120 - Math.abs(getTurnRemaining()));
 	}
 
 	@Override
-	public void onHitWall(HitWallEvent event)
+	public void onPaint(Graphics2D g)
 	{
-		DIST += Math.PI;
+
 	}
 }

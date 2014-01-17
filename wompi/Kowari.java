@@ -1,6 +1,7 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
@@ -12,6 +13,7 @@ import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.paint.PaintEnemyMaxEscapeAngle;
 import wompi.paint.PaintHelper;
 import wompi.robomath.RobotMath;
 
@@ -58,18 +60,22 @@ import wompi.robomath.RobotMath;
 
 public class Kowari extends AdvancedRobot
 {
-	private static double	dir;
-	private static double	eEnergy;
+	private static double			dir;
+	private static double			eEnergy;
 
 	// -------- BEARING GUN wompi ---------------------------
-	static double			eBearing;
-	static double			myx;
-	static double			myy;
-	static double			bDist;
+	static double					eBearing;
+	static double					myx;
+	static double					myy;
+	static double					bDist;
 
-	static Bullet			myBullet;
+	static Bullet					myBullet;
 
 	// ---------BEARIING GUN --------------------------------
+
+	// debug
+	static double					roundedLatVel;
+	static PaintEnemyMaxEscapeAngle	myEnemyEscAngle	= new PaintEnemyMaxEscapeAngle();
 
 	@Override
 	public void run()
@@ -79,18 +85,23 @@ public class Kowari extends AdvancedRobot
 		setAdjustRadarForRobotTurn(true);
 
 		setTurnRadarRightRadians(bDist = dir = Double.POSITIVE_INFINITY);
+
+		myEnemyEscAngle.onInit(this, 18);
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
 		bDist += 11;
+
+		myEnemyEscAngle.onStatus(e);
 	}
 
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 
+		myEnemyEscAngle.onScannedRobot(e);
 		//double aBear = e.getBearingRadians() + getHeadingRadians();
 		double eDelta = eEnergy - (eEnergy = e.getEnergy());
 
@@ -141,6 +152,7 @@ public class Kowari extends AdvancedRobot
 				)
 		{
 			eBearing = absBear;
+			roundedLatVel = 0;
 			bDist = 0;
 			myx = getX();
 			myy = getY();
@@ -151,7 +163,12 @@ public class Kowari extends AdvancedRobot
 			}
 		}
 				
-		
+		int lv =  (int) (e.getVelocity() * Math.sin(e.getHeadingRadians() - absBear));
+		roundedLatVel +=lv;
+		System.out.format("[%04d] rlatvel=%3.5f \n", getTime(),roundedLatVel);
+
+		// debug
+		myEnemyEscAngle.setBulletSpeed(Rules.getBulletSpeed(3.0));
 		Point2D myPos = new Point2D.Double(getX(), getY());
 		Point2D firePos = new Point2D.Double(myx, myy);
 		
@@ -169,8 +186,10 @@ public class Kowari extends AdvancedRobot
 			PaintHelper.drawLine(firePos, new Point2D.Double(ex, ey), getGraphics(), Color.DARK_GRAY);
 			PaintHelper.drawLine(firePos, RobotMath.calculatePolarPoint(eBearing, eDist, firePos), getGraphics(), Color.LIGHT_GRAY);
 			PaintHelper.drawArc(firePos,eDist, eBearing, Utils.normalRelativeAngle(Math.atan2(ex - myx, ey - myy) - (eBearing)) , false, getGraphics(), Color.RED);
+			PaintHelper.drawArc(firePos,eDist-2, eBearing, roundedLatVel/e.getDistance() , false, getGraphics(), Color.BLUE);
 
 		}
+		// _debug
 
 		
 		
@@ -205,4 +224,11 @@ public class Kowari extends AdvancedRobot
 	{
 		setAhead(dir = -dir);
 	}
+
+	@Override
+	public void onPaint(Graphics2D g)
+	{
+		myEnemyEscAngle.onPaint(g);
+	}
+
 }
