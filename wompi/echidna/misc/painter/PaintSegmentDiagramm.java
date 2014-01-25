@@ -24,7 +24,7 @@ public class PaintSegmentDiagramm
 {
 	static long	lastTime;
 
-	public static void onPaint(Graphics2D g, AdvancedRobot myRobot, double[] segmentField, Color myColor, int textOffset)
+	public static void onPaint(Graphics2D g, AdvancedRobot myRobot, double[] segmentField, Color myColor)
 	{
 		if (lastTime > myRobot.getTime())
 		{}
@@ -45,11 +45,11 @@ public class PaintSegmentDiagramm
 
 		double x = myRobot.getBattleFieldWidth() * 0.1;
 		double y = myRobot.getBattleFieldHeight() * 0.1;
-		Rectangle2D pArea = new Rectangle2D.Double(x, y, x * 5, y);
+		Rectangle2D pArea = new Rectangle2D.Double(x, y, x, y);
 
 		Rectangle2D pathBound = aPath.getBounds2D();
 		AffineTransform transform = new AffineTransform();
-		double scaleY = pArea.getHeight() / pathBound.getHeight();
+		double scaleY = pArea.getHeight() / (2. / 36.);
 		double scaleX = pArea.getWidth() / pathBound.getWidth();
 
 		transform.translate(pArea.getX(), pArea.getY() - scaleY * pathBound.getY());
@@ -63,7 +63,7 @@ public class PaintSegmentDiagramm
 		g.setColor(myColor);
 		g.setFont(PaintHelper.myFont);
 		g.drawString(String.format("%3.10f %s", max, myRobot.getName()), (int) (pArea.getMinX()),
-				(int) (pArea.getMaxY() + textOffset));
+				(int) (pArea.getMaxY() + 3));
 
 	}
 }
