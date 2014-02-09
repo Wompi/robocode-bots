@@ -17,44 +17,82 @@ import robocode.Bullet;
 
 public class HitStats
 {
-	public ArrayList<Bullet>	myBullets	= new ArrayList<Bullet>();
+	private final HitStatsHelper[]	myLayerStats	= new HitStatsHelper[9];
+	int								allShots;
 
-	double						dmgMade;
-	double						dmgTaken;
-	double						drained;
-
-	public void printStats(String name)
+	public void printStats(String name, boolean showRatioOnly)
 	{
-		// System.out.format("dmg:[%3.2f,%3.2f] fired:[%d,%d,%d] ratio: %3.2f drain: %3.2f %s\n",dmgMade,dmgTaken,myBullets.size(),getHits(),getMissed(),getHits()/myBullets.size(),drained,name);
-		System.out
-				.format("fired:[%d,%d,%d] ratio: %3.2f %s\n", myBullets.size(), getHits(), getMissed(), (double) getHits() / myBullets.size(), name);
-	}
-
-	private int getHits()
-	{
-		return _helper(true);
-	}
-
-	private int getMissed()
-	{
-		return _helper(false);
-	}
-
-	private int _helper(boolean onlyHits)
-	{
-		int result = 0;
-
-		for (Bullet shot : myBullets)
+		String out = String.format("[%03d] ", allShots);
+		for (HitStatsHelper stats : myLayerStats)
 		{
-			if (onlyHits)
+			if (stats != null)
 			{
-				if (shot.getVictim() != null) result++;
+				stats.calculateMembers(name);
+				if (showRatioOnly)
+				{
+					out += String.format("%3.2f ", stats.myRatio);
+				}
+				else
+				{
+					out += String.format("[%02d|%03d|%3.2f|%02d] ", stats.myHits, stats.myMiss, stats.myRatio,
+
+					stats.myColateral);
+				}
 			}
 			else
 			{
-				if (shot.getVictim() == null) result++;
+				if (showRatioOnly)
+					out += "____ ";
+				else
+					out += "[______________] ";
 			}
 		}
-		return result;
+		System.out.format("%s %s \n", out, name);
+	}
+
+	public void addBullet(Bullet shot, int others)
+	{
+		HitStatsHelper stats = myLayerStats[others - 1];
+		if (stats == null)
+		{
+			myLayerStats[others - 1] = new HitStatsHelper();
+		}
+		myLayerStats[others - 1].myBullets.add(shot);
+		allShots++;
+	}
+}
+
+class HitStatsHelper
+{
+	ArrayList<Bullet>	myBullets	= new ArrayList<Bullet>();
+	int					myHits;
+	int					myMiss;
+	int					myColateral;
+	double				myRatio;
+
+	protected void calculateMembers(String name)
+	{
+
+		myHits = 0;
+		myMiss = 0;
+		myColateral = 0;
+		for (Bullet shot : myBullets)
+		{
+			String victim = shot.getVictim();
+			if (victim != null)
+			{
+				if (victim.equals(name))
+					myHits++;
+				else
+					myColateral++;
+
+			}
+			else
+			{
+				myMiss++;
+			}
+		}
+		myRatio = (double) myHits / myBullets.size();
+
 	}
 }

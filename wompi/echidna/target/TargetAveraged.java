@@ -70,25 +70,27 @@ public class TargetAveraged extends ATarget
 		hitStats = new HitStats();
 	}
 
+	@Override
 	public void init()
 	{
 		// hitStats.printStats(eName); // debug
 		eScan = 0;
 		eHeading = Double.MAX_VALUE;
 		eLiveShotPower = 0;
-		eLastEnergy = 100;  // be careful with teams
+		eLastEnergy = 100; // be careful with teams
 		eLastScan = 0;
 	}
 
+	@Override
 	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		double rHead = myRobot.getHeadingRadians();
 		if (eHeading != Double.MAX_VALUE)
 		{
-			eHeadDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - eHeading);    // put this in an averaged object
+			eHeadDiff = Utils.normalRelativeAngle(e.getHeadingRadians() - eHeading); // put this in an averaged object
 			aHeadDiff = avgHeadDiff.avg(eHeadDiff, eScan);
 		}
-		isAlive = true;							// don't forget this to set
+		isAlive = true; // don't forget this to set
 		eHeading = e.getHeadingRadians();
 		eDistance = e.getDistance();
 		eLastEnergy = eEnergy;
@@ -141,33 +143,38 @@ public class TargetAveraged extends ATarget
 	}
 
 	// debug
+	@Override
 	public void onBulletStatsDebug(Bullet shot)
 	{
-		hitStats.myBullets.add(shot);
+		hitStats.addBullet(shot, myRobot.getOthers());
 	}
 
+	@Override
 	public void onWin(WinEvent event)
 	{
 		// avgBlindTime.onPrint(eName,false);
 		// avgVelocity.onPrint(eName,false);
 		// avgHeadDiff.onPrint(eName,false);
-		hitStats.printStats(eName);
+		hitStats.printStats(eName, false);
 	};
 
+	@Override
 	public void onDeath(DeathEvent event)
 	{
 		// avgBlindTime.onPrint(eName,false);
 		// avgVelocity.onPrint(eName,false);
 		// avgHeadDiff.onPrint(eName,false);
-		hitStats.printStats(eName);
+		hitStats.printStats(eName, false);
 	};
 
+	@Override
 	public void onStatus(StatusEvent e)
 	{
 		// avgVelocity.onPrint(eName,true);
 		// avgHeadDiff.onPrint(eName,true);
 	}
 
+	@Override
 	public void onPaint(Graphics2D g)
 	{
 		// myDistDisplacement.onPaint(g, PaintHelper.colorField[colorIndex-1]);

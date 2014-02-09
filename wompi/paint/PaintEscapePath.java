@@ -117,7 +117,10 @@ public class PaintEscapePath
 
 				for (Point2D p : lForward)
 				{
-					PaintHelper.drawPoint(p, Color.RED, g, 1);
+					if (battleField.contains(p))
+					{
+						PaintHelper.drawPoint(p, Color.RED, g, 1);
+					}
 				}
 
 			}
@@ -126,24 +129,36 @@ public class PaintEscapePath
 			{
 				if (!Utils.isNear(PI_360, DELTA) && !fCheck)
 				{
-					pForwardCW.addPoint((int) eForward.getX(), (int) eForward.getY());
+					if (battleField.contains((int) eForward.getX(), (int) eForward.getY()))
+					{
+						pForwardCW.addPoint((int) eForward.getX(), (int) eForward.getY());
+					}
 
 					Point2D ccwEndpoint = predictPath.getCCWEndPoint();
-					pForwardCCW.addPoint((int) ccwEndpoint.getX(), (int) ccwEndpoint.getY());
+					if (battleField.contains((int) ccwEndpoint.getX(), (int) ccwEndpoint.getY()))
+					{
+						pForwardCCW.addPoint((int) ccwEndpoint.getX(), (int) ccwEndpoint.getY());
+					}
 				}
 				else
 				{
 					Collections.reverse(lForward);
 					for (Point2D point : lForward)
 					{
-						pForwardCW.addPoint((int) point.getX(), (int) point.getY());
+						if (battleField.contains((int) point.getX(), (int) point.getY()))
+						{
+							pForwardCW.addPoint((int) point.getX(), (int) point.getY());
+						}
 					}
 
 					ArrayList<Point2D> depp = predictPath.getCCWAdjustedPredictPath();
 					Collections.reverse(depp);
 					for (Point2D point : depp)
 					{
-						pForwardCCW.addPoint((int) point.getX(), (int) point.getY());
+						if (battleField.contains((int) point.getX(), (int) point.getY()))
+						{
+							pForwardCCW.addPoint((int) point.getX(), (int) point.getY());
+						}
 					}
 
 				}

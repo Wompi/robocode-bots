@@ -147,6 +147,7 @@ public class Echidna extends AdvancedRobot
 	public void onRobotDeath(RobotDeathEvent e)
 	{
 		myTargetHandler.onRobotDeath(e);
+		StatsWinLoose.registerRobotDeath(getOthers(), getEnergy(), getTime());
 		myRadar.onRobotDeath(e);
 		myGun.onRobotDeath(e);
 		if (enableMoving) myMove.onRobotDeath(e);
