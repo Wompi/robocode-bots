@@ -16,9 +16,7 @@ import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import robocode.AdvancedRobot;
 import robocode.Bullet;
@@ -88,30 +86,30 @@ public class Funnelweb extends AdvancedRobot
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-		double sumEnergy = getEnergy();
-		double sumDistance = 0;
-		for (FunnelTarget t : allTargets.values())
-		{
-			if (t.isAlive)
-			{
-				sumEnergy += t.tEnergy;
-				sumDistance += t.tDistance;
-			}
-		}
-
-		System.out.format("[%03d] %3.5f ------- %s \n", getTime(), getEnergy() / sumEnergy, getName());
-		for (FunnelTarget t : allTargets.values())
-		{
-			if (t.isAlive)
-			{
-				double dangerEnergy = t.tEnergy / sumEnergy;
-				double dangerDistance = 1 - t.tDistance / sumDistance;
-				t.tDanger = dangerEnergy * dangerDistance;
-				System.out.format("[%03d] %3.5f %3.5f (%3.5f) %s \n", getTime(), dangerEnergy, dangerDistance,
-						t.tDanger, t.tName);
-			}
-		}
-		System.out.format("\n");
+//		double sumEnergy = getEnergy();
+//		double sumDistance = 0;
+//		for (FunnelTarget t : allTargets.values())
+//		{
+//			if (t.isAlive)
+//			{
+//				sumEnergy += t.tEnergy;
+//				sumDistance += t.tDistance;
+//			}
+//		}
+//
+//		System.out.format("[%03d] %3.5f ------- %s \n", getTime(), getEnergy() / sumEnergy, getName());
+//		for (FunnelTarget t : allTargets.values())
+//		{
+//			if (t.isAlive)
+//			{
+//				double dangerEnergy = t.tEnergy / sumEnergy;
+//				double dangerDistance = 1 - t.tDistance / sumDistance;
+//				t.tDanger = dangerEnergy * dangerDistance;
+//				System.out.format("[%03d] %3.5f %3.5f (%3.5f) %s \n", getTime(), dangerEnergy, dangerDistance,
+//						t.tDanger, t.tName);
+//			}
+//		}
+//		System.out.format("\n");
 	}
 
 	@Override
@@ -189,37 +187,6 @@ public class Funnelweb extends AdvancedRobot
 			double moveAngle = 0;
 			double gunHeading = e.getHeadingRadians();
 
-			Set<FunnelTarget> imNearToThisBots = new HashSet<FunnelTarget>();
-			for (Map.Entry<String, FunnelTarget> entry : allTargets.entrySet())
-			{
-				String enemyName = entry.getKey();
-				FunnelTarget enemyTarget = entry.getValue();
-
-				if (enemyTarget.isAlive && !enemyName.equals(eName))
-				{
-					double distToMe = Point2D
-							.distance(getX(), getY(), enemyTarget.tx + getX(), enemyTarget.ty + getY());
-
-					for (Map.Entry<String, FunnelTarget> nearestBot : allTargets.entrySet())
-					{
-						String neName = nearestBot.getKey();
-						FunnelTarget neTarget = nearestBot.getValue();
-						if (neTarget.isAlive)
-						{
-							double distToNearest = Point2D.distance(enemyTarget.tx, enemyTarget.ty, neTarget.tx,
-									neTarget.ty);
-
-							if (distToMe < distToNearest)
-							{
-								imNearToThisBots.add(enemyTarget);
-								//System.out.format("[%03d] im targeted by %s  main=%s\n", getTime(), enemyName, eName);
-							}
-						}
-					}
-				}
-
-			}
-
 			while ((angleDanger += DELTA_RISK_ANGLE) <= PI_360)
 			{
 				double checkX = rDist * Math.sin(angleDanger);
@@ -227,7 +194,7 @@ public class Funnelweb extends AdvancedRobot
 				if (bField.contains(checkX + getX(), checkY + getY()))
 				{
 					double angleToEnemy = Math.atan2(enemy.tx - checkX, enemy.ty - checkY);
-					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger)) * 10 * enemy.tDanger;
+					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger));
 
 					for (Map.Entry<String, FunnelTarget> entry : allTargets.entrySet())
 					{
@@ -237,20 +204,7 @@ public class Funnelweb extends AdvancedRobot
 						if (enemyTarget.isAlive)
 						{
 							double dSquare = Point2D.distanceSq(enemyTarget.tx, enemyTarget.ty, checkX, checkY);
-							curDanger += TARGET_FORCE * 10 * enemyTarget.tDanger / dSquare;
-
-							for (FunnelTarget botThatTargetMe : imNearToThisBots)
-							{
-
-								if (enemyName.equals(botThatTargetMe.tName))
-								{
-									//curDanger += TARGET_FORCE / dSquare;
-									//double aToEnemy = Math.atan2(botThatTargetMe.tx - checkX, botThatTargetMe.ty
-									//		- checkY);
-									curDanger += TARGET_FORCE * 10 * botThatTargetMe.tDanger / dSquare;
-
-								}
-							}
+							curDanger += TARGET_FORCE / dSquare;
 
 							// TODO: check for nearest target
 
@@ -363,5 +317,6 @@ class FunnelTarget
 		tDanger = 0.1;
 		avgVeloCounter = 0;
 		tEnergy = 100;
+		isAlive = false;
 	}
 }
