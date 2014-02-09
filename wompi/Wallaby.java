@@ -12,23 +12,17 @@
 
 package wompi;
 
-import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 import robocode.AdvancedRobot;
-import robocode.Bullet;
-import robocode.DeathEvent;
 import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
-import robocode.WinEvent;
 import robocode.util.Utils;
-import wompi.echidna.stats.HitStats;
 
 /**
  * What the ... is a Wallaby? (See: http://en.wikipedia.org/wiki/Wallaby)
@@ -48,47 +42,45 @@ import wompi.echidna.stats.HitStats;
  */
 public class Wallaby extends AdvancedRobot
 {
-	private static final double				FIELD_W				= 1000.0;
-	private static final double				FIELD_H				= 1000.0;
+	private static final double			FIELD_W				= 1000.0;
+	private static final double			FIELD_H				= 1000.0;
 
-	private static final double				WZ_G				= 17.0;
-	private static final double				WZ_G_W				= FIELD_W - 2 * WZ_G;
-	private static final double				WZ_G_H				= FIELD_H - 2 * WZ_G;
+	private static final double			WZ_G				= 17.0;
+	private static final double			WZ_G_W				= FIELD_W - 2 * WZ_G;
+	private static final double			WZ_G_H				= FIELD_H - 2 * WZ_G;
 
-	private final static double				DIST				= 185;
-	private final static double				DIST_REMAIN			= 20;
+	private final static double			DIST				= 185;
+	private final static double			DIST_REMAIN			= 20;
 
-	private final static double				GUNLOCK				= 1.0;
-	private final static double				TARGET_FORCE		= 55000;							// 100000 low dmg high surv - 10000 high dmg low surv  
-	private final static double				TARGET_DISTANCE		= 450.0;							// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
+	private final static double			GUNLOCK				= 1.0;
+	private final static double			TARGET_FORCE		= 55000;					// 100000 low dmg high surv - 10000 high dmg low surv  
+	private final static double			TARGET_DISTANCE		= 450.0;					// 400 last best - shoot at TARGET_DISTANCE with bullet 1.0
 
-	private final static double				PI_360				= Math.PI * 2.0;
-	private final static double				DELTA_RISK_ANGLE	= Math.PI / 32.0;
-	private final static double				MAX_HEAD_DIFF		= 0.161442955809475;				// 9.25 degree
-	private final static double				ENERGY_ADJUST		= 4.0;
-	private final static double				INF					= Double.POSITIVE_INFINITY;
-	private final static double				BMAX				= Rules.MAX_BULLET_POWER;
-	private final static double				BMIN				= Rules.MIN_BULLET_POWER;
+	private final static double			PI_360				= Math.PI * 2.0;
+	private final static double			DELTA_RISK_ANGLE	= Math.PI / 32.0;
+	private final static double			MAX_HEAD_DIFF		= 0.161442955809475;		// 9.25 degree
+	private final static double			ENERGY_ADJUST		= 4.0;
+	private final static double			INF					= Double.POSITIVE_INFINITY;
+	private final static double			BMAX				= Rules.MAX_BULLET_POWER;
+	private final static double			BMIN				= Rules.MIN_BULLET_POWER;
 
 	// index:  0:x 1:y 2:heading 3:avgVelocity 4:avgVelocityCounter 5: distance
-	static HashMap<String, double[]>		allTargets;
+	static HashMap<String, double[]>	allTargets;
 
-	static String							eName;
-	static double							eRate;
+	static String						eName;
+	static double						eRate;
 
-	static double							avgHeading;
-	static double							avgHeadCount;
+	static double						avgHeading;
+	static double						avgHeadCount;
 
-	static double							bPower;
-	static double							rDist;
-
-	static final HashMap<String, HitStats>	myStats				= new HashMap<String, HitStats>();
+	static double						bPower;
+	static double						rDist;
 
 	@Override
 	public void run()
 	{
 		allTargets = new HashMap<String, double[]>();
-		setAllColors(Color.RED); // 7 byte
+		//setAllColors(Color.RED); // 7 byte
 		setAdjustGunForRobotTurn(true);
 		//setAdjustRadarForGunTurn(true);
 		setTurnRadarRightRadians(eRate = INF);
@@ -115,14 +107,6 @@ public class Wallaby extends AdvancedRobot
 		{
 			allTargets.put(name, enemy = new double[6]);
 		}
-
-		HitStats stats = myStats.get(name);
-		if (stats == null)
-		{
-			stats = new HitStats();
-			myStats.put(name, stats);
-		}
-
 		xg = enemy[0] = Math.sin((rM = (getHeadingRadians() + e.getBearingRadians())))
 				* (v0 = enemy[5] = e.getDistance());
 		yg = enemy[1] = Math.cos(rM) * v0;
@@ -134,14 +118,7 @@ public class Wallaby extends AdvancedRobot
 		if (eRate > v0 || eName == name)
 		{
 			eName = name;
-			if (getEnergy() > bPower && getGunTurnRemaining() == 0)
-			{
-				Bullet b = setFireBullet(bPower);
-				if (b != null)
-				{
-					stats.addBullet(b, getOthers());
-				}
-			}
+			if (getEnergy() > bPower && getGunTurnRemaining() == 0) setFire(bPower);
 
 			if (Math.abs(h0 = -enemy[2] + (h1 = enemy[2] = e.getHeadingRadians())) > MAX_HEAD_DIFF)
 			{
@@ -152,14 +129,12 @@ public class Wallaby extends AdvancedRobot
 				h0 = (avgHeading += Math.abs(h0)) / ++avgHeadCount * Math.signum(h0);
 				if (!Utils.isNear(0.0, x = INF * Utils.normalRelativeAngle(rM - getRadarHeadingRadians())))
 					setTurnRadarRightRadians(x);
-
 			}
 
 			bPower = Math.min(BMAX, TARGET_DISTANCE / (eRate = v0));
 			rM = Double.MAX_VALUE;
 			v0 = i = 0;
 			Rectangle2D bField;
-
 			while ((v0 += DELTA_RISK_ANGLE) <= PI_360)
 			{
 				if ((bField = new Rectangle2D.Double(WZ_G, WZ_G, WZ_G_W, WZ_G_H)).contains((x = (rDist * Math.sin(v0)))
@@ -172,25 +147,7 @@ public class Wallaby extends AdvancedRobot
 						while (true)
 						{
 							double[] coordinate;
-
 							r1 += TARGET_FORCE / Point2D.distanceSq((coordinate = iter.next())[0], coordinate[1], x, y);
-							double distToMe = Point2D.distance(coordinate[0], coordinate[1], getX(), getY());
-
-							boolean imTargeted = true;
-							for (double[] enemys : allTargets.values())
-							{
-								double enemyDist = Point2D.distance(enemys[0], enemys[1], coordinate[0], coordinate[1]);
-								if (enemyDist < distToMe)
-								{
-									imTargeted = false;
-								}
-							}
-							if (imTargeted)
-							{
-								r1 *= 1.5;
-								//r1 += Math.abs(Math.cos(Math.atan2(coordinate[0] - x, coordinate[1] - y) - v0));
-							}
-
 							isClose |= coordinate[5] < rDist;
 						}
 					}
@@ -251,19 +208,4 @@ public class Wallaby extends AdvancedRobot
 	//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
 	//
 	//	}
-
-	@Override
-	public void onDeath(DeathEvent event)
-	{
-		onWin(null);
-	}
-
-	@Override
-	public void onWin(WinEvent event)
-	{
-		for (Map.Entry<String, HitStats> entry : myStats.entrySet())
-		{
-			entry.getValue().printStats(entry.getKey(), true);
-		}
-	}
 }

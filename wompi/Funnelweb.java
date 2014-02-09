@@ -86,30 +86,29 @@ public class Funnelweb extends AdvancedRobot
 	@Override
 	public void onStatus(StatusEvent e)
 	{
-//		double sumEnergy = getEnergy();
-//		double sumDistance = 0;
-//		for (FunnelTarget t : allTargets.values())
-//		{
-//			if (t.isAlive)
-//			{
-//				sumEnergy += t.tEnergy;
-//				sumDistance += t.tDistance;
-//			}
-//		}
-//
-//		System.out.format("[%03d] %3.5f ------- %s \n", getTime(), getEnergy() / sumEnergy, getName());
-//		for (FunnelTarget t : allTargets.values())
-//		{
-//			if (t.isAlive)
-//			{
-//				double dangerEnergy = t.tEnergy / sumEnergy;
-//				double dangerDistance = 1 - t.tDistance / sumDistance;
-//				t.tDanger = dangerEnergy * dangerDistance;
-//				System.out.format("[%03d] %3.5f %3.5f (%3.5f) %s \n", getTime(), dangerEnergy, dangerDistance,
-//						t.tDanger, t.tName);
-//			}
-//		}
-//		System.out.format("\n");
+		double sumEnergy = getEnergy();
+		//double sumDistance = 0;
+		for (FunnelTarget t : allTargets.values())
+		{
+			if (t.isAlive)
+			{
+				sumEnergy += t.tEnergy;
+				//sumDistance += t.tDistance;
+			}
+		}
+
+		System.out.format("[%03d] %3.5f %s \n", getTime(), getEnergy() / sumEnergy, getName());
+		for (FunnelTarget t : allTargets.values())
+		{
+			if (t.isAlive)
+			{
+				double dangerEnergy = t.tEnergy / sumEnergy;
+				//double dangerDistance = 1 - t.tDistance / sumDistance;
+				t.tDanger = dangerEnergy; // * dangerDistance;
+				System.out.format("[%03d] %3.5f  %s \n", getTime(), t.tDanger, t.tName);
+			}
+		}
+		System.out.format("\n");
 	}
 
 	@Override
@@ -130,8 +129,8 @@ public class Funnelweb extends AdvancedRobot
 		enemy.tDistance = e.getDistance();
 		enemy.tEnergy = e.getEnergy();
 		enemy.avgVeloCounter++;
-		enemy.avgVelocity += Math.abs(e.getVelocity()) * Math.signum(e.getVelocity()); // this is the velocity sum not the average
-		double vGun = enemy.avgVelocity / enemy.avgVeloCounter;
+		enemy.avgVelocity += Math.abs(e.getVelocity()); // this is the velocity sum not the average
+		double vGun = enemy.avgVelocity * Math.signum(e.getVelocity()) / enemy.avgVeloCounter;
 
 		rDist = Math.min(DIST, rDist += 5);
 		boolean isClose = false;
@@ -164,7 +163,7 @@ public class Funnelweb extends AdvancedRobot
 				// calculate the heading delta  
 				avgHeading += Math.abs(dHeading);
 				avgHeadCount++;
-				dHeading = (avgHeading / avgHeadCount) * Math.signum(dHeading);
+				dHeading = avgHeading * Math.signum(dHeading) / avgHeadCount;
 
 				// turn the radar if the gun lock is near shooting
 				// TODO: think again about normal radar lock - might be not so bad 
@@ -180,7 +179,7 @@ public class Funnelweb extends AdvancedRobot
 			eRate = e.getDistance();
 			bPower = Math.min(BMAX, TARGET_DISTANCE / eRate);
 
-			double maxDanger = Double.MAX_VALUE;
+			double minDanger = Double.MAX_VALUE;
 			double curDanger = 0;
 			double angleDanger = 0;
 			double gunTurnCounter = 0;
@@ -194,7 +193,7 @@ public class Funnelweb extends AdvancedRobot
 				if (bField.contains(checkX + getX(), checkY + getY()))
 				{
 					double angleToEnemy = Math.atan2(enemy.tx - checkX, enemy.ty - checkY);
-					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger));
+					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger)) * getOthers() * enemy.tDanger;
 
 					for (Map.Entry<String, FunnelTarget> entry : allTargets.entrySet())
 					{
@@ -204,7 +203,7 @@ public class Funnelweb extends AdvancedRobot
 						if (enemyTarget.isAlive)
 						{
 							double dSquare = Point2D.distanceSq(enemyTarget.tx, enemyTarget.ty, checkX, checkY);
-							curDanger += TARGET_FORCE / dSquare;
+							curDanger += TARGET_FORCE * getOthers() * enemyTarget.tDanger / dSquare;
 
 							// TODO: check for nearest target
 
@@ -213,9 +212,9 @@ public class Funnelweb extends AdvancedRobot
 						}
 					}
 
-					if (Math.random() < 0.8 && curDanger < maxDanger)
+					if (Math.random() < 0.8 && curDanger < minDanger)
 					{
-						maxDanger = curDanger;
+						minDanger = curDanger;
 						moveAngle = angleDanger;
 					}
 				}
