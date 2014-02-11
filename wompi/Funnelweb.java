@@ -133,7 +133,7 @@ public class Funnelweb extends AdvancedRobot
 		double vGun = enemy.avgVelocity * Math.signum(e.getVelocity()) / enemy.avgVeloCounter;
 
 		rDist = Math.min(DIST, rDist += 5);
-		boolean isClose = false;
+		boolean isClose = true;
 
 		if (eRate > e.getDistance() || eName == e.getName())
 		{
@@ -193,7 +193,7 @@ public class Funnelweb extends AdvancedRobot
 				if (bField.contains(checkX + getX(), checkY + getY()))
 				{
 					double angleToEnemy = Math.atan2(enemy.tx - checkX, enemy.ty - checkY);
-					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger)) * getOthers() * enemy.tDanger;
+					curDanger = Math.abs(Math.cos(angleToEnemy - angleDanger));
 
 					for (Map.Entry<String, FunnelTarget> entry : allTargets.entrySet())
 					{
@@ -203,7 +203,7 @@ public class Funnelweb extends AdvancedRobot
 						if (enemyTarget.isAlive)
 						{
 							double dSquare = Point2D.distanceSq(enemyTarget.tx, enemyTarget.ty, checkX, checkY);
-							curDanger += TARGET_FORCE * getOthers() * enemyTarget.tDanger / dSquare;
+							curDanger += TARGET_FORCE * (getOthers() + 1) * enemyTarget.tDanger / dSquare;
 
 							// TODO: check for nearest target
 
