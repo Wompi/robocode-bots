@@ -105,7 +105,13 @@ public class Funnelweb extends AdvancedRobot
 				double dangerEnergy = t.tEnergy / sumEnergy;
 				//double dangerDistance = 1 - t.tDistance / sumDistance;
 				t.tDanger = dangerEnergy; // * dangerDistance;
-				System.out.format("[%03d] %3.5f  %s \n", getTime(), t.tDanger, t.tName);
+				double force = TARGET_FORCE * (getOthers() + 1) * t.tDanger;
+				System.out.format("[%03d] %3.5f %3.0f %s ", getTime(), t.tDanger, force, t.tName);
+				if (t.tName.equals(eName))
+				{
+					System.out.format("*****");
+				}
+				System.out.format("\n");
 			}
 		}
 		System.out.format("\n");
@@ -133,7 +139,7 @@ public class Funnelweb extends AdvancedRobot
 		double vGun = enemy.avgVelocity * Math.signum(e.getVelocity()) / enemy.avgVeloCounter;
 
 		rDist = Math.min(DIST, rDist += 5);
-		boolean isClose = true;
+		boolean isClose = false;
 
 		if (eRate > e.getDistance() || eName == e.getName())
 		{
