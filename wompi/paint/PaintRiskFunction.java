@@ -16,130 +16,6 @@ import robocode.AdvancedRobot;
 public class PaintRiskFunction
 {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	public static Font							myFont	= new Font("Dialog", Font.PLAIN, 16);
 
 	private HashMap<String, HelperRiskFunction>	myRiskFunctions;
@@ -274,6 +150,13 @@ public class PaintRiskFunction
 			Point2D end = new Point2D.Double(myPaintArea.getX() + xOffset, myPaintArea.getY() + myPaintArea.getHeight());
 			g.draw(new Line2D.Double(start, end));
 
+			// test
+			g.setColor(Color.LIGHT_GRAY);
+			xOffset = myPaintArea.getWidth() * rXMIN;
+			start = new Point2D.Double(myPaintArea.getX() + xOffset, myPaintArea.getY());
+			end = new Point2D.Double(myPaintArea.getX() + xOffset, myPaintArea.getY() + myPaintArea.getHeight());
+			g.draw(new Line2D.Double(start, end));
+
 			g.setColor(rColor);
 			g.draw(transform.createTransformedShape(aPath));
 			g.setColor(Color.DARK_GRAY);
@@ -281,7 +164,7 @@ public class PaintRiskFunction
 
 			g.setColor(rColor);
 			g.setFont(myFont);
-			g.drawString(String.format("%3.10f %s", max, name), (int) (myPaintArea.getMinX()),
+			g.drawString(String.format("max: %3.10f min: %3.10f %s", max, min, name), (int) (myPaintArea.getMinX()),
 					(int) (myPaintArea.getMaxY() + textOffset));
 
 			textOffset += myFont.getSize() + 3;

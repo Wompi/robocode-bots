@@ -13,6 +13,7 @@
 package wompi;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import robocode.StatusEvent;
 import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.stats.HitStats;
+import wompi.paint.PaintRiskFunction;
 
 public class Funnelweb extends AdvancedRobot
 {
@@ -68,6 +70,9 @@ public class Funnelweb extends AdvancedRobot
 	static double								bPower;
 	static double								rDist;
 
+	// debug
+	static PaintRiskFunction					myRisk				= new PaintRiskFunction();
+
 	@Override
 	public void run()
 	{
@@ -80,7 +85,7 @@ public class Funnelweb extends AdvancedRobot
 		{
 			t.reset();
 		}
-
+		myRisk.onInit(this, true);
 	}
 
 	@Override
@@ -97,7 +102,7 @@ public class Funnelweb extends AdvancedRobot
 			}
 		}
 
-		System.out.format("[%03d] %3.5f %s \n", getTime(), getEnergy() / sumEnergy, getName());
+		//System.out.format("[%03d] %3.5f %s \n", getTime(), getEnergy() / sumEnergy, getName());
 		for (FunnelTarget t : allTargets.values())
 		{
 			if (t.isAlive)
@@ -106,15 +111,15 @@ public class Funnelweb extends AdvancedRobot
 				//double dangerDistance = 1 - t.tDistance / sumDistance;
 				t.tDanger = dangerEnergy; // * dangerDistance;
 				double force = TARGET_FORCE * (getOthers() + 1) * t.tDanger;
-				System.out.format("[%03d] %3.5f %3.0f %s ", getTime(), t.tDanger, force, t.tName);
+				//System.out.format("[%03d] %3.5f %3.0f %s ", getTime(), t.tDanger, force, t.tName);
 				if (t.tName.equals(eName))
 				{
-					System.out.format("*****");
+					//System.out.format("*****");
 				}
-				System.out.format("\n");
+				//System.out.format("\n");
 			}
 		}
-		System.out.format("\n");
+		//System.out.format("\n");
 	}
 
 	@Override
@@ -138,10 +143,12 @@ public class Funnelweb extends AdvancedRobot
 		enemy.avgVelocity += Math.abs(e.getVelocity()); // this is the velocity sum not the average
 		double vGun = enemy.avgVelocity * Math.signum(e.getVelocity()) / enemy.avgVeloCounter;
 
-		rDist = Math.min(DIST, rDist += 5);
+		rDist = Math.min(Math.min(DIST, e.getDistance()), rDist += 5);
 		boolean isClose = false;
 
-		if (eRate > e.getDistance() || eName == e.getName())
+		double cRate = e.getDistance();
+
+		if (eRate > cRate || eName == e.getName())
 		{
 			eName = e.getName();
 
@@ -182,8 +189,8 @@ public class Funnelweb extends AdvancedRobot
 			}
 
 			// the bullet power for this turn - needs to be capped for the gun formula below
-			eRate = e.getDistance();
-			bPower = Math.min(BMAX, TARGET_DISTANCE / eRate);
+			eRate = cRate;
+			bPower = Math.min(BMAX, TARGET_DISTANCE / e.getDistance());
 
 			double minDanger = Double.MAX_VALUE;
 			double curDanger = 0;
@@ -191,6 +198,9 @@ public class Funnelweb extends AdvancedRobot
 			double gunTurnCounter = 0;
 			double moveAngle = 0;
 			double gunHeading = e.getHeadingRadians();
+
+			double[] risk = new double[64];
+			int riskCounter = 0;
 
 			while ((angleDanger += DELTA_RISK_ANGLE) <= PI_360)
 			{
@@ -218,11 +228,15 @@ public class Funnelweb extends AdvancedRobot
 						}
 					}
 
+					// debug
+					risk[riskCounter] = curDanger;
+
 					if (Math.random() < 0.8 && curDanger < minDanger)
 					{
 						minDanger = curDanger;
 						moveAngle = angleDanger;
 					}
+
 				}
 
 				if (((gunTurnCounter += 0.9) * Rules.getBulletSpeed(bPower) < Math.hypot(xGunRel, yGunRel)))
@@ -236,10 +250,17 @@ public class Funnelweb extends AdvancedRobot
 						vGun = -vGun;
 					}
 				}
+
+				// debug
+				riskCounter++;
 			}
+			// debug
+			myRisk.addRiskFunctionValues("myTarget", risk);
+
 			setTurnGunRightRadians(Utils.normalRelativeAngle(Math.atan2(xGunRel, yGunRel) - getGunHeadingRadians()));
 			if (Math.abs(getDistanceRemaining()) <= DIST_REMAIN || isClose)
 			{
+				myRisk.addRiskFunctionValues("my Current Move", risk);
 				setTurnRightRadians(Math.tan(moveAngle -= getHeadingRadians()));
 				setAhead(rDist * Math.cos(moveAngle));
 			}
@@ -274,12 +295,11 @@ public class Funnelweb extends AdvancedRobot
 		}
 	}
 
-	//	@Override
-	//	public void onPaint(Graphics2D g)
-	//	{
-	//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
-	//
-	//	}
+	@Override
+	public void onPaint(Graphics2D g)
+	{
+		myRisk.onPaint(g);
+	}
 
 	@Override
 	public void onDeath(DeathEvent event)
