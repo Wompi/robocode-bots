@@ -27,6 +27,7 @@ import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 import wompi.echidna.misc.painter.PaintTargetSquare;
+import wompi.echidna.stats.HitStats;
 import wompi.numbat.debug.DebugRadarProperties;
 import wompi.numbat.gun.NumbatSTGun;
 import wompi.numbat.gun.misc.INumbatTick;
@@ -39,8 +40,9 @@ public class NumbatTarget extends Point2D.Double
 	private static final long			serialVersionUID	= -5406737205536713408L;
 
 	public final static double			MAX_PATTERN_BORDER	= 13;
-	public final static Color[]			BOT_COLORS			= { Color.BLUE, Color.CYAN, Color.GRAY, Color.GREEN, Color.MAGENTA, Color.ORANGE,
-			Color.PINK, Color.RED, Color.YELLOW, Color.WHITE };
+	public final static Color[]			BOT_COLORS			=
+															{ Color.BLUE, Color.CYAN, Color.GRAY, Color.GREEN,
+			Color.MAGENTA, Color.ORANGE, Color.PINK, Color.RED, Color.YELLOW, Color.WHITE };
 
 	private double						lastX;
 	private double						lastY;
@@ -93,6 +95,8 @@ public class NumbatTarget extends Point2D.Double
 	private int							avgVCount;
 
 	private static int					colorIndex;
+
+	public final HitStats				myHitStats			= new HitStats();
 
 	public NumbatTarget()
 	{
@@ -308,7 +312,8 @@ public class NumbatTarget extends Point2D.Double
 			double dist = getCurrentScanDifference(status) * Rules.MAX_VELOCITY;
 			PaintHelper.drawArc(this, dist, 0, Math.PI * 2.0, true, g, new Color(0x00, 0xFF, 0x00, 0x10));
 			PaintHelper.drawArc(this, dist, 0, Math.PI * 2.0, false, g, PaintHelper.whiteTrans);
-			double srate = Rules.MAX_VELOCITY / (getDistance(status) - getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
+			double srate = Rules.MAX_VELOCITY
+					/ (getDistance(status) - getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
 			g.setColor(Color.CYAN);
 			g.setFont(PaintHelper.myFont);
 			g.drawString(String.format("[%3.2f]", srate), (int) x - 20, (int) y - 20 - 10);

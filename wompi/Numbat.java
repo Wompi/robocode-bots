@@ -231,12 +231,14 @@ public class Numbat extends AdvancedRobot
 	{
 		DebugMiscProperties.debugWinStats(getOthers());
 		System.out.format("[%04d] DEAD\n", getTime());
+		myTargetMan.onDeath(event);
 	}
 
 	@Override
 	public void onWin(WinEvent event)
 	{
 		DebugMiscProperties.debugWinStats(getOthers());
+		myTargetMan.onWin(event);
 	}
 
 	@Override

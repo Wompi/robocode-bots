@@ -37,7 +37,8 @@ public class NumbatLogDistanceFire extends ANumbatFire
 		myTarget = targetMan.getGunTarget();
 
 		lastBulletPower = bPower;
-		bPower = Math.min(Rules.MAX_BULLET_POWER, Math.min(myTarget.eEnergy / 4.0, TARGET_DISTANCE / myTarget.getDistance(status)));
+		bPower = Math.min(Rules.MAX_BULLET_POWER,
+				Math.min(myTarget.eEnergy / 4.0, TARGET_DISTANCE / myTarget.getDistance(status)));
 
 		if (status.getGunTurnRemaining() == 0)
 		{
@@ -62,7 +63,7 @@ public class NumbatLogDistanceFire extends ANumbatFire
 			Bullet bullet = myBot.setFireBullet(lastBulletPower);
 			if (bullet != null)
 			{
-				//if (myTarget != null) myTarget.registerBullet(bullet);
+				if (myTarget != null) myTarget.myHitStats.addBullet(bullet, myBot.getOthers());
 				// DebugGunProperties.debugGunHitRate(bullet);
 				hasFired = true;
 			}

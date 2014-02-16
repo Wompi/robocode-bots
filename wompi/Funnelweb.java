@@ -30,6 +30,7 @@ import robocode.StatusEvent;
 import robocode.WinEvent;
 import robocode.util.Utils;
 import wompi.echidna.stats.HitStats;
+import wompi.funnelweb.InfluenceMap;
 import wompi.paint.PaintRiskFunction;
 
 public class Funnelweb extends AdvancedRobot
@@ -71,7 +72,11 @@ public class Funnelweb extends AdvancedRobot
 	static double								rDist;
 
 	// debug
+	static int									enemyID				= 0;
+
 	static PaintRiskFunction					myRisk				= new PaintRiskFunction();
+
+	static InfluenceMap							influenceMap		= new InfluenceMap();
 
 	@Override
 	public void run()
@@ -86,11 +91,14 @@ public class Funnelweb extends AdvancedRobot
 			t.reset();
 		}
 		myRisk.onInit(this, true);
+		influenceMap.init();
 	}
 
 	@Override
 	public void onStatus(StatusEvent e)
 	{
+		influenceMap.registerNodeOwner(10, Color.RED, getEnergy(), getX(), getY());
+
 		double sumEnergy = getEnergy();
 		//double sumDistance = 0;
 		for (FunnelTarget t : allTargets.values())
@@ -130,11 +138,15 @@ public class Funnelweb extends AdvancedRobot
 		{
 			enemy = new FunnelTarget();
 			enemy.tName = e.getName();
+			enemy.eID = ++enemyID;
 			allTargets.put(e.getName(), enemy);
 		}
 		double aBear = getHeadingRadians() + e.getBearingRadians();
 		double xGunRel = enemy.tx = Math.sin(aBear) * e.getDistance();
 		double yGunRel = enemy.ty = Math.cos(aBear) * e.getDistance();
+
+		// debug
+		influenceMap.registerNodeOwner(enemy.eID, enemy.eColor, e.getEnergy(), xGunRel + getX(), yGunRel + getY());
 
 		enemy.isAlive = true;
 		enemy.tDistance = e.getDistance();
@@ -287,18 +299,22 @@ public class Funnelweb extends AdvancedRobot
 		eRate = INF;
 		try
 		{
-			allTargets.get(e.getName()).isAlive = false;
+			FunnelTarget dead = allTargets.get(e.getName());
+			dead.isAlive = false;
+			influenceMap.onRobotDeath(dead.eID);
 		}
 		catch (Exception e0)
 		{
 
 		}
+
 	}
 
 	@Override
 	public void onPaint(Graphics2D g)
 	{
-		myRisk.onPaint(g);
+		//myRisk.onPaint(g);
+		influenceMap.onPaint(g);
 	}
 
 	@Override
@@ -335,6 +351,8 @@ class FunnelTarget
 	boolean		isAlive;
 	String		tName;
 	HitStats	tStats	= new HitStats();
+	int			eID		= -1;
+	Color		eColor	= Color.RED;
 
 	protected void reset()
 	{

@@ -12,3 +12,6 @@ for (double i = 3.0; i>0;i-=0.1)
 {
 	System.out.format("(char) %3.0f + ",i*10);	
 }
+
+
+InfuenceMap map = new InfluenceMap();

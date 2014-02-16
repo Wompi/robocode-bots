@@ -18,10 +18,12 @@ import java.util.HashMap;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
+import robocode.DeathEvent;
 import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
 import robocode.RobotStatus;
 import robocode.ScannedRobotEvent;
+import robocode.WinEvent;
 import wompi.numbat.debug.DebugMoveProperties;
 import wompi.numbat.debug.DebugTargetProperties;
 import wompi.paint.PaintHelper;
@@ -73,6 +75,22 @@ public class NumbatTargetManager implements ITargetManager
 		{
 			target.onRobotDeath();
 			setTargets();
+		}
+	}
+
+	public void onDeath(DeathEvent e)
+	{
+		for (NumbatTarget target : allTargets.values())
+		{
+			target.myHitStats.printStats(target.eName, false);
+		}
+	}
+
+	public void onWin(WinEvent e)
+	{
+		for (NumbatTarget target : allTargets.values())
+		{
+			target.myHitStats.printStats(target.eName, false);
 		}
 	}
 
@@ -130,7 +148,8 @@ public class NumbatTargetManager implements ITargetManager
 
 		if (result != myGunTarget)
 		{
-			if (myGunTarget == null || !myGunTarget.isAlive || myGunTarget.getScoreBonus() <= 10 || myGunTarget == enoughFireDamageTarget)
+			if (myGunTarget == null || !myGunTarget.isAlive || myGunTarget.getScoreBonus() <= 10
+					|| myGunTarget == enoughFireDamageTarget)
 			{
 				myGunTarget = result;
 				myMoveTarget = result;
@@ -146,6 +165,7 @@ public class NumbatTargetManager implements ITargetManager
 		return closestBots;
 	}
 
+	@Override
 	public boolean isNearest(NumbatTarget target)
 	{
 		double cDist = target.getDistance(botStatus);
@@ -176,7 +196,7 @@ public class NumbatTargetManager implements ITargetManager
 						minDist = Math.min(minDist, enemy.distance(target));
 					}
 				}
-				if (minDist >= cDist) closestBots++;
+				if (minDist >= cDist) closestBots++; // TODO: should be the other way around - or am I wrong?
 			}
 		}
 	}
