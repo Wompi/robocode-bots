@@ -32,6 +32,7 @@ import robocode.util.Utils;
 import wompi.echidna.stats.HitStats;
 import wompi.funnelweb.InfluenceMap;
 import wompi.paint.PaintRiskFunction;
+import wompi.stats.StatsWinLoose;
 
 public class Funnelweb extends AdvancedRobot
 {
@@ -71,12 +72,13 @@ public class Funnelweb extends AdvancedRobot
 	static double								bPower;
 	static double								rDist;
 
+	static double								myDanger;
+
 	// debug
 	static int									enemyID				= 0;
-
 	static PaintRiskFunction					myRisk				= new PaintRiskFunction();
-
 	static InfluenceMap							influenceMap		= new InfluenceMap();
+	static StatsWinLoose						myWinLooseStats		= new StatsWinLoose();
 
 	@Override
 	public void run()
@@ -92,6 +94,7 @@ public class Funnelweb extends AdvancedRobot
 		}
 		myRisk.onInit(this, true);
 		influenceMap.init();
+		myWinLooseStats.onInit(this);
 	}
 
 	@Override
@@ -127,6 +130,7 @@ public class Funnelweb extends AdvancedRobot
 				//System.out.format("\n");
 			}
 		}
+		myDanger = getEnergy() / sumEnergy;
 		//System.out.format("\n");
 	}
 
@@ -231,9 +235,13 @@ public class Funnelweb extends AdvancedRobot
 						if (enemyTarget.isAlive)
 						{
 							double dSquare = Point2D.distanceSq(enemyTarget.tx, enemyTarget.ty, checkX, checkY);
-							curDanger += TARGET_FORCE * (getOthers() + 1) * enemyTarget.tDanger / dSquare;
+//							double dSquare = Point2D.distanceSq(enemyTarget.tx + getX(), enemyTarget.ty + getY(),
+//									getX(), getY());
+							double danger = TARGET_FORCE * (getOthers() + 1) * enemyTarget.tDanger / dSquare;
 
 							// TODO: check for nearest target
+
+							curDanger += danger;
 
 							// TODO: this is wrong if I have moved 
 							isClose |= enemyTarget.tDistance < rDist;
@@ -313,18 +321,25 @@ public class Funnelweb extends AdvancedRobot
 	@Override
 	public void onPaint(Graphics2D g)
 	{
-		//myRisk.onPaint(g);
+		myRisk.onPaint(g);
 		influenceMap.onPaint(g);
 	}
 
 	@Override
 	public void onDeath(DeathEvent event)
 	{
-		onWin(null);
+		printStats();
+		myWinLooseStats.onDeath(event);
 	}
 
 	@Override
 	public void onWin(WinEvent event)
+	{
+		printStats();
+		myWinLooseStats.onWin(event);
+	}
+
+	private void printStats()
 	{
 		for (Map.Entry<String, FunnelTarget> entry : allTargets.entrySet())
 		{
