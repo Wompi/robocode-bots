@@ -101,6 +101,8 @@ public class Dingo extends AdvancedRobot
 
 		setAllColors(Color.ORANGE);
 
+		System.out.format("Round: %d Rounds: %d \n", getRoundNum(), getNumRounds());
+
 		eEnergy = getEnergy();
 		eDistance = 1000;
 
@@ -122,7 +124,7 @@ public class Dingo extends AdvancedRobot
 			}
 
 			//onMove0();
-			//onMove1();
+			onMove1();
 
 			double bPower = Math.min(2.99, Math.max(0.1, Math.min(eEnergy / 4.0, 350 / eDistance)));
 			//bPower = 3.0;

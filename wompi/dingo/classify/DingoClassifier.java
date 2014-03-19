@@ -1,4 +1,4 @@
-package wompi.dingo.cassify;
+package wompi.dingo.classify;
 
 public class DingoClassifier
 {

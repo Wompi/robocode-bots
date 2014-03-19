@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import robocode.AdvancedRobot;
+import robocode.BattleEndedEvent;
 import robocode.Bullet;
 import robocode.BulletHitEvent;
 import robocode.HitByBulletEvent;
@@ -27,6 +28,7 @@ import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.RobotDeathEvent;
 import robocode.RobotStatus;
+import robocode.RoundEndedEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
@@ -144,8 +146,8 @@ public class Irukandji extends AdvancedRobot
 			}
 		}
 
-		//bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
-		bPower = 0.1;
+		bPower = Math.min(2.99, Math.max(0.1, Math.min(e.getEnergy() / 4.0, 350 / e.getDistance())));
+		//bPower = 0.1;
 		//bPower = 3.0;
 
 		double v2 = e.getVelocity();
@@ -229,6 +231,19 @@ public class Irukandji extends AdvancedRobot
 	{}
 
 	@Override
+	public void onBattleEnded(BattleEndedEvent event)
+	{
+		System.out.format("Well the Battle ended!\n");
+	}
+
+	@Override
+	public void onRoundEnded(RoundEndedEvent event)
+	{
+		System.out.format("Well the Round ended!\n");
+		System.out.format("TotalTurns: %d CurrentTurns: %d\n", event.getTotalTurns(), event.getTurns());
+	}
+
+	@Override
 	public void onPaint(Graphics2D g)
 	{
 
@@ -250,18 +265,18 @@ public class Irukandji extends AdvancedRobot
 
 		WompiSimPaint.onPaint(g, data);
 
-		WSimData bData = new WompiSimPaint().new WSimData();
-		bData.bPos = myTarget;
-		bData.tPos = myPosition;
-		bData.bPower = myTarget.ePower;
-		bData.eDistance = myTarget.eDistance;
-		bData.eHeading = getHeadingRadians();
-		bData.eVelocity = getVelocity();
-		bData.eMaxVelocity = 8.0;
-		bData.bHeat = getGunHeat();
-		bData.bBullets = myBullets;
-
-		WompiSimPaint.onPaint(g, bData);
+//		WSimData bData = new WompiSimPaint().new WSimData();
+//		bData.bPos = myTarget;
+//		bData.tPos = myPosition;
+//		bData.bPower = myTarget.ePower;
+//		bData.eDistance = myTarget.eDistance;
+//		bData.eHeading = getHeadingRadians();
+//		bData.eVelocity = getVelocity();
+//		bData.eMaxVelocity = 8.0;
+//		bData.bHeat = getGunHeat();
+//		bData.bBullets = myBullets;
+//
+//		WompiSimPaint.onPaint(g, bData);
 	}
 }
 

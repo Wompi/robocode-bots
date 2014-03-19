@@ -1,35 +1,53 @@
 package wompi.funnelweb;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Polygon;
+import java.awt.Stroke;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import wompi.paint.PaintHelper;
-
 public class InfluenceMap
 {
-	private static final int						BORDER		= 18;
+	private static final int						BORDER		= 20;
 	private static final int						GRID_X		= 1000 - 2 * BORDER;
 	private static final int						GRID_Y		= 1000 - 2 * BORDER;
 
-	private static final int						GRID_STEP	= 4;
+	private static final int						GRID_STEP	= 8;
 
 	private static final int						GRID_X_MAX	= GRID_X / GRID_STEP;
 	private static final int						GRID_Y_MAX	= GRID_Y / GRID_STEP;
 
 	private static final InfluenceNode[][]			GRID		= new InfluenceNode[GRID_X_MAX + 1][GRID_Y_MAX + 1];
 
-	private static HashMap<Integer, InfluenceOwner>	GRID_OWNER	= new HashMap<Integer, InfluenceOwner>();
+	public static HashMap<Integer, InfluenceOwner>	GRID_OWNER	= new HashMap<Integer, InfluenceOwner>();
 
-	private static Color[]							cField		=
-																{ Color.RED, Color.BLUE, Color.CYAN, Color.GRAY,
-			Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.PINK, Color.YELLOW, Color.WHITE, Color.DARK_GRAY };
-
+	//@formatter:off
+	private static final int ALPHA = 50; 
+	private static Color[]							cField		=														
+		{ 	getAlphaColor(Color.RED,ALPHA), 
+			getAlphaColor(Color.BLUE,ALPHA), 
+			getAlphaColor(Color.CYAN,ALPHA), 
+			getAlphaColor(Color.GRAY,ALPHA), 
+			getAlphaColor(Color.GREEN,ALPHA), 
+			getAlphaColor(Color.MAGENTA,ALPHA), 
+			getAlphaColor(Color.ORANGE,ALPHA), 
+			getAlphaColor(Color.PINK,ALPHA), 
+			getAlphaColor(Color.YELLOW,ALPHA), 
+			getAlphaColor(Color.WHITE,ALPHA), 
+			getAlphaColor(Color.DARK_GRAY,ALPHA) 
+		};
+	//@formatter:on
 	public InfluenceMap()
 	{
 
+	}
+
+	private static Color getAlphaColor(Color c, int alpha)
+	{
+		return new Color(c.getRed(), c.getGreen(), c.getBlue(), alpha);
 	}
 
 	public void init()
@@ -111,7 +129,7 @@ public class InfluenceMap
 		GRID_OWNER.remove(enemyID);
 	}
 
-	public void onPaint(Graphics2D g)
+	public void calcuateInfluence()
 	{
 		// reset last influence settings
 		int nodeCount = 0;
@@ -136,7 +154,8 @@ public class InfluenceMap
 
 		for (InfluenceOwner owner : GRID_OWNER.values())
 		{
-			owner.ownerDanger = owner.ownerEnergy / ownerEnergySum;
+			owner.ownerDanger = 1;
+			//owner.ownerDanger = owner.ownerEnergy / ownerEnergySum;
 			owner.gridDist = 0;
 			owner.isBorderComplete = false;
 		}
@@ -182,10 +201,17 @@ public class InfluenceMap
 										hasNewBorders = true;
 										hasStillBorders = true;
 										borderCount++;
+
+										if (lastBorderNode.borderNodes.size() < 4)
+										{
+											owner.ownedBorder.add(lastBorderNode);
+										}
+
 									}
 									else
 									{
 										if (newBorderNode.nodeOwner != owner.ownerID)
+										//|| newBorderNode.borderNodes.size() < 4)
 										{
 											owner.ownedBorder.add(lastBorderNode);
 										}
@@ -224,27 +250,58 @@ public class InfluenceMap
 				break;
 			}
 		}
+	}
 
-//		for (int y = 0; y <= GRID_Y_MAX; y++)
-//		{
-//			for (int x = 0; x <= GRID_X_MAX; x++)
-//			{
-//				Point2D nodePoint = new Point2D.Double(x * GRID_STEP + BORDER, y * GRID_STEP + BORDER);
-//				PaintHelper.drawPoint(nodePoint, GRID[x][y].nodeColor, g, 15);
-//			}
-//		}
-
+	public void onPaint(Graphics2D g)
+	{
+		Stroke old = g.getStroke();
+		g.setStroke(new BasicStroke(1));
 		for (InfluenceOwner owner : GRID_OWNER.values())
 		{
-			System.out.format("BORDER[%d] borderSize=%d \n", owner.ownerID, owner.ownedBorder.size());
-			for (InfluenceNode border : owner.ownedBorder)
+			ArrayList<InfluenceNode> borders = new ArrayList<InfluenceNode>(owner.ownedBorder);
+
+			if (borders.size() == 0) continue;
+
+			//System.out.format("BORDER[%d] borderSize=%d \n", owner.ownerID, owner.ownedBorder.size());
+
+			InfluenceNode current = borders.get(0);
+			Polygon aPath = new Polygon();
+
+			int emergencyBreak = borders.size() + 10;
+
+			while (!borders.isEmpty())
 			{
-				//System.out.format("BORDER[%d] borderX=%d borderY=%d \n", owner.ownerID, border.nodeX, border.nodeY);
-				Point2D nodePoint = new Point2D.Double(border.nodeX + BORDER, border.nodeY + BORDER);
-				PaintHelper.drawPoint(nodePoint, border.nodeColor, g, 2);
+				double minDist = Double.MAX_VALUE;
+				int index = -1;
+				for (int i = 0; i < borders.size(); i++)
+				{
+					InfluenceNode node = borders.get(i);
+					double d = Point2D.distance(node.nodeX, node.nodeY, current.nodeX, current.nodeY);
+
+					if (d < minDist)
+					{
+						minDist = d;
+						index = i;
+					}
+				}
+				current = borders.remove(index);
+				aPath.addPoint(current.nodeX + BORDER, current.nodeY + BORDER);
+
+				if (--emergencyBreak < 0)
+				{
+					System.out.format("Emergency Break %d... check the paint infuence loop\n", emergencyBreak);
+					break;
+				}
 
 			}
+
+			aPath.addPoint(aPath.xpoints[0], aPath.ypoints[0]);
+			g.setColor(owner.ownerColor);
+			g.fillPolygon(aPath);
+			//g.drawPolygon(aPath);
 		}
+		g.setStroke(old);
+
 	}
 }
 

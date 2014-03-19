@@ -283,6 +283,7 @@ public class Funnelweb extends AdvancedRobot
 				myRisk.addRiskFunctionValues("my Current Move", risk);
 				setTurnRightRadians(Math.tan(moveAngle -= getHeadingRadians()));
 				setAhead(rDist * Math.cos(moveAngle));
+				influenceMap.calcuateInfluence();
 			}
 		}
 	}

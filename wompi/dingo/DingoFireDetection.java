@@ -152,8 +152,8 @@ public class DingoFireDetection
 	// debug and helper
 	public void onDebug(String info)
 	{
-//		System.out.format("[%04d] eEnergy=%6.5f eGunHeat=%3.15f eVelocity=%3.5f (%s)\n", myStatus.getTime(), eEnergy,
-//				eGunHeat, eVelocity, info);
+		System.out.format("[%04d] eEnergy=%6.5f eGunHeat=%3.15f eVelocity=%3.5f (%s)\n", myStatus.getTime(), eEnergy,
+				eGunHeat, eVelocity, info);
 	}
 
 	public boolean hasFired()

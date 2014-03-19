@@ -29,7 +29,7 @@ public class DebugRadarProperties
 
 	public static void debugScanDifference(long scan)
 	{
-		scanDiff[(int) Math.min(scan, MAX_SCANDIFF - 1)]++;
+		scanDiff[(int) Math.min(scan - 1, MAX_SCANDIFF - 1)]++;
 	}
 
 	public static void execute()
