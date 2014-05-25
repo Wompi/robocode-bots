@@ -16,4 +16,6 @@ public abstract class ARadar
 	public abstract void onScannedRobot(ScannedRobotEvent e);
 
 	public abstract void onHitRobot(HitRobotEvent e);
+
+	public abstract String getName();
 }

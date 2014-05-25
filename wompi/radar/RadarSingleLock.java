@@ -6,6 +6,7 @@ import robocode.RobotStatus;
 import robocode.ScannedRobotEvent;
 import robocode.StatusEvent;
 import robocode.util.Utils;
+import wompi.robotcontrol.IRobotTurn;
 
 public class RadarSingleLock extends ARadar
 {
@@ -13,16 +14,26 @@ public class RadarSingleLock extends ARadar
 
 	private double				slipDir;
 
-	private AdvancedRobot		myBot;
+	private IRadar				myRadarBot;
+	private IRobotTurn			myTurnBot;
+	private final ARadar		nextRadar;
+
 	private RobotStatus			myStatus;
-	private ScannedRobotEvent	myRobotStatus;
+
+	public RadarSingleLock(ARadar radar)
+	{
+		nextRadar = radar;
+	}
 
 	@Override
 	public void onInit(AdvancedRobot bot)
 	{
-		myBot = bot;
-		myBot.setAdjustRadarForGunTurn(true);
-		myBot.setAdjustRadarForRobotTurn(true);
+		bot.setAdjustGunForRobotTurn(true);
+		bot.setAdjustRadarForGunTurn(true);
+		bot.setAdjustRadarForRobotTurn(true);
+
+		myRadarBot = (IRadar) bot;
+		myTurnBot = (IRobotTurn) bot;
 	}
 
 	@Override
@@ -33,12 +44,16 @@ public class RadarSingleLock extends ARadar
 
 	@Override
 	public void onRun()
+	{}
+
+	@Override
+	public void onScannedRobot(ScannedRobotEvent e)
 	{
 		double rTurn;
-		long sDelta = myStatus.getTime() - myRobotStatus.getTime();
+		long sDelta = myStatus.getTime() - e.getTime();
 		if (sDelta == 0)
 		{
-			double absBearing = myStatus.getHeadingRadians() + myRobotStatus.getBearingRadians();
+			double absBearing = myStatus.getHeadingRadians() + e.getBearingRadians();
 			rTurn = Utils.normalRelativeAngle(absBearing - myStatus.getRadarHeadingRadians()) * LOCK_OFFSET;
 			slipDir = Math.signum(rTurn);
 		}
@@ -48,18 +63,19 @@ public class RadarSingleLock extends ARadar
 			//System.out.format("[%04d] scan = %d \n", myStatus.getTime(), sDelta);
 		}
 
-		myBot.setTurnRadarRightRadians(rTurn);
-	}
-
-	@Override
-	public void onScannedRobot(ScannedRobotEvent e)
-	{
-		myRobotStatus = e;
+		myTurnBot.setRadarTurnAmount(rTurn, getName());
 	}
 
 	@Override
 	public void onHitRobot(HitRobotEvent e)
 	{
 		// TODO: what to do on ram - turn radar to nearest bot?
+	}
+
+	@Override
+	public String getName()
+	{
+		// TODO Auto-generated method stub
+		return "RadarSingleLock";
 	}
 }
