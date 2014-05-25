@@ -92,7 +92,7 @@ public class DingoFireDetection
 		}
 		eDelta = eEnergy - e.getEnergy();
 
-		if (eDelta != 0.0) System.out.format("[%04d] enmey energy drop %3.15f\n", e.getTime(), eDelta);
+		if (eDelta != 0.0) System.out.format("[%04d] enemey energy drop %3.15f\n", e.getTime(), eDelta);
 
 		eVelocity = e.getVelocity();
 		eEnergy = e.getEnergy();

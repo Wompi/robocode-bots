@@ -8,8 +8,8 @@ import robocode.AdvancedRobot;
 import robocode.RobotStatus;
 import robocode.Rules;
 import robocode.util.Utils;
-import wompi.Dingo;
 import wompi.paint.PaintHelper;
+import wompi.robomath.RobotConst;
 import wompi.robomath.RobotMath;
 
 public class DingoPaint
@@ -31,7 +31,7 @@ public class DingoPaint
 	{
 		if (mPoint != null)
 		{
-			PaintHelper.drawArc(getMoveStartPoint(), Dingo.DIST, 0, Dingo.PI_360, false, g, Color.GRAY);
+			PaintHelper.drawArc(getMoveStartPoint(), 185, 0, RobotConst.PI_360, false, g, Color.GRAY);
 			currentMoveSim(g, 1, Color.RED);
 			currentMoveSim(g, -1, Color.GREEN);
 			currentMovePoint(g);
@@ -65,7 +65,7 @@ public class DingoPaint
 		if (mPoint == null) return;
 		double a = 0;
 		double maxv = Rules.MAX_VELOCITY;
-		while ((a += DELTA_P) <= Dingo.PI_360)
+		while ((a += DELTA_P) <= RobotConst.PI_360)
 		{
 			double h = moveStartStatus.getHeadingRadians();
 			double v = moveStartStatus.getVelocity();
