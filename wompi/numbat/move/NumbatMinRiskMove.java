@@ -48,7 +48,8 @@ public class NumbatMinRiskMove extends ANumbatMove
 	@Override
 	public void init(RobotStatus status)
 	{
-		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ, NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
+		B_FIELD_MOVE = new Rectangle2D.Double(WZ, WZ, NumbatBattleField.BATTLE_FIELD_W - 2 * WZ,
+				NumbatBattleField.BATTLE_FIELD_H - 2 * WZ);
 	}
 
 	@Override
@@ -64,8 +65,8 @@ public class NumbatMinRiskMove extends ANumbatMove
 		NumbatTarget target = targetMan.getMoveTarget();
 
 		boolean adjustRule = status.getOthers() <= 2 && Math.random() < 0.33;
-		boolean isFireRule = target.myBulletTracker.hasFired(target.getLastScanDifference()) && targetMan.isNearest(target)
-				&& (status.getOthers() > 2 || adjustRule);
+		boolean isFireRule = target.myBulletTracker.hasFired(target.getLastScanDifference())
+				&& targetMan.isNearest(target) && (status.getOthers() > 2 || adjustRule);
 
 		// debug
 		//		if (isFireRule)
@@ -83,7 +84,8 @@ public class NumbatMinRiskMove extends ANumbatMove
 			power = target.myBulletTracker.myLastFirePower;
 		}
 
-		if (status.getOthers() == 1) moveDist = Math.max(20, (target.getDistance(status) - 50) * 8.0 / Rules.getBulletSpeed(power));
+		if (status.getOthers() == 1)
+			moveDist = Math.max(20, (target.getDistance(status) - 50) * 8.0 / Rules.getBulletSpeed(power));
 
 		while ((riskAngle += DELTA_RISK_ANGLE) <= PI_360)
 		{

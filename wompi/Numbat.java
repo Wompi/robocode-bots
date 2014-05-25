@@ -14,12 +14,14 @@ package wompi;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
+import java.awt.geom.Point2D;
 
 import robocode.AdvancedRobot;
 import robocode.BulletHitEvent;
 import robocode.DeathEvent;
 import robocode.HitRobotEvent;
 import robocode.RobotDeathEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.SkippedTurnEvent;
 import robocode.StatusEvent;
@@ -38,6 +40,7 @@ import wompi.numbat.misc.SkippedTurnHandler;
 import wompi.numbat.move.NumbatMoveManager;
 import wompi.numbat.radar.NumbatRadarManager;
 import wompi.numbat.target.NumbatTargetManager;
+import wompi.paint.PaintHelper;
 
 /**
  * What the ... is a Numbat? (See: http://en.wikipedia.org/wiki/Numbat)
@@ -220,6 +223,9 @@ public class Numbat extends AdvancedRobot
 
 		//		PaintRobotPath.onPaint(g, getName(), getTime(), getX(), getY(), Color.GREEN);
 		//		// PaintHitCloud.onPaint(g);
+		Point2D me = new Point2D.Double(getX(), getY());
+		PaintHelper.drawArc(me, Rules.RADAR_SCAN_RADIUS, 0, Math.PI * 2.0, true, g, PaintHelper.whiteTrans);
+
 		myTargetMan.onPaint(g);
 		myMoveMan.onPaint(g);
 		myGunMan.onPaint(g);

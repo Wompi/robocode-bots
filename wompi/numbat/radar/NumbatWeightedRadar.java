@@ -19,7 +19,7 @@ import wompi.numbat.target.NumbatTarget;
 
 public class NumbatWeightedRadar extends ANumbatRadar
 {
-	public final static double	MAX_RADAR_RATE		= 0.03; // less is more search
+	public final static double	MAX_RADAR_RATE		= 0.01; // less is more search
 	public final static double	DEFAULT_RADAR_WIDTH	= 5.0;
 	public final static double	DEFAULT_RADAR_LOCK	= 0.8;
 
@@ -30,7 +30,8 @@ public class NumbatWeightedRadar extends ANumbatRadar
 
 		if (target.getCurrentScanDifference(status) == 0)
 		{
-			rTurn = Utils.normalRelativeAngle(target.getAbsoluteBearing(status) - status.getRadarHeadingRadians()) * DEFAULT_RADAR_WIDTH;
+			rTurn = Utils.normalRelativeAngle(target.getAbsoluteBearing(status) - status.getRadarHeadingRadians())
+					* DEFAULT_RADAR_WIDTH;
 			target.eSlipDir = Math.signum(rTurn);
 		}
 		else
@@ -45,7 +46,8 @@ public class NumbatWeightedRadar extends ANumbatRadar
 			{
 				if (enemy != target)
 				{
-					double rate = Rules.MAX_VELOCITY / (enemy.getDistance(status) - enemy.getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
+					double rate = Rules.MAX_VELOCITY
+							/ (enemy.getDistance(status) - enemy.getCurrentScanDifference(status) * Rules.MAX_VELOCITY);
 
 					// NOTE: the GunHeat rule is awesome i guess
 					if ((rate >= MAX_RADAR_RATE || rate <= 0) && status.getGunHeat() > DEFAULT_RADAR_LOCK)
@@ -56,7 +58,8 @@ public class NumbatWeightedRadar extends ANumbatRadar
 					}
 					else
 					{
-						enemy.eSlipDir = Utils.normalRelativeAngle(enemy.getAbsoluteBearing(status) - status.getRadarHeadingRadians());
+						enemy.eSlipDir = Utils.normalRelativeAngle(enemy.getAbsoluteBearing(status)
+								- status.getRadarHeadingRadians());
 
 					}
 				}
